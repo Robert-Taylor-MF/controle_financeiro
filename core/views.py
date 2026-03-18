@@ -1,36 +1,46 @@
+import json
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import datetime
-from .models import Categoria
-from .models import CartaoCredito, Transacao, Pessoa
+from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal
 from .services import processar_fatura_pdf
-from .forms import CartaoCreditoForm
+from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm
 
 def dashboard(request):
     ultimas_transacoes = Transacao.objects.all().order_by('-data_compra')[:15]
     categorias = Categoria.objects.all()
     
-    # 1. Pega o dono do sistema (Você)
     dono = Pessoa.objects.filter(is_owner=True).first()
-    renda = dono.renda_mensal if dono else 0
     
-    # 2. Calcula as fatias ideais (O Plano de Jogo)
-    meta_essencial = float(renda) * 0.50
-    meta_emocao = float(renda) * 0.30
-    meta_futuro = float(renda) * 0.20
+    # 1. Identifica o mês e ano atuais para buscar a folha de pagamento correta
+    mes_atual = datetime.now().month
+    ano_atual = datetime.now().year
     
-    # 3. Pega só os SEUS gastos (ignora o que os amigos devem)
-    meus_gastos = Transacao.objects.filter(responsavel=dono)
+    # 2. Vai à nova tabela buscar a renda líquida apenas deste mês
+    if dono:
+        renda_obj = RendaMensal.objects.filter(pessoa=dono, mes=mes_atual, ano=ano_atual).first()
+        renda = float(renda_obj.valor_liquido) if renda_obj else 0.0
+    else:
+        renda = 0.0
+        
+    # 3. Calcula as fatias ideais (Regra 50/30/20)
+    meta_essencial = renda * 0.50
+    meta_emocao = renda * 0.30
+    meta_futuro = renda * 0.20
     
-    # 4. Soma o que você já gastou em cada tipo de categoria
-    # Usamos float() para garantir que a divisão na tela não dê erro de tipo
+    # 4. TRUQUE DE ARQUITETURA: Pega nos teus gastos E nos que acabaram de chegar da IA (em branco)
+    # Assim, o loot recém-importado já impacta a tua barra de vida até que decidas passar a dívida a um amigo
+    meus_gastos = Transacao.objects.filter(Q(responsavel=dono) | Q(responsavel__isnull=True))
+    
+    # 5. Soma o que já foi gasto por categoria
     gasto_essencial = float(meus_gastos.filter(categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
     gasto_emocao = float(meus_gastos.filter(categoria__tipo_regra='ESTILO_VIDA').aggregate(Sum('valor'))['valor__sum'] or 0)
     gasto_futuro = float(meus_gastos.filter(categoria__tipo_regra='FUTURO').aggregate(Sum('valor'))['valor__sum'] or 0)
 
-    # 5. Calcula a porcentagem consumida para a barra de progresso (proteção contra divisão por zero)
+    # 6. Calcula a percentagem consumida (com proteção matemática contra divisão por zero)
     pct_essencial = min(int((gasto_essencial / meta_essencial) * 100) if meta_essencial > 0 else 0, 100)
     pct_emocao = min(int((gasto_emocao / meta_emocao) * 100) if meta_emocao > 0 else 0, 100)
     pct_futuro = min(int((gasto_futuro / meta_futuro) * 100) if meta_futuro > 0 else 0, 100)
@@ -47,7 +57,8 @@ def dashboard(request):
         },
         'pcts': {
             'essencial': pct_essencial, 'emocao': pct_emocao, 'futuro': pct_futuro
-        }
+        },
+        'pessoas': Pessoa.objects.all()
     }
     
     return render(request, 'dashboard.html', contexto)
@@ -75,19 +86,37 @@ def importar_fatura(request):
             
     return render(request, 'importar_fatura.html', {'cartoes': cartoes})
 
-def gerenciar_cartoes(request):
-    cartoes = CartaoCredito.objects.all()
-    
+def central_cadastros(request):
     if request.method == 'POST':
-        form = CartaoCreditoForm(request.POST)
-        if form.is_valid():
-            form.save() # Salva direto no banco!
-            messages.success(request, "Cartão forjado com sucesso!")
-            return redirect('gerenciar_cartoes') # Recarrega a página limpa
-    else:
-        form = CartaoCreditoForm()
+        acao = request.POST.get('acao')
         
-    return render(request, 'gerenciar_cartoes.html', {'form': form, 'cartoes': cartoes})
+        if acao == 'cartao':
+            form = CartaoCreditoForm(request.POST)
+            if form.is_valid(): form.save(); messages.success(request, "Arma (Cartão) forjada com sucesso!")
+        elif acao == 'pessoa':
+            form = PessoaForm(request.POST)
+            if form.is_valid(): form.save(); messages.success(request, "Novo aliado recrutado para a Guilda!")
+        elif acao == 'categoria':
+            form = CategoriaForm(request.POST)
+            if form.is_valid(): form.save(); messages.success(request, "Novo encantamento (Categoria) adicionado ao Grimório!")
+        elif acao == 'renda':
+            form = RendaMensalForm(request.POST)
+            if form.is_valid(): form.save(); messages.success(request, "Mana (Renda Mensal) canalizada com sucesso!")
+            
+        return redirect('central_cadastros')
+    
+    # Se for GET (apenas a carregar a página), preparamos os 4 formulários e as listas
+    contexto = {
+        'form_cartao': CartaoCreditoForm(),
+        'form_pessoa': PessoaForm(),
+        'form_categoria': CategoriaForm(),
+        'form_renda': RendaMensalForm(),
+        'cartoes': CartaoCredito.objects.all(),
+        'pessoas': Pessoa.objects.all(),
+        'categorias': Categoria.objects.all(),
+        'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
+    }
+    return render(request, 'central_cadastros.html', contexto)
 
 def ratear_transacao(request, transacao_id):
     # Puxa a transação original do banco
@@ -165,6 +194,25 @@ def extrato_faturas(request):
         'categorias': categorias,
         'mes_atual': mes or str(datetime.now().month),
         'ano_atual': ano or str(datetime.now().year),
-        'cartao_selecionado': cartao_id or ""
+        'cartao_selecionado': cartao_id or "",
+        'pessoas': Pessoa.objects.all()
     }
     return render(request, 'extrato.html', contexto)
+
+def atualizar_responsavel(request, transacao_id):
+    if request.method == 'POST':
+        try:
+            dados = json.loads(request.body)
+            nova_pessoa_id = dados.get('pessoa_id')
+            
+            transacao = Transacao.objects.get(id=transacao_id)
+            
+            if nova_pessoa_id:
+                transacao.responsavel_id = nova_pessoa_id
+            else:
+                transacao.responsavel = None
+                
+            transacao.save()
+            return JsonResponse({'status': 'sucesso'})
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)

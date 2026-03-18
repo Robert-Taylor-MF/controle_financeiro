@@ -35,8 +35,8 @@
         </nav>
 
         <div class="p-4 border-t border-slate-800">
-            <a href="{% url 'gerenciar_cartoes' %}" target="_blank" class="block w-full text-center px-4 py-2 bg-red-900/30 border border-red-900 text-red-400 rounded-md hover:bg-red-900/50 transition-colors text-sm uppercase tracking-wide font-semibold">
-                Cadastros
+            <a href="{% url 'central_cadastros' %}" class="block w-full text-center px-4 py-2 bg-red-900/30 border border-red-900 text-red-400 rounded-md hover:bg-red-900/50 transition-colors text-sm uppercase tracking-wide font-semibold">
+                ⚙️ Central de Cadastros
             </a>
             <a href="/admin/" target="_blank" class="block w-full text-center px-4 py-2 bg-slate-900 border border-slate-700 text-slate-400 rounded-md hover:bg-slate-800 hover:text-purple-400 hover:border-purple-900/50 transition-all text-xs uppercase tracking-wider">
                 Painel Django (Admin)
@@ -94,6 +94,48 @@
         });
     }
 </script>
+
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // SALVAR CATEGORIA
+    function salvarCategoria(transacaoId, categoriaId) {
+        const csrftoken = getCookie('csrftoken');
+        fetch(`/api/atualizar-categoria/${transacaoId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify({ categoria_id: categoriaId })
+        }).then(response => {
+            if (response.ok) window.location.reload(); // Recarrega para atualizar as barras de HP
+        });
+    }
+
+    // SALVAR RESPONSÁVEL
+    function salvarResponsavel(transacaoId, pessoaId) {
+        const csrftoken = getCookie('csrftoken');
+        fetch(`/api/atualizar-responsavel/${transacaoId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify({ pessoa_id: pessoaId })
+        }).then(response => {
+            if (response.ok) window.location.reload(); // Recarrega para atualizar a matemática financeira
+        });
+    }
+</script>
+
 </body>
 </html>
 

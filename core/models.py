@@ -13,11 +13,6 @@ class Pessoa(models.Model):
     )
     ativo = models.BooleanField(default=True)
     
-    renda_mensal = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.00, 
-        help_text="Usado para calcular a regra 50/30/20 (Apenas para o Titular)"
-    )
-
     def __str__(self):
         return f"{self.nome} ({'Titular' if self.is_owner else 'Terceiro'})"
 
@@ -72,7 +67,7 @@ class Transacao(models.Model):
     
     # Relacionamentos (Foreign Keys)
     responsavel = models.ForeignKey(
-        Pessoa, on_delete=models.PROTECT, related_name='transacoes'
+        Pessoa, on_delete=models.PROTECT, related_name='transacoes', null=True, blank=True
     )
     cartao = models.ForeignKey(
         CartaoCredito, on_delete=models.PROTECT, related_name='transacoes', null=True, blank=True
@@ -89,3 +84,20 @@ class Transacao(models.Model):
 
     def __str__(self):
         return f"{self.data_compra} - {self.descricao} - R$ {self.valor}"
+    
+class RendaMensal(models.Model):
+    """
+    Armazena o salário líquido variável para cada competência (Mês/Ano).
+    O motor do sistema usará isso para calcular a regra 50/30/20.
+    """
+    pessoa = models.ForeignKey(Pessoa, on_delete=models.CASCADE)
+    mes = models.IntegerField()
+    ano = models.IntegerField()
+    valor_liquido = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        # Garante que você não cadastre dois salários para o mesmo mês sem querer
+        unique_together = ('pessoa', 'mes', 'ano')
+
+    def __str__(self):
+        return f"Renda de {self.pessoa.nome} - {self.mes}/{self.ano}: R$ {self.valor_liquido}"

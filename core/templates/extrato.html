@@ -81,12 +81,15 @@
                         </select>
                     </td>
                     
-                    <td class="py-3 px-4 font-semibold whitespace-nowrap">
-                        {% if t.responsavel.is_owner %}
-                            <span class="text-slate-300">Meu Gasto</span>
-                        {% else %}
-                            <span class="text-red-400">{{ t.responsavel.nome }}</span>
-                        {% endif %}
+                    <td class="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <select onchange="salvarResponsavel('{{ t.id }}', this.value)" class="w-32 bg-slate-900 text-slate-300 border border-slate-600 rounded p-1 text-xs focus:border-purple-500 transition-all outline-none cursor-pointer">
+                            <option value="" class="text-slate-500">- Sem Dono -</option>
+                            {% for p in pessoas %}
+                                <option value="{{ p.id }}" {% if t.responsavel_id == p.id %}selected{% endif %}>
+                                    {{ p.nome }} {% if p.is_owner %}(Eu){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </td>
                     
                     <td class="py-3 px-4 text-right font-bold text-slate-100 whitespace-nowrap">R$ {{ t.valor }}</td>

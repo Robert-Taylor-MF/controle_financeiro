@@ -91,7 +91,7 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
                 descricao=item['descricao'],
                 valor=item['valor'],
                 data_compra=item['data_compra'],
-                responsavel=dono_principal,
+                responsavel=None,
                 cartao=cartao,
                 categoria=categoria_obj,
                 status='PENDENTE',
