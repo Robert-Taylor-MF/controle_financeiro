@@ -13,6 +13,10 @@
 </head>
 <body class="bg-slate-900 text-slate-200 min-h-screen flex">
 
+    <div style="display: none;">
+        {% csrf_token %}
+    </div>
+
     <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col">
         <div class="p-6 border-b border-slate-800">
             <h1 class="text-2xl font-bold text-red-500 tracking-wider uppercase">Nexus<span class="text-slate-100">Fin</span></h1>
@@ -25,7 +29,11 @@
             </a>
             
             <a href="{% url 'importar_fatura' %}" class="block px-4 py-3 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
-                Importar via IA
+                O Oráculo (IA)
+            </a>
+            
+            <a href="{% url 'sala_de_guerra' %}" class="block px-4 py-3 rounded-md text-slate-400 hover:bg-slate-800 hover:text-yellow-400 transition-colors">
+                Sala de Guerra (KPIs)
             </a>
 
             <a href="{% url 'extrato_faturas' %}" class="block px-4 py-3 rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors">
@@ -96,14 +104,20 @@
 </script>
 
 <script>
-    function getCookie(name) {
+    // Função Blindada: Tenta pegar direto do HTML primeiro, se falhar, tenta o Cookie
+    function obterTokenCSRF() {
+        const inputCsrf = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (inputCsrf) {
+            return inputCsrf.value;
+        }
+        
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
             for (let i = 0; i < cookies.length; i++) {
                 const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
                     break;
                 }
             }
@@ -113,26 +127,34 @@
 
     // SALVAR CATEGORIA
     function salvarCategoria(transacaoId, categoriaId) {
-        const csrftoken = getCookie('csrftoken');
+        const token = obterTokenCSRF();
         fetch(`/api/atualizar-categoria/${transacaoId}/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
             body: JSON.stringify({ categoria_id: categoriaId })
         }).then(response => {
-            if (response.ok) window.location.reload(); // Recarrega para atualizar as barras de HP
-        });
+            if (response.ok) {
+                window.location.reload(); 
+            } else {
+                alert('Erro na Forja! O servidor bloqueou a classificação da categoria.');
+            }
+        }).catch(erro => alert('Falha de conexão ao salvar a categoria.'));
     }
 
     // SALVAR RESPONSÁVEL
     function salvarResponsavel(transacaoId, pessoaId) {
-        const csrftoken = getCookie('csrftoken');
+        const token = obterTokenCSRF();
         fetch(`/api/atualizar-responsavel/${transacaoId}/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
             body: JSON.stringify({ pessoa_id: pessoaId })
         }).then(response => {
-            if (response.ok) window.location.reload(); // Recarrega para atualizar a matemática financeira
-        });
+            if (response.ok) {
+                window.location.reload(); 
+            } else {
+                alert('Erro na Forja! O servidor bloqueou a alteração do responsável.');
+            }
+        }).catch(erro => alert('Falha de conexão ao salvar o responsável.'));
     }
 </script>
 

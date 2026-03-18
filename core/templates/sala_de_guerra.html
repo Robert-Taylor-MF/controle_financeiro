@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+    <header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+        <div>
+            <h2 class="text-3xl font-bold text-slate-100">Sala de Guerra (Data Analytics)</h2>
+            <p class="text-slate-400">Análise tática da sua economia e projeção de recursos.</p>
+            
+            <form method="GET" action="{% url 'sala_de_guerra' %}" class="mt-4 flex items-center gap-2">
+                <span class="text-slate-500 text-xs font-bold uppercase tracking-wider mr-1">Competência Tática:</span>
+                <select name="mes" onchange="this.form.submit()" class="bg-slate-900 text-slate-300 border border-slate-700 rounded p-1 text-sm focus:border-yellow-500 outline-none cursor-pointer transition-colors shadow-sm">
+                    <option value="1" {% if mes_atual == '1' %}selected{% endif %}>Janeiro</option>
+                    <option value="2" {% if mes_atual == '2' %}selected{% endif %}>Fevereiro</option>
+                    <option value="3" {% if mes_atual == '3' %}selected{% endif %}>Março</option>
+                    <option value="4" {% if mes_atual == '4' %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if mes_atual == '5' %}selected{% endif %}>Maio</option>
+                    <option value="6" {% if mes_atual == '6' %}selected{% endif %}>Junho</option>
+                    <option value="7" {% if mes_atual == '7' %}selected{% endif %}>Julho</option>
+                    <option value="8" {% if mes_atual == '8' %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if mes_atual == '9' %}selected{% endif %}>Setembro</option>
+                    <option value="10" {% if mes_atual == '10' %}selected{% endif %}>Outubro</option>
+                    <option value="11" {% if mes_atual == '11' %}selected{% endif %}>Novembro</option>
+                    <option value="12" {% if mes_atual == '12' %}selected{% endif %}>Dezembro</option>
+                </select>
+                <input type="number" name="ano" value="{{ ano_atual }}" onchange="this.form.submit()" class="w-20 bg-slate-900 text-slate-300 border border-slate-700 rounded p-1 text-sm focus:border-yellow-500 outline-none cursor-pointer transition-colors shadow-sm">
+            </form>
+        </div>
+    </header>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl lg:col-span-1">
+            <h3 class="text-lg font-bold text-slate-200 mb-4 border-b border-slate-700 pb-2">Distribuição de Recursos</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="graficoCategorias"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl lg:col-span-2">
+            <h3 class="text-lg font-bold text-slate-200 mb-4 border-b border-slate-700 pb-2">Evolução: Mana (Receita) vs Dano (Gasto)</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="graficoEvolucao"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <script>
+        // O Padrão Ouro do Django: Em vez de ler como "Texto" e converter,
+        // o Python injeta as listas puras direto no Javascript!
+        // OBS: O seu editor de código (VS Code, etc) vai sublinhar as variáveis abaixo 
+        // achando que é um erro, mas ignore. O Django resolve isso no Backend.
+        const catLabels = {{ cat_labels|safe }};
+        const catDados = {{ cat_dados|safe }};
+        
+        const histLabels = {{ hist_labels|safe }};
+        const histGastos = {{ hist_gastos|safe }};
+        const histReceitas = {{ hist_receitas|safe }};
+
+        const coresRPG = [
+            'rgba(239, 68, 68, 0.8)',   // Vermelho (Essencial / Dano)
+            'rgba(168, 85, 247, 0.8)',  // Roxo (Emoção / Magia)
+            'rgba(59, 130, 246, 0.8)',  // Azul (Reserva)
+            'rgba(234, 179, 8, 0.8)',   // Amarelo
+            'rgba(34, 197, 94, 0.8)',   // Verde
+            'rgba(100, 116, 139, 0.8)'  // Cinza (Limbo / Não classificado)
+        ];
+
+        // ==========================================
+        // GRÁFICO 1 (ROSCA)
+        // ==========================================
+        try {
+            const ctxCat = document.getElementById('graficoCategorias');
+            new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catDados,
+                        backgroundColor: coresRPG,
+                        borderColor: '#0f172a', // Cor do fundo (slate-900) para espaçamento
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { color: '#94a3b8' } 
+                        }
+                    }
+                }
+            });
+        } catch (erro1) {
+            console.error("Erro ao forjar o Radar de Consumo:", erro1);
+        }
+
+        // ==========================================
+        // GRÁFICO 2 (BARRAS EVOLUTIVAS)
+        // ==========================================
+        try {
+            const ctxHist = document.getElementById('graficoEvolucao');
+            new Chart(ctxHist, {
+                type: 'bar',
+                data: {
+                    labels: histLabels,
+                    datasets: [
+                        {
+                            label: 'Mana (Receita Líquida)',
+                            data: histReceitas,
+                            backgroundColor: 'rgba(168, 85, 247, 0.5)',
+                            borderColor: 'rgba(168, 85, 247, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Dano (Despesas Reais)',
+                            data: histGastos,
+                            backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(51, 65, 85, 0.5)' }, // Grade suave
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { 
+                            labels: { color: '#cbd5e1' } 
+                        }
+                    }
+                }
+            });
+        } catch (erro2) {
+            console.error("Erro ao forjar o Histórico de Batalha:", erro2);
+        }
+    </script>
+{% endblock %}

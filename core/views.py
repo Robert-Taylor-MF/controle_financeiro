@@ -1,5 +1,6 @@
 import json
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Sum, Q
@@ -8,57 +9,87 @@ from datetime import datetime
 from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal
 from .services import processar_fatura_pdf
 from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm
+from .forms import DespesaAvulsaForm
 
 def dashboard(request):
-    ultimas_transacoes = Transacao.objects.all().order_by('-data_compra')[:15]
-    categorias = Categoria.objects.all()
+    # ==========================================
+    # INTERCEPTADOR DE LANÇAMENTO MANUAL (POST)
+    # ==========================================
+    if request.method == 'POST' and request.POST.get('acao') == 'nova_despesa':
+        form_despesa = DespesaAvulsaForm(request.POST)
+        if form_despesa.is_valid():
+            form_despesa.save()
+            # Pega o mês e ano que você digitou no formulário para recarregar a tela no lugar certo
+            m = request.POST.get('mes_fatura')
+            a = request.POST.get('ano_fatura')
+            return redirect(f"/?mes={m}&ano={a}")
+            
+    # ==========================================
+    # LÓGICA DE EXIBIÇÃO NORMAL (GET)
+    # ==========================================
+    hoje = datetime.now()
+    mes_atual = int(request.GET.get('mes', hoje.month))
+    ano_atual = int(request.GET.get('ano', hoje.year))
     
+    categorias = Categoria.objects.all()
+    pessoas = Pessoa.objects.all()
     dono = Pessoa.objects.filter(is_owner=True).first()
     
-    # 1. Identifica o mês e ano atuais para buscar a folha de pagamento correta
-    mes_atual = datetime.now().month
-    ano_atual = datetime.now().year
+    # 1. O Relógio do Sistema: Pega o mês da URL, se não tiver, usa o mês atual
+    hoje = datetime.now()
+    mes_atual = int(request.GET.get('mes', hoje.month))
+    ano_atual = int(request.GET.get('ano', hoje.year))
     
-    # 2. Vai à nova tabela buscar a renda líquida apenas deste mês
+    # 2. Vai à Tesouraria procurar a Renda ESPECÍFICA deste mês e ano
     if dono:
         renda_obj = RendaMensal.objects.filter(pessoa=dono, mes=mes_atual, ano=ano_atual).first()
         renda = float(renda_obj.valor_liquido) if renda_obj else 0.0
     else:
         renda = 0.0
         
-    # 3. Calcula as fatias ideais (Regra 50/30/20)
+    # 3. Calcula as fatias ideais com base no salário daquele mês
     meta_essencial = renda * 0.50
     meta_emocao = renda * 0.30
     meta_futuro = renda * 0.20
     
-    # 4. TRUQUE DE ARQUITETURA: Pega nos teus gastos E nos que acabaram de chegar da IA (em branco)
-    # Assim, o loot recém-importado já impacta a tua barra de vida até que decidas passar a dívida a um amigo
-    meus_gastos = Transacao.objects.filter(Q(responsavel=dono) | Q(responsavel__isnull=True))
+    # 4. TRUQUE MESTRE: Filtra os gastos apenas da competência selecionada!
+    meus_gastos = Transacao.objects.filter(
+        Q(responsavel=dono) | Q(responsavel__isnull=True),
+        mes_fatura=mes_atual,
+        ano_fatura=ano_atual
+    )
     
-    # 5. Soma o que já foi gasto por categoria
+    # 5. Soma o que já foi gasto nas categorias
     gasto_essencial = float(meus_gastos.filter(categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
     gasto_emocao = float(meus_gastos.filter(categoria__tipo_regra='ESTILO_VIDA').aggregate(Sum('valor'))['valor__sum'] or 0)
     gasto_futuro = float(meus_gastos.filter(categoria__tipo_regra='FUTURO').aggregate(Sum('valor'))['valor__sum'] or 0)
+    gasto_indefinido = float(meus_gastos.filter(categoria__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0)
 
-    # 6. Calcula a percentagem consumida (com proteção matemática contra divisão por zero)
+    # 6. Calcula a percentagem consumida
     pct_essencial = min(int((gasto_essencial / meta_essencial) * 100) if meta_essencial > 0 else 0, 100)
     pct_emocao = min(int((gasto_emocao / meta_emocao) * 100) if meta_emocao > 0 else 0, 100)
     pct_futuro = min(int((gasto_futuro / meta_futuro) * 100) if meta_futuro > 0 else 0, 100)
 
+    # 7. A lista de Loot também só mostra as coisas daquele mês
+    ultimas_transacoes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual).order_by('-data_compra')[:15]
+
     contexto = {
         'transacoes': ultimas_transacoes,
         'categorias': categorias,
+        'pessoas': pessoas,
         'renda': renda,
-        'gastos': {
-            'essencial': gasto_essencial, 'emocao': gasto_emocao, 'futuro': gasto_futuro
-        },
-        'metas': {
-            'essencial': meta_essencial, 'emocao': meta_emocao, 'futuro': meta_futuro
-        },
-        'pcts': {
-            'essencial': pct_essencial, 'emocao': pct_emocao, 'futuro': pct_futuro
-        },
-        'pessoas': Pessoa.objects.all()
+        'gastos': {'essencial': gasto_essencial, 'emocao': gasto_emocao, 'futuro': gasto_futuro, 'indefinido': gasto_indefinido},
+        'metas': {'essencial': meta_essencial, 'emocao': meta_emocao, 'futuro': meta_futuro},
+        'pcts': {'essencial': pct_essencial, 'emocao': pct_emocao, 'futuro': pct_futuro},
+        'mes_atual': str(mes_atual), # Passado para o HTML saber quem está selecionado
+        'ano_atual': str(ano_atual),
+        
+        # Injetamos o formulário já com a competência atual da tela pré-preenchida!
+        'form_despesa': DespesaAvulsaForm(initial={
+            'mes_fatura': mes_atual, 
+            'ano_fatura': ano_atual,
+            'data_compra': hoje.strftime('%Y-%m-%d')
+        }),
     }
     
     return render(request, 'dashboard.html', contexto)
@@ -199,6 +230,28 @@ def extrato_faturas(request):
     }
     return render(request, 'extrato.html', contexto)
 
+@csrf_exempt  # <-- O Feitiço que baixa o escudo de segurança para esta API
+def atualizar_categoria(request, transacao_id):
+    if request.method == 'POST':
+        try:
+            dados = json.loads(request.body)
+            nova_categoria_id = dados.get('categoria_id')
+            
+            transacao = Transacao.objects.get(id=transacao_id)
+            
+            if nova_categoria_id:
+                transacao.categoria_id = nova_categoria_id
+            else:
+                transacao.categoria = None
+                
+            transacao.save()
+            return JsonResponse({'status': 'sucesso'})
+        except Exception as e:
+            # Imprime o erro real no terminal negro do Django
+            print(f"\n[ERRO API CATEGORIA] Falha ao forjar: {str(e)}\n")
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
+
+@csrf_exempt  # <-- O Feitiço que baixa o escudo de segurança para esta API
 def atualizar_responsavel(request, transacao_id):
     if request.method == 'POST':
         try:
@@ -215,4 +268,71 @@ def atualizar_responsavel(request, transacao_id):
             transacao.save()
             return JsonResponse({'status': 'sucesso'})
         except Exception as e:
+            # Imprime o erro real no terminal negro do Django
+            print(f"\n[ERRO API RESPONSAVEL] Falha ao forjar: {str(e)}\n")
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
+        
+def sala_de_guerra(request):
+    dono = Pessoa.objects.filter(is_owner=True).first()
+    hoje = datetime.now()
+
+    # O Relógio do Sistema com interceção do filtro (A "Máquina do Tempo")
+    mes_atual = int(request.GET.get('mes', hoje.month))
+    ano_atual = int(request.GET.get('ano', hoje.year))
+
+    # ==========================================
+    # KPI 1: Distribuição de Gastos da COMPETÊNCIA SELECIONADA
+    # ==========================================
+    gastos_mes = Transacao.objects.filter(responsavel=dono, mes_fatura=mes_atual, ano_fatura=ano_atual)
+
+    categorias_labels = []
+    categorias_dados = []
+    
+    for cat in Categoria.objects.all():
+        total = gastos_mes.filter(categoria=cat).aggregate(Sum('valor'))['valor__sum'] or 0
+        if total > 0:
+            categorias_labels.append(cat.nome)
+            categorias_dados.append(float(total))
+
+    total_indefinido = gastos_mes.filter(categoria__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
+    if total_indefinido > 0:
+        categorias_labels.append("Loot Indefinido")
+        categorias_dados.append(float(total_indefinido))
+
+    # ==========================================
+    # KPI 2: Evolução (Últimos 6 Meses)
+    # ==========================================
+    historico_labels = []
+    historico_gastos = []
+    historico_receitas = []
+
+    for i in range(5, -1, -1):
+        # A evolução sempre se baseia no mês atual do relógio para manter os 6 meses fixos
+        m = hoje.month - i
+        a = hoje.year
+        if m <= 0:
+            m += 12
+            a -= 1
+
+        historico_labels.append(f"{m:02d}/{a}")
+
+        total_gasto = Transacao.objects.filter(
+            responsavel=dono, mes_fatura=m, ano_fatura=a
+        ).aggregate(Sum('valor'))['valor__sum'] or 0
+        historico_gastos.append(float(total_gasto))
+
+        renda_obj = RendaMensal.objects.filter(pessoa=dono, mes=m, ano=a).first()
+        total_receita = float(renda_obj.valor_liquido) if renda_obj else 0.0
+        historico_receitas.append(total_receita)
+
+    contexto = {
+        'cat_labels': json.dumps(categorias_labels),
+        'cat_dados': json.dumps(categorias_dados),
+        'hist_labels': json.dumps(historico_labels),
+        'hist_gastos': json.dumps(historico_gastos),
+        'hist_receitas': json.dumps(historico_receitas),
+        'mes_atual': str(mes_atual), # Passamos para o select do HTML
+        'ano_atual': str(ano_atual),
+    }
+    
+    return render(request, 'sala_de_guerra.html', contexto)

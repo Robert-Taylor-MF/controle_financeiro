@@ -8,4 +8,6 @@ urlpatterns = [
     path('dividir/<int:transacao_id>/', views.ratear_transacao, name='ratear_transacao'),
     path('extrato/', views.extrato_faturas, name='extrato_faturas'),
     path('api/atualizar-responsavel/<int:transacao_id>/', views.atualizar_responsavel, name='atualizar_responsavel'),
+    path('api/atualizar-categoria/<int:transacao_id>/', views.atualizar_categoria, name='atualizar_categoria'),
+    path('sala-de-guerra/', views.sala_de_guerra, name='sala_de_guerra'),
 ]
