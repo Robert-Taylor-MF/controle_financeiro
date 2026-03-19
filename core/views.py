@@ -1,6 +1,7 @@
 import json
 import urllib.parse
 import decimal
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -9,7 +10,7 @@ from django.contrib import messages
 from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import datetime
-from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal, Instituicao, Cofre
+from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal, Instituicao, Cofre, HistoricoCofre
 from .services import processar_fatura_pdf
 from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm, InstituicaoForm, CofreForm
 from .forms import DespesaAvulsaForm
@@ -432,6 +433,8 @@ def editar_cadastro(request, tipo, id):
         'pessoa': (Pessoa, PessoaForm, 'Aliado (Pessoa)'),
         'categoria': (Categoria, CategoriaForm, 'Encantamento (Categoria)'),
         'renda': (RendaMensal, RendaMensalForm, 'Mana (Renda)'),
+        'cofre': (Cofre, CofreForm, 'Baú (Cofrinho)'),
+        'instituicao': (Instituicao, InstituicaoForm, 'Banco (Instituição)'),
     }
 
     # Se alguém tentar acessar uma URL que não existe, joga de volta pro QG
@@ -473,19 +476,37 @@ def banco_guilda(request):
             form = InstituicaoForm(request.POST)
             if form.is_valid():
                 form.save()
+                messages.success(request, "Instituição forjada com sucesso!")
                 return redirect('banco_guilda')
         elif acao == 'cofre':
             form = CofreForm(request.POST)
             if form.is_valid():
                 form.save()
+                messages.success(request, "Novo Cofrinho ativado com sucesso!")
                 return redirect('banco_guilda')
 
-    # Busca os dados para desenhar a tela
     instituicoes = Instituicao.objects.all()
     cofres = Cofre.objects.all().order_by('instituicao__nome')
-    
-    # Calcula todo o seu patrimônio acumulado somando todos os cofres
     tesouro_total = sum(c.saldo_atual for c in cofres)
+
+    # ==========================================
+    # DATA SCIENCE: LIVRO RAZÃO E ALERTAS
+    # ==========================================
+    # Soma tudo que saiu e subtrai tudo que foi devolvido como reposição
+    total_saidas = HistoricoCofre.objects.filter(tipo='saida').aggregate(Sum('valor'))['valor__sum'] or 0
+    total_reposicoes = HistoricoCofre.objects.filter(tipo='reposicao').aggregate(Sum('valor'))['valor__sum'] or 0
+    
+    total_sacado = total_saidas - total_reposicoes
+    if total_sacado < 0:
+        total_sacado = 0 # Garante que a dívida nunca fique negativa
+
+    # Agrupamento: Para onde foi o ouro sacado?
+    saques_motivos = HistoricoCofre.objects.filter(tipo='saida').values('motivo').annotate(total=Sum('valor'))
+    
+    # Traduz a sigla do banco de dados para o texto bonito
+    motivos_dict = dict(HistoricoCofre.MOTIVO_CHOICES)
+    motivos_labels = [motivos_dict.get(item['motivo'], 'Outro') for item in saques_motivos]
+    motivos_dados = [float(item['total']) for item in saques_motivos]
 
     contexto = {
         'form_instituicao': InstituicaoForm(),
@@ -493,29 +514,60 @@ def banco_guilda(request):
         'cofres': cofres,
         'instituicoes': instituicoes,
         'tesouro_total': float(tesouro_total),
+        'total_sacado': float(total_sacado),
+        'motivos_labels': json.dumps(motivos_labels),
+        'motivos_dados': json.dumps(motivos_dados),
     }
     return render(request, 'banco_guilda.html', contexto)
 
 @csrf_exempt
 def atualizar_cofre(request, cofre_id):
-    """ API para depositar ou sacar ouro rapidamente sem recarregar a página """
+    """ API para depositar ou sacar ouro gravando no Livro Razão """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             valor = decimal.Decimal(str(data.get('valor', 0)))
             tipo = data.get('tipo') # 'depositar' ou 'sacar'
+            motivo = data.get('motivo') # Recebe o motivo do saque (se houver)
             
             cofre = Cofre.objects.get(id=cofre_id)
             
             if tipo == 'depositar':
                 cofre.saldo_atual += valor
+                HistoricoCofre.objects.create(cofre=cofre, tipo='entrada', valor=valor)
+            elif tipo == 'repor':
+                cofre.saldo_atual += valor
+                # Grava no histórico como reposição para abater a dívida
+                HistoricoCofre.objects.create(cofre=cofre, tipo='reposicao', valor=valor)
             elif tipo == 'sacar':
                 cofre.saldo_atual -= valor
                 if cofre.saldo_atual < 0:
-                    cofre.saldo_atual = 0 # Não deixa a barra ficar negativa
+                    cofre.saldo_atual = 0
+                # Grava no histórico a saída com o motivo
+                HistoricoCofre.objects.create(cofre=cofre, tipo='saida', valor=valor, motivo=motivo)
                     
             cofre.save()
             return JsonResponse({'status': 'sucesso'})
         except Exception as e:
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
     return JsonResponse({'status': 'invalido'}, status=400)
+
+@csrf_exempt
+def deletar_cofre(request, cofre_id):
+    if request.method == 'DELETE':
+        try:
+            cofre = Cofre.objects.get(id=cofre_id)
+            cofre.delete()
+            return JsonResponse({'status': 'sucesso'})
+        except Exception as e:
+            return JsonResponse({'status': 'erro'}, status=400)
+        
+@csrf_exempt
+def deletar_instituicao(request, inst_id):
+    if request.method == 'DELETE':
+        try:
+            inst = Instituicao.objects.get(id=inst_id)
+            inst.delete()
+            return JsonResponse({'status': 'sucesso'})
+        except Exception as e:
+            return JsonResponse({'status': 'erro'}, status=400)

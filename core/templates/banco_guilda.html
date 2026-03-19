@@ -1,121 +1,306 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-    <header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+    <header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-slate-700 pb-6">
         <div>
             <h2 class="text-3xl font-bold text-slate-100 flex items-center gap-3">
                 <i data-lucide="landmark" class="text-emerald-500 w-8 h-8"></i> Banco da Guilda
             </h2>
-            <p class="text-slate-400">Gerencie o patrimônio, instituições e as metas da sua party.</p>
+            <p class="text-slate-400">Gerencie o patrimônio e as metas da sua party.</p>
         </div>
-        <div class="bg-slate-800 border border-slate-700 px-6 py-3 rounded-lg shadow-xl text-right">
-            <p class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">Tesouro Total Acumulado</p>
-            <p class="text-2xl font-black text-emerald-400">R$ {{ tesouro_total|floatformat:2 }}</p>
+        <div class="flex items-center gap-4">
+            <button onclick="abrirModalForja()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500 text-emerald-400 font-bold rounded-lg shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest text-xs">
+                <i data-lucide="hammer" class="w-4 h-4"></i> Forjar Instituição / Meta
+            </button>
+            <div class="bg-slate-800 border border-slate-700 px-6 py-3 rounded-lg shadow-xl text-right">
+                <p class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">Tesouro Total</p>
+                <p class="text-xl font-black text-emerald-400">R$ {{ tesouro_total|floatformat:2 }}</p>
+            </div>
         </div>
     </header>
 
-    <details class="mb-8 group">
-        <summary class="bg-slate-800 border border-slate-700 p-4 rounded-lg cursor-pointer text-slate-300 font-bold hover:bg-slate-700 transition-colors flex items-center gap-2 list-none outline-none shadow-sm">
-            <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-500 group-open:rotate-45 transition-transform"></i>
-            Forjar Nova Instituição ou Meta (Cofrinho)
-        </summary>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/50 p-6 rounded-lg border border-slate-800">
-            
-            <div class="bg-slate-800 p-6 rounded border border-slate-700">
-                <h3 class="font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2"><i data-lucide="building-2" class="w-4 h-4 text-blue-400"></i> Cadastrar Instituição</h3>
-                <form method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="acao" value="instituicao">
-                    {{ form_instituicao.as_p }}
-                    <button type="submit" class="mt-4 w-full py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow transition-colors text-sm">Salvar Banco</button>
-                </form>
-            </div>
-
-            <div class="bg-slate-800 p-6 rounded border border-slate-700">
-                <h3 class="font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2"><i data-lucide="target" class="w-4 h-4 text-emerald-400"></i> Criar Nova Meta (Cofre)</h3>
-                <form method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="acao" value="cofre">
-                    <div class="space-y-3">{{ form_cofre.as_p }}</div>
-                    <button type="submit" class="mt-4 w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded shadow transition-colors text-sm">Ativar Missão</button>
-                </form>
-            </div>
+    {% if messages %}
+        <div id="container-alertas" class="mb-6 absolute top-8 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
+            {% for message in messages %}
+                <div class="alerta-magico p-4 rounded-md bg-emerald-950 border border-emerald-500 text-emerald-400 flex items-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-opacity duration-500">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i> <span class="font-bold">{{ message }}</span>
+                </div>
+            {% endfor %}
         </div>
-    </details>
+    {% endif %}
+
+    {% if total_sacado > 0 %}
+    <div class="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-orange-950/30 border border-orange-900/50 p-6 rounded-lg col-span-1 flex flex-col justify-center relative overflow-hidden shadow-xl">
+            <i data-lucide="alert-triangle" class="absolute -right-4 -bottom-4 w-32 h-32 text-orange-900/20 opacity-50"></i>
+            <h3 class="text-orange-500 font-black text-lg mb-2 z-10 flex items-center gap-2"><i data-lucide="siren" class="w-5 h-5"></i> Dívida com o Futuro</h3>
+            <p class="text-slate-400 text-sm mb-4 z-10 leading-relaxed">Você precisa devolver <strong class="text-orange-400">R$ {{ total_sacado|floatformat:2 }}</strong> para suas reservas. Ao depositar ouro, selecione "Reposição" para abater esta dívida!</p>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-lg col-span-1 lg:col-span-2 shadow-xl">
+             <h3 class="text-slate-200 font-bold mb-4 border-b border-slate-700 pb-2 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-purple-400"></i> Motivos do Vazamento</h3>
+             <div class="relative h-32 w-full"><canvas id="graficoVazamento"></canvas></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="mb-6 flex items-center gap-3 flex-wrap">
+        <span class="text-xs uppercase font-bold text-slate-500"><i data-lucide="building-2" class="w-4 h-4 inline"></i> Bancos Ativos:</span>
+        {% for inst in instituicoes %}
+            <div class="group bg-slate-900 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm transition-colors hover:border-slate-500">
+                {{ inst.nome }}
+                <button onclick="deletarInstituicao({{ inst.id }})" class="text-slate-600 hover:text-red-500 transition-colors" title="Apagar Instituição"><i data-lucide="x" class="w-3 h-3"></i></button>
+            </div>
+        {% empty %}
+            <span class="text-xs text-slate-600 italic">Nenhum banco forjado.</span>
+        {% endfor %}
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for c in cofres %}
             <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl hover:border-slate-500 transition-colors relative group">
-                
                 <div class="absolute top-0 right-0 bg-slate-900 border-b border-l border-slate-700 text-slate-400 text-[10px] font-bold uppercase px-3 py-1 rounded-bl-lg">
                     {{ c.instituicao.nome }}
                 </div>
-
                 <div class="p-6">
                     <h3 class="text-xl font-black text-slate-100 mb-1 pr-16">{{ c.nome }}</h3>
                     <p class="text-sm text-slate-400 mb-6">Falta: <span class="font-medium text-slate-300">R$ {{ c.falta_para_meta }}</span></p>
-                    
                     <div class="flex justify-between text-xs font-bold mb-2">
                         <span class="text-emerald-400">R$ {{ c.saldo_atual }}</span>
                         <span class="text-slate-500">Alvo: R$ {{ c.meta_valor }}</span>
                     </div>
-                    <div class="w-full bg-slate-900 rounded-full h-3 mb-2 shadow-inner border border-slate-700/50">
-                        <div class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-3 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(52,211,153,0.3)]" style="width: {{ c.progresso }}%"></div>
+                    <div class="w-full bg-slate-900 rounded-full h-3 mb-2 shadow-inner border border-slate-700/50 overflow-hidden">
+                        <div class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-3 rounded-full transition-all duration-1000 ease-out" style="width: {{ c.progresso }}%"></div>
                     </div>
                     <div class="text-right text-[10px] text-emerald-500 font-bold">{{ c.progresso }}% Concluído</div>
                 </div>
-
                 <div class="bg-slate-900/50 border-t border-slate-700 p-3 flex gap-2">
-                    <button onclick="manipularOuro({{ c.id }}, '{{ c.nome }}', 'depositar')" class="flex-1 bg-emerald-900/40 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-900/50 rounded py-2 text-sm font-bold transition-colors flex items-center justify-center gap-1 shadow">
-                        <i data-lucide="arrow-down-to-line" class="w-4 h-4"></i> Guardar
-                    </button>
-                    <button onclick="manipularOuro({{ c.id }}, '{{ c.nome }}', 'sacar')" class="flex-1 bg-red-900/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-900/30 rounded py-2 text-sm font-bold transition-colors flex items-center justify-center gap-1 shadow">
-                        <i data-lucide="arrow-up-from-line" class="w-4 h-4"></i> Sacar
-                    </button>
-                    <a href="{% url 'editar_cadastro' 'cofre' c.id %}" class="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-600 hover:border-blue-500 hover:text-blue-400 rounded py-2 px-3 transition-colors shadow">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </a>
+                    <button onclick="abrirModalOuro({{ c.id }}, '{{ c.nome }}', 'depositar')" class="flex-1 bg-emerald-900/40 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-900/50 rounded py-2 text-sm font-bold transition-colors flex items-center justify-center gap-1"><i data-lucide="arrow-down-to-line" class="w-4 h-4"></i> Guardar</button>
+                    <button onclick="abrirModalOuro({{ c.id }}, '{{ c.nome }}', 'sacar')" class="flex-1 bg-orange-900/20 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-900/30 rounded py-2 text-sm font-bold transition-colors flex items-center justify-center gap-1"><i data-lucide="arrow-up-from-line" class="w-4 h-4"></i> Sacar</button>
+                    <a href="{% url 'editar_cadastro' 'cofre' c.id %}" class="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-600 hover:border-blue-500 hover:text-blue-400 rounded py-2 px-3 transition-colors shadow"><i data-lucide="pencil" class="w-4 h-4"></i></a>
+                    <button onclick="deletarCofre({{ c.id }})" class="bg-slate-800 hover:bg-red-600 text-slate-400 border border-slate-600 hover:border-red-500 hover:text-white rounded py-2 px-3 transition-colors shadow"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
-            </div>
-        {% empty %}
-            <div class="col-span-full bg-slate-800 border border-dashed border-slate-600 rounded-lg p-12 text-center text-slate-500">
-                <i data-lucide="piggy-bank" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
-                <p class="text-lg font-bold text-slate-400">A Casa da Moeda está vazia.</p>
-                <p class="text-sm">Forje uma Instituição e crie a sua primeira Meta financeira acima.</p>
             </div>
         {% endfor %}
     </div>
 
-    <script>
-        function manipularOuro(cofreId, nomeCofre, tipo) {
-            let acao = tipo === 'depositar' ? 'adicionar' : 'resgatar';
-            let valorInput = prompt(`Digite o valor para ${acao} no cofre "${nomeCofre}":\n(Use ponto para os centavos, ex: 150.50)`);
+    <div id="modal-forja" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-8 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-4xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-200" id="modal-forja-content">
+            <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest"><i data-lucide="hammer" class="w-6 h-6 inline text-emerald-500 mr-2"></i> Forja de Tesouros</h3>
+                <button onclick="fecharModalForja()" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
             
-            if (valorInput) {
-                // Troca a vírgula pelo ponto caso o usuário digite "150,50"
-                let valorTratado = valorInput.replace(',', '.');
-                let valorFloat = parseFloat(valorTratado);
-                
-                if (!isNaN(valorFloat) && valorFloat > 0) {
-                    const token = obterTokenCSRF();
-                    fetch(`/api/atualizar-cofre/${cofreId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': token
-                        },
-                        body: JSON.stringify({ valor: valorFloat, tipo: tipo })
-                    }).then(response => {
-                        if (response.ok) {
-                            window.location.reload();
-                        } else {
-                            alert('A transação falhou! Os guardas do banco bloquearam a ação.');
-                        }
-                    });
-                } else {
-                    alert('Valor inválido. Digite apenas números.');
-                }
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-slate-800/50 p-6 rounded-lg border border-slate-700 col-span-1 h-fit">
+                    <h4 class="font-bold text-slate-300 mb-4 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-blue-400"></i> 1. Novo Banco</h4>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="instituicao">
+                        {{ form_instituicao.as_p }}
+                        <button type="submit" class="mt-4 w-full py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow transition-colors text-sm">Gravar Banco</button>
+                    </form>
+                </div>
+                <div class="bg-slate-800/50 p-6 rounded-lg border border-slate-700 col-span-1 md:col-span-2">
+                    <h4 class="font-bold text-slate-300 mb-4 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-emerald-400"></i> 2. Nova Meta</h4>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="cofre">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {{ form_cofre.as_p }}
+                        </div>
+                        <button type="submit" class="mt-6 w-full py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Ativar Missão</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-ouro" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-8 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-sm transform scale-95 transition-transform duration-200" id="modal-ouro-content">
+            <div class="flex justify-center mb-4">
+                <div id="modal-icone-bg" class="p-3 rounded-full bg-slate-800 border border-slate-700">
+                    <i data-lucide="coins" id="modal-icone" class="w-8 h-8 text-slate-400"></i>
+                </div>
+            </div>
+            <h3 class="text-xl font-bold text-slate-100 text-center mb-1" id="modal-titulo">Movimentar Ouro</h3>
+            <p class="text-sm text-slate-400 text-center mb-6">Cofre: <strong class="text-slate-200" id="modal-nome-cofre"></strong></p>
+
+            <div class="relative mb-6">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">R$</span>
+                <input type="number" id="modal-valor" class="w-full bg-slate-950 border border-slate-700 rounded-lg py-4 pl-12 pr-4 text-slate-100 text-2xl font-black focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-right placeholder-slate-700" placeholder="0.00" step="0.01">
+            </div>
+
+            <div id="div-opcoes" class="mb-6">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2" id="label-opcao">Classificação</label>
+                <select id="modal-opcao" class="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 px-4 text-slate-300 focus:border-emerald-500 outline-none cursor-pointer">
+                    </select>
+            </div>
+
+            <input type="hidden" id="modal-cofre-id">
+            <input type="hidden" id="modal-tipo-base">
+
+            <div class="flex gap-3">
+                <button onclick="fecharModalOuro()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg transition-colors border border-slate-700">Cancelar</button>
+                <button onclick="confirmarMovimentacao()" id="modal-btn-confirmar" class="flex-1 py-3 font-bold rounded-lg shadow-lg transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <script>
+        // Auto-Destruição dos Alertas (Resolve o Item 1)
+        setTimeout(() => {
+            const alertas = document.querySelectorAll('.alerta-magico');
+            alertas.forEach(alerta => {
+                alerta.style.opacity = '0';
+                setTimeout(() => alerta.remove(), 500);
+            });
+        }, 4000);
+
+        // ==========================================
+        // MODAL DA FORJA (Novo Banco / Cofre)
+        // ==========================================
+        function abrirModalForja() {
+            const m = document.getElementById('modal-forja');
+            const c = document.getElementById('modal-forja-content');
+            m.classList.remove('hidden'); m.classList.add('flex');
+            setTimeout(() => c.classList.replace('scale-95', 'scale-100'), 10);
+        }
+        function fecharModalForja() {
+            const m = document.getElementById('modal-forja');
+            const c = document.getElementById('modal-forja-content');
+            c.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { m.classList.add('hidden'); m.classList.remove('flex'); }, 150);
+        }
+
+        // ==========================================
+        // DELETAR INSTITUIÇÃO (Resolve o Item 2)
+        // ==========================================
+        function deletarInstituicao(instId) {
+            if(confirm("Deseja banir este Banco? (ATENÇÃO: Isso pulveriza todos os cofrinhos ligados a ele!)")) {
+                const token = obterTokenCSRF();
+                fetch(`/api/deletar-instituicao/${instId}/`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token }
+                }).then(response => {
+                    if (response.ok) window.location.reload();
+                    else alert('Falha ao remover banco.');
+                });
             }
         }
+
+        // ==========================================
+        // LÓGICA DO MODAL DE OURO (Resolve o Item 3)
+        // ==========================================
+        const modalOuro = document.getElementById('modal-ouro');
+        const modalOuroContent = document.getElementById('modal-ouro-content');
+        const inputOpcao = document.getElementById('modal-opcao');
+
+        function abrirModalOuro(cofreId, nomeCofre, tipoBase) {
+            document.getElementById('modal-cofre-id').value = cofreId;
+            document.getElementById('modal-tipo-base').value = tipoBase;
+            document.getElementById('modal-nome-cofre').innerText = nomeCofre;
+            
+            const btnConfirmar = document.getElementById('modal-btn-confirmar');
+            const icone = document.getElementById('modal-icone');
+            const labelOpcao = document.getElementById('label-opcao');
+            
+            // Limpa o select
+            inputOpcao.innerHTML = '';
+
+            if (tipoBase === 'depositar') {
+                document.getElementById('modal-titulo').innerText = 'Guardar Dinheiro';
+                btnConfirmar.className = "flex-1 py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg shadow-lg transition-colors";
+                icone.classList.replace('text-orange-400', 'text-emerald-400');
+                
+                labelOpcao.innerText = "Origem do Ouro";
+                inputOpcao.innerHTML = `
+                    <option value="depositar">Aporte Mensal (Investimento)</option>
+                    <option value="repor">Repor Ouro (Pagar Dívida de Saque)</option>
+                `;
+            } else {
+                document.getElementById('modal-titulo').innerText = 'Sacar Dinheiro';
+                btnConfirmar.className = "flex-1 py-3 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg shadow-lg transition-colors";
+                icone.classList.replace('text-emerald-400', 'text-orange-400');
+                
+                labelOpcao.innerText = "Motivo do Resgate";
+                inputOpcao.innerHTML = `
+                    <option value="pessoal">Gasto Pessoal / Lazer</option>
+                    <option value="saude">Saúde / Farmácia</option>
+                    <option value="casa">Despesas da Casa / Manutenção</option>
+                    <option value="emergencia">Emergência Imprevista</option>
+                    <option value="objetivo">Objetivo Concluído! (GG)</option>
+                    <option value="outro">Outros Motivos</option>
+                `;
+            }
+
+            modalOuro.classList.remove('hidden'); modalOuro.classList.add('flex');
+            setTimeout(() => modalOuroContent.classList.replace('scale-95', 'scale-100'), 10);
+            document.getElementById('modal-valor').value = '';
+            document.getElementById('modal-valor').focus();
+        }
+
+        function fecharModalOuro() {
+            modalOuroContent.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { modalOuro.classList.add('hidden'); modalOuro.classList.remove('flex'); }, 150);
+        }
+
+        function confirmarMovimentacao() {
+            let cofreId = document.getElementById('modal-cofre-id').value;
+            let tipoBase = document.getElementById('modal-tipo-base').value;
+            let valorFloat = parseFloat(document.getElementById('modal-valor').value);
+            
+            // Aqui está a mágica: Se for depósito, pegamos a escolha (depositar ou repor)
+            // Se for saque, o tipo é 'sacar' e a escolha é o motivo (saude, casa, etc)
+            let tipoFinal = tipoBase === 'depositar' ? inputOpcao.value : 'sacar';
+            let motivoFinal = tipoBase === 'sacar' ? inputOpcao.value : null;
+            
+            if (!isNaN(valorFloat) && valorFloat > 0) {
+                const token = obterTokenCSRF();
+                fetch(`/api/atualizar-cofre/${cofreId}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+                    body: JSON.stringify({ valor: valorFloat, tipo: tipoFinal, motivo: motivoFinal })
+                }).then(response => {
+                    if (response.ok) window.location.reload();
+                });
+            } else {
+                document.getElementById('modal-valor').classList.add('border-red-500');
+            }
+        }
+
+        // DELETA COFRINHO
+        function deletarCofre(cofreId) {
+            if(confirm("Deseja realmente pulverizar este cofrinho?")) {
+                const token = obterTokenCSRF();
+                fetch(`/api/deletar-cofre/${cofreId}/`, {
+                    method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token }
+                }).then(response => { if (response.ok) window.location.reload(); });
+            }
+        }
+
+        // GRÁFICO (Se existir Dívida)
+        {% if total_sacado > 0 %}
+            const ctxVazamento = document.getElementById('graficoVazamento');
+            new Chart(ctxVazamento, {
+                type: 'bar',
+                data: {
+                    labels: {{ motivos_labels|safe }},
+                    datasets: [{
+                        label: 'Ouro Sacado (R$)', data: {{ motivos_dados|safe }},
+                        backgroundColor: 'rgba(249, 115, 22, 0.6)', borderColor: 'rgba(249, 115, 22, 1)', borderWidth: 1, borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: 'rgba(51, 65, 85, 0.5)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { weight: 'bold' } } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        {% endif %}
     </script>
 {% endblock %}

@@ -19,4 +19,6 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('banco/', views.banco_guilda, name='banco_guilda'),
     path('api/atualizar-cofre/<int:cofre_id>/', views.atualizar_cofre, name='atualizar_cofre'),
+    path('api/deletar-cofre/<int:cofre_id>/', views.deletar_cofre, name='deletar_cofre'),
+    path('api/deletar-instituicao/<int:inst_id>/', views.deletar_instituicao, name='deletar_instituicao'),
 ]

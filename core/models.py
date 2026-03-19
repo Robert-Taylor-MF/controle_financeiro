@@ -130,3 +130,28 @@ class Cofre(models.Model):
 
     def __str__(self):
         return self.nome
+    
+class HistoricoCofre(models.Model):
+    TIPO_CHOICES = [
+        ('entrada', 'Depósito (Loot)'),
+        ('saida', 'Saque (Resgate)'),
+        ('reposicao', 'Reposição de Dívida')
+    ]
+    
+    MOTIVO_CHOICES = [
+        ('pessoal', 'Gasto Pessoal / Lazer'),
+        ('saude', 'Saúde / Farmácia'),
+        ('casa', 'Despesas da Casa / Manutenção'),
+        ('emergencia', 'Emergência Imprevista'),
+        ('objetivo', 'Objetivo Concluído! (GG)'),
+        ('outro', 'Outros Motivos')
+    ]
+
+    cofre = models.ForeignKey(Cofre, on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+    data = models.DateTimeField(auto_now_add=True) # Salva a data e hora automaticamente
+    motivo = models.CharField(max_length=20, choices=MOTIVO_CHOICES, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.cofre.nome} | {self.get_tipo_display()} | R$ {self.valor}"
