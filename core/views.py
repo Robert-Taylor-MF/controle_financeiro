@@ -132,6 +132,7 @@ def central_cadastros(request):
             form = CartaoCreditoForm(request.POST)
             if form.is_valid(): form.save(); messages.success(request, "Arma (Cartão) forjada com sucesso!")
         elif acao == 'pessoa':
+            form = PessoaForm(request.POST, request.FILES)
             form = PessoaForm(request.POST)
             if form.is_valid(): form.save(); messages.success(request, "Novo aliado recrutado para a Guilda!")
         elif acao == 'categoria':
@@ -448,7 +449,7 @@ def editar_cadastro(request, tipo, id):
 
     if request.method == 'POST':
         # Carrega o formulário com os dados novos enviados pela tela, substituindo a instância velha
-        form = Formulario(request.POST, instance=instancia)
+        form = Formulario(request.POST, request.FILES, instance=instancia)
         if form.is_valid():
             form.save()
             return redirect('central_cadastros')
@@ -522,29 +523,37 @@ def banco_guilda(request):
 
 @csrf_exempt
 def atualizar_cofre(request, cofre_id):
-    """ API para depositar ou sacar ouro gravando no Livro Razão """
+    """ API para depositar ou sacar ouro gravando no Livro Razão e dando XP """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             valor = decimal.Decimal(str(data.get('valor', 0)))
-            tipo = data.get('tipo') # 'depositar' ou 'sacar'
-            motivo = data.get('motivo') # Recebe o motivo do saque (se houver)
+            tipo = data.get('tipo') 
+            motivo = data.get('motivo') 
             
             cofre = Cofre.objects.get(id=cofre_id)
+            
+            # Puxa o seu personagem para dar o XP
+            titular = Pessoa.objects.filter(is_owner=True).first()
             
             if tipo == 'depositar':
                 cofre.saldo_atual += valor
                 HistoricoCofre.objects.create(cofre=cofre, tipo='entrada', valor=valor)
+                # Recompensa: +50 XP por guardar dinheiro
+                if titular: titular.ganhar_xp(50)
+                
             elif tipo == 'repor':
                 cofre.saldo_atual += valor
-                # Grava no histórico como reposição para abater a dívida
                 HistoricoCofre.objects.create(cofre=cofre, tipo='reposicao', valor=valor)
+                # Recompensa: +50 XP por pagar a dívida com o seu futuro
+                if titular: titular.ganhar_xp(50)
+                
             elif tipo == 'sacar':
                 cofre.saldo_atual -= valor
                 if cofre.saldo_atual < 0:
                     cofre.saldo_atual = 0
-                # Grava no histórico a saída com o motivo
                 HistoricoCofre.objects.create(cofre=cofre, tipo='saida', valor=valor, motivo=motivo)
+                # Nota: Não tiramos XP aqui pois o gráfico de vazamento já é a punição.
                     
             cofre.save()
             return JsonResponse({'status': 'sucesso'})
