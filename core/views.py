@@ -78,6 +78,13 @@ def dashboard(request):
     # 7. A lista de Loot também só mostra as coisas daquele mês
     ultimas_transacoes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual).order_by('-data_compra')[:15]
 
+    # 8. NOVO CÁLCULO: Puxa o tesouro total para o novo Card
+    cofres = Cofre.objects.all()
+    tesouro_total = sum(c.saldo_atual for c in cofres)
+    
+    # 9. PUXAR CARTÕES (Precisamos deles para o Modal do Oráculo funcionar no Dashboard)
+    cartoes = CartaoCredito.objects.all()
+
     contexto = {
         'transacoes': ultimas_transacoes,
         'categorias': categorias,
@@ -88,6 +95,8 @@ def dashboard(request):
         'pcts': {'essencial': pct_essencial, 'emocao': pct_emocao, 'futuro': pct_futuro},
         'mes_atual': str(mes_atual), # Passado para o HTML saber quem está selecionado
         'ano_atual': str(ano_atual),
+        'tesouro_total': float(tesouro_total),
+        'cartoes': cartoes, # <- Adicione isso para o Modal saber quais cartões existem
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={
@@ -546,7 +555,7 @@ def atualizar_cofre(request, cofre_id):
                 cofre.saldo_atual += valor
                 HistoricoCofre.objects.create(cofre=cofre, tipo='reposicao', valor=valor)
                 # Recompensa: +50 XP por pagar a dívida com o seu futuro
-                if titular: titular.ganhar_xp(50)
+                # if titular: titular.ganhar_xp(50)
                 
             elif tipo == 'sacar':
                 cofre.saldo_atual -= valor
