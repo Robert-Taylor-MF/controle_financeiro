@@ -123,8 +123,8 @@ def importar_fatura(request):
         if arquivo_pdf and cartao_id and mes_fatura and ano_fatura:
             sucesso, mensagem = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura)
             if sucesso:
-                # O Django tem um sistema nativo de alertas (messages) para a tela
-                messages.success(request, mensagem)
+                messages.success(request, f"Loot extraído! Selecione os itens abaixo caso queira dividir com a party.")
+                return redirect('mural_cobrancas') # <--- TELETRANSPORTE AQUI
             else:
                 messages.error(request, mensagem)
         else:
