@@ -21,4 +21,5 @@ urlpatterns = [
     path('api/atualizar-cofre/<int:cofre_id>/', views.atualizar_cofre, name='atualizar_cofre'),
     path('api/deletar-cofre/<int:cofre_id>/', views.deletar_cofre, name='deletar_cofre'),
     path('api/deletar-instituicao/<int:inst_id>/', views.deletar_instituicao, name='deletar_instituicao'),
+    path('boss-do-mes/', views.enfrentar_boss_mes, name='enfrentar_boss_mes'),
 ]

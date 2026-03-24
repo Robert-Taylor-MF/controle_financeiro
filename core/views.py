@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Sum, Q
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, date
 from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal, Instituicao, Cofre, HistoricoCofre
 from .services import processar_fatura_pdf
 from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm, InstituicaoForm, CofreForm
@@ -589,3 +589,45 @@ def deletar_instituicao(request, inst_id):
             return JsonResponse({'status': 'sucesso'})
         except Exception as e:
             return JsonResponse({'status': 'erro'}, status=400)
+
+@login_required
+def enfrentar_boss_mes(request):
+    """ Calcula se o jogador sobreviveu ao mês (Mana > Dano) para dar o bónus de XP """
+    # IMPORTANTE: Agora importamos a RendaMensal em vez de Renda
+    from .models import Transacao, Pessoa, RendaMensal 
+    from datetime import date
+    
+    hoje = date.today()
+    mes_ano_atual = f"{hoje.month:02d}/{hoje.year}"
+
+    titular = Pessoa.objects.filter(is_owner=True).first()
+    
+    if not titular:
+        messages.error(request, "Personagem Titular não encontrado na Guilda!")
+        return redirect('dashboard')
+
+    if titular.ultimo_mes_fechado == mes_ano_atual:
+        messages.warning(request, "Já derrotaste o Boss deste mês! Aguarda pela próxima lua.")
+        return redirect('dashboard')
+
+    # 1. DANO (Despesas do mês atual - Usa mes_fatura e ano_fatura da Transacao)
+    transacoes_mes = Transacao.objects.filter(mes_fatura=hoje.month, ano_fatura=hoje.year)
+    dano_total = sum(t.valor for t in transacoes_mes)
+
+    # 2. MANA (Busca a RendaMensal filtrando pelos campos 'mes' e 'ano')
+    rendas_mes = RendaMensal.objects.filter(mes=hoje.month, ano=hoje.year)
+    # Soma o campo 'valor_liquido' de todas as rendas encontradas
+    mana_total = sum(r.valor_liquido for r in rendas_mes)
+
+    # 3. O Julgamento do Combate
+    if mana_total > float(dano_total):
+        # Vitória!
+        titular.ganhar_xp(200)
+        titular.ultimo_mes_fechado = mes_ano_atual
+        titular.save()
+        messages.success(request, f"VITÓRIA ÉPICA! A tua Mana (R$ {mana_total:.2f}) superou o Dano (R$ {dano_total:.2f}). Ganhaste +200 XP!")
+    else:
+        # Derrota!
+        messages.error(request, f"DERROTA! O teu Dano (R$ {dano_total:.2f}) superou a tua Mana (R$ {mana_total:.2f}). O Boss venceu desta vez.")
+
+    return redirect('dashboard')

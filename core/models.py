@@ -6,6 +6,11 @@ class Pessoa(models.Model):
     telefone = models.CharField(max_length=20, blank=True, null=True)
     is_owner = models.BooleanField(default=False)
     chave_pix = models.CharField(max_length=150, blank=True, null=True)
+    level = models.IntegerField(default=1)
+    xp_atual = models.IntegerField(default=0)
+    
+    # ANTI-EXPLOIT: Lembra qual foi o último mês que o jogador derrotou o Boss
+    ultimo_mes_fechado = models.CharField(max_length=7, blank=True, null=True) # Ex: '03/2026'
     
     # O CAMPO RESGATADO DA FORJA ANTIGA
     ativo = models.BooleanField(default=True)

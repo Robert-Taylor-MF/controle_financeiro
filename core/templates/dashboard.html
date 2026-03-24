@@ -89,6 +89,20 @@
         </div>
     </div>
 
+    <div class="mt-6 bg-slate-900 border border-red-900/50 p-6 rounded-lg shadow-inner flex items-center justify-between">
+        <div>
+            <h3 class="text-xl font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
+                <i data-lucide="skull" class="w-6 h-6"></i> Enfrentar Boss do Mês
+            </h3>
+            <p class="text-sm text-slate-400 mt-1">Feche o mês no verde para ganhar um bônus massivo de XP.</p>
+        </div>
+        
+        <a href="{% url 'enfrentar_boss_mes' %}" class="px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-md shadow-[0_0_15px_rgba(220,38,38,0.3)] transition-all flex items-center gap-2 group">
+            <i data-lucide="swords" class="w-5 h-5 group-hover:scale-125 transition-transform"></i>
+            Iniciar Combate
+        </a>
+    </div>
+
     <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
         <h3 class="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700 pb-2">Últimos Registros (Loot)</h3>
         

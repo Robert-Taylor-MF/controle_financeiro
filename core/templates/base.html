@@ -64,6 +64,15 @@
     </nav>
 
     <main class="flex-1 p-8 overflow-y-auto relative bg-slate-950">
+        {% if messages %}
+        <div id="sistema-alertas" class="mb-6 flex flex-col gap-2 z-50 transition-opacity duration-500">
+            {% for message in messages %}
+                <div class="p-4 rounded-lg font-bold border shadow-lg {% if message.tags == 'success' %}bg-emerald-900/50 text-emerald-400 border-emerald-800{% elif message.tags == 'error' %}bg-red-900/50 text-red-400 border-red-800{% elif message.tags == 'warning' %}bg-yellow-900/50 text-yellow-400 border-yellow-800{% else %}bg-slate-800 text-slate-300 border-slate-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block conteudo %}
         {% endblock %}
     </main>
@@ -87,6 +96,20 @@
             }
             return cookieValue;
         }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const alertas = document.getElementById('sistema-alertas');
+            if (alertas) {
+                // Espera 5 segundos (5000 milissegundos)
+                setTimeout(function() {
+                    alertas.style.opacity = '0'; // Faz ficar transparente suavemente
+                    setTimeout(function() {
+                        alertas.remove(); // Remove o elemento da tela para não ocupar espaço
+                    }, 500); // Espera a animação de meio segundo terminar
+                }, 5000); 
+            }
+        });
     </script>
 </body>
 </html>
