@@ -12,6 +12,9 @@ class Pessoa(models.Model):
     # ANTI-EXPLOIT: Lembra qual foi o último mês que o jogador derrotou o Boss
     ultimo_mes_fechado = models.CharField(max_length=7, blank=True, null=True) # Ex: '03/2026'
     
+    # HISTÓRICO ANTI-FARM: Lembra todos os meses batidos separados por vírgula
+    meses_fechados = models.TextField(blank=True, null=True, default="")
+    
     # O CAMPO RESGATADO DA FORJA ANTIGA
     ativo = models.BooleanField(default=True)
     

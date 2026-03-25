@@ -639,12 +639,13 @@ def deletar_instituicao(request, inst_id):
 @login_required
 def enfrentar_boss_mes(request):
     """ Calcula se o jogador sobreviveu ao mês (Mana > Dano) para dar o bónus de XP """
-    # IMPORTANTE: Agora importamos a RendaMensal em vez de Renda
     from .models import Transacao, Pessoa, RendaMensal 
     from datetime import date
     
     hoje = date.today()
-    mes_ano_atual = f"{hoje.month:02d}/{hoje.year}"
+    mes = int(request.GET.get('mes', hoje.month))
+    ano = int(request.GET.get('ano', hoje.year))
+    mes_ano_atual = f"{mes:02d}/{ano}"
 
     titular = Pessoa.objects.filter(is_owner=True).first()
     
@@ -652,28 +653,43 @@ def enfrentar_boss_mes(request):
         messages.error(request, "Personagem Titular não encontrado na Guilda!")
         return redirect('dashboard')
 
-    if titular.ultimo_mes_fechado == mes_ano_atual:
-        messages.warning(request, "Já derrotaste o Boss deste mês! Aguarda pela próxima lua.")
-        return redirect('dashboard')
-
-    # 1. DANO (Despesas do mês atual - Usa mes_fatura e ano_fatura da Transacao)
-    transacoes_mes = Transacao.objects.filter(mes_fatura=hoje.month, ano_fatura=hoje.year)
+    # 1. DANO (Despesas do mês selecionado)
+    transacoes_mes = Transacao.objects.filter(mes_fatura=mes, ano_fatura=ano)
+    
+    if not transacoes_mes.exists():
+        messages.warning(request, f"O Mapa de {mes_ano_atual} está vazio! Não existem inimigos (gastos) ou loot importado em combate para enfrentar o Boss.")
+        return redirect(f"/?mes={mes}&ano={ano}")
+        
     dano_total = sum(t.valor for t in transacoes_mes)
 
-    # 2. MANA (Busca a RendaMensal filtrando pelos campos 'mes' e 'ano')
-    rendas_mes = RendaMensal.objects.filter(mes=hoje.month, ano=hoje.year)
-    # Soma o campo 'valor_liquido' de todas as rendas encontradas
+    # 2. MANA (Renda Mensal do mês selecionado)
+    rendas_mes = RendaMensal.objects.filter(mes=mes, ano=ano)
     mana_total = sum(r.valor_liquido for r in rendas_mes)
+
+    # Verifica o Histórico de Vitórias
+    lista_fechados = []
+    if titular.meses_fechados:
+        lista_fechados = titular.meses_fechados.split(',')
 
     # 3. O Julgamento do Combate
     if mana_total > float(dano_total):
         # Vitória!
-        titular.ganhar_xp(200)
-        titular.ultimo_mes_fechado = mes_ano_atual
-        titular.save()
-        messages.success(request, f"VITÓRIA ÉPICA! A tua Mana (R$ {mana_total:.2f}) superou o Dano (R$ {dano_total:.2f}). Ganhaste +200 XP!")
+        if mes_ano_atual not in lista_fechados:
+            titular.ganhar_xp(200)
+            
+            # Adiciona ao histórico do DB
+            if titular.meses_fechados:
+                titular.meses_fechados += f",{mes_ano_atual}"
+            else:
+                titular.meses_fechados = mes_ano_atual
+                
+            titular.ultimo_mes_fechado = mes_ano_atual # Mantém compatibilidade
+            titular.save()
+            messages.success(request, f"VITÓRIA ÉPICA na incursão de {mes_ano_atual}! A tua Mana (R$ {mana_total:.2f}) superou o Dano (R$ {dano_total:.2f}). Ganhaste +200 XP!")
+        else:
+            messages.info(request, f"VITÓRIA CONFIRMADA na incursão de {mes_ano_atual}! (Mana: R$ {mana_total:.2f} > Dano: R$ {dano_total:.2f}). Como o Boss deste mês já havia sido derrotado antes, não há novo drop de XP (Anti-Farm ativado).")
     else:
         # Derrota!
-        messages.error(request, f"DERROTA! O teu Dano (R$ {dano_total:.2f}) superou a tua Mana (R$ {mana_total:.2f}). O Boss venceu desta vez.")
+        messages.error(request, f"DERROTA na incursão de {mes_ano_atual}! O teu Dano (R$ {dano_total:.2f}) superou a tua Mana (R$ {mana_total:.2f}). O Boss venceu desta vez.")
 
-    return redirect('dashboard')
+    return redirect(f"/?mes={mes}&ano={ano}")

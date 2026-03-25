@@ -110,7 +110,7 @@
             <p class="text-sm text-slate-400 mt-1">Feche o mês no verde para ganhar um bônus massivo de XP.</p>
         </div>
         
-        <a href="{% url 'enfrentar_boss_mes' %}" class="px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-md shadow-[0_0_15px_rgba(220,38,38,0.3)] transition-all flex items-center gap-2 group">
+        <a href="{% url 'enfrentar_boss_mes' %}?mes={{ mes_atual }}&ano={{ ano_atual }}" class="px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-md shadow-[0_0_15px_rgba(220,38,38,0.3)] transition-all flex items-center gap-2 group">
             <i data-lucide="swords" class="w-5 h-5 group-hover:scale-125 transition-transform"></i>
             Iniciar Combate
         </a>
