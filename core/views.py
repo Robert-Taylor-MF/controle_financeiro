@@ -429,18 +429,7 @@ def deletar_fatura(request, mes, ano, cartao_id):
 # MURAL DE RECOMPENSAS E FATURAMENTO
 # ==========================================
 
-@login_required
-def mural_cobrancas(request):
-    # Traz todo mundo da Guilda, exceto você (o Titular)
-    pessoas = Pessoa.objects.filter(is_owner=False)
-    hoje = datetime.now()
-    
-    contexto = {
-        'pessoas': pessoas,
-        'mes_atual': str(hoje.month),
-        'ano_atual': str(hoje.year)
-    }
-    return render(request, 'cobrancas.html', contexto)
+
 
 @login_required
 def fatura_pdf(request):

@@ -1,7 +1,7 @@
 import os
 import json
 import pdfplumber
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 from .models import Transacao, Pessoa, CartaoCredito, Categoria
 from datetime import datetime, timedelta
@@ -36,8 +36,7 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     print("\n[DEBUG] Categorias enviadas para a IA:", string_categorias)
 
     chave_api = os.getenv("GEMINI_API_KEY")
-    genai.configure(api_key=chave_api)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    client = genai.Client(api_key=chave_api)
     
     # Prompt blindado
     prompt = f"""
@@ -60,7 +59,10 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     """
     
     try:
-        resposta = model.generate_content(prompt + "\n\nTexto:\n" + texto_fatura)
+        resposta = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt + "\n\nTexto:\n" + texto_fatura
+        )
         texto_ia = resposta.text.strip()
         
         # ==========================================
