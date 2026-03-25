@@ -45,6 +45,12 @@
             <button type="submit" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded border border-slate-600 transition-all shadow">
                 Filtrar Registros
             </button>
+            
+            {% if request.GET.mes and request.GET.ano and request.GET.cartao_id %}
+                <button type="button" onclick="confirmarDelecaoFatura('{{ request.GET.mes }}', '{{ request.GET.ano }}', '{{ request.GET.cartao_id }}')" class="px-6 py-2 bg-red-900/30 hover:bg-red-600 text-red-500 hover:text-white font-bold rounded border border-red-900/50 hover:border-red-500 transition-all shadow flex items-center gap-2 lg:ml-auto">
+                    <i data-lucide="bomb" class="w-4 h-4"></i> Obliterar Fatura
+                </button>
+            {% endif %}
         </form>
     </div>
 
@@ -111,10 +117,13 @@
                     
                     <td class="py-3 px-4 text-right font-bold text-slate-100 whitespace-nowrap">R$ {{ t.valor }}</td>
                     
-                    <td class="py-3 px-4 text-center whitespace-nowrap">
-                        <a href="{% url 'ratear_transacao' t.id %}" class="inline-block bg-slate-700 hover:bg-red-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow">
-                            ⚔️ Dividir
+                    <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-2">
+                        <a href="{% url 'ratear_transacao' t.id %}" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
+                            <i data-lucide="split-square-horizontal" class="w-4 h-4 inline-block"></i>
                         </a>
+                        <button onclick="deletarTransacao('{{ t.id }}')" class="inline-block bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-red-900/50 hover:border-red-500" title="Excluir Registro">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline-block"></i>
+                        </button>
                     </td>
                 </tr>
                 {% empty %}
@@ -128,7 +137,59 @@
         </table>
     </div>
 
+    <!-- MODAL DE DELEÇÃO EM MASSA (OBLITERAÇÃO) -->
+    <div id="modal-obliterar-fatura" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-red-900/50 p-8 rounded-xl shadow-[0_0_50px_rgba(220,38,38,0.3)] w-full max-w-md text-center relative border-t-4 border-t-red-600">
+            <button onclick="fecharModalObliterar()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="bg-red-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-900">
+                <i data-lucide="bomb" class="w-8 h-8 text-red-500 animate-pulse"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-100 mb-2">Obliterar Fatura Inteira?</h3>
+            <p class="text-sm text-slate-400 mb-8">Esta magia é cataclísmica. TODOS os registros do cartão selecionado neste mês e ano serão BANIDOS para o vazio (excluídos). Nenhuma volta no tempo poderá recuperá-los. Tem certeza absoluta?</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-3">
+                <button onclick="fecharModalObliterar()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg border border-slate-700 transition-colors w-full sm:w-auto">Cancelar Magia</button>
+                <button onclick="executarObliteracao()" class="px-6 py-2.5 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center justify-center gap-2 w-full sm:w-auto"><i data-lucide="flame" class="w-4 h-4"></i> Sim, Destruir Tudo!</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let obliterarDados = null;
+
+        function confirmarDelecaoFatura(mes, ano, cartao) {
+            obliterarDados = { mes, ano, cartao };
+            document.getElementById('modal-obliterar-fatura').classList.remove('hidden');
+            document.getElementById('modal-obliterar-fatura').classList.add('flex');
+        }
+
+        function fecharModalObliterar() {
+            obliterarDados = null;
+            document.getElementById('modal-obliterar-fatura').classList.add('hidden');
+            document.getElementById('modal-obliterar-fatura').classList.remove('flex');
+        }
+
+        function executarObliteracao() {
+            if (!obliterarDados) return;
+            
+            fetch(`/api/deletar-fatura/${obliterarDados.mes}/${obliterarDados.ano}/${obliterarDados.cartao}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': obterTokenCSRF()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao obliterar: ' + data.mensagem);
+                }
+            })
+            .catch(error => {
+                alert('Falha crítica na magia de obliteração!');
+            });
+        }
+
         function aplicarFiltros(idTabela) {
             const tabela = document.getElementById(idTabela);
             const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');

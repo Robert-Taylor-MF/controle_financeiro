@@ -24,6 +24,20 @@ def dashboard(request):
         form_despesa = DespesaAvulsaForm(request.POST)
         if form_despesa.is_valid():
             form_despesa.save()
+            
+            # ==========================================
+            # MISSÃO DIÁRIA: RECOMPENSA DE XP
+            # ==========================================
+            titular = Pessoa.objects.filter(is_owner=True).first()
+            if titular:
+                subiu_de_nivel = titular.ganhar_xp(5)
+                if subiu_de_nivel:
+                    messages.success(request, f"LEVEL UP! Parabéns, você avançou para o Nível {titular.level}! 🚀")
+                else:
+                    messages.success(request, "Missão Diária concluída: Gasto anotado na hora vale ouro! (+5 XP) 🛡️")
+            else:
+                messages.success(request, "Despesa registrada com sucesso!")
+                
             # Pega o mês e ano que você digitou no formulário para recarregar a tela no lugar certo
             m = request.POST.get('mes_fatura')
             a = request.POST.get('ano_fatura')
@@ -85,6 +99,17 @@ def dashboard(request):
     # 9. PUXAR CARTÕES (Precisamos deles para o Modal do Oráculo funcionar no Dashboard)
     cartoes = CartaoCredito.objects.all()
 
+    # 10. GASTOS DA PARTY (Visão da Party)
+    gastos_party = []
+    todos_gastos_mes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual)
+    for p in pessoas:
+        total_p = todos_gastos_mes.filter(responsavel=p).aggregate(Sum('valor'))['valor__sum'] or 0
+        gastos_party.append({
+            'pessoa': p,
+            'total': float(total_p)
+        })
+    total_sem_dono = todos_gastos_mes.filter(responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
+
     contexto = {
         'transacoes': ultimas_transacoes,
         'categorias': categorias,
@@ -97,6 +122,8 @@ def dashboard(request):
         'ano_atual': str(ano_atual),
         'tesouro_total': float(tesouro_total),
         'cartoes': cartoes, # <- Adicione isso para o Modal saber quais cartões existem
+        'gastos_party': gastos_party,
+        'total_sem_dono': float(total_sem_dono),
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={
@@ -123,14 +150,19 @@ def importar_fatura(request):
         if arquivo_pdf and cartao_id and mes_fatura and ano_fatura:
             sucesso, mensagem = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura)
             if sucesso:
-                messages.success(request, f"Loot extraído! Selecione os itens abaixo caso queira dividir com a party.")
-                return redirect('mural_cobrancas') # <--- TELETRANSPORTE AQUI
+                messages.success(request, f"O Oráculo completou a extração! Todos os loots foram armazenados. Detalhes: {mensagem}")
+                # Direciona para a página de Pergaminhos (Extrato) já com os filtros do mês, ano e cartão selecionados!
+                return redirect(f"/extrato/?mes={mes_fatura}&ano={ano_fatura}&cartao_id={cartao_id}")
             else:
                 messages.error(request, mensagem)
         else:
             messages.warning(request, "Por favor, selecione um cartão e envie um PDF.")
             
-    return render(request, 'importar_fatura.html', {'cartoes': cartoes})
+        # Mesmo se falhar, redirecionamos para o dashboard (pois a requisição veio do modal de lá)
+        return redirect('dashboard')
+            
+    # Se alguém tentar acessar a URL diretamente por GET, joga de volta pro Dashboard
+    return redirect('dashboard')
 
 @login_required
 def central_cadastros(request):
@@ -377,6 +409,20 @@ def deletar_transacao(request, transacao_id):
             return JsonResponse({'status': 'sucesso', 'mensagem': 'Loot obliterado!'})
         except Exception as e:
             print(f"\n[ERRO API DELETAR] Falha ao destruir: {str(e)}\n")
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
+            
+@csrf_exempt
+def deletar_fatura(request, mes, ano, cartao_id):
+    if request.method == 'DELETE':
+        try:
+            deletados, _ = Transacao.objects.filter(
+                mes_fatura=mes, 
+                ano_fatura=ano, 
+                cartao_id=cartao_id
+            ).delete()
+            return JsonResponse({'status': 'sucesso', 'mensagem': f'{deletados} loots obliterados!'})
+        except Exception as e:
+            print(f"\n[ERRO API OBLITERAR] Falha na magia: {str(e)}\n")
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
         
 # ==========================================

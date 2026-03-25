@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/atualizar-categoria/<int:transacao_id>/', views.atualizar_categoria, name='atualizar_categoria'),
     path('sala-de-guerra/', views.sala_de_guerra, name='sala_de_guerra'),
     path('api/deletar-transacao/<int:transacao_id>/', views.deletar_transacao, name='deletar_transacao'),
+    path('api/deletar-fatura/<int:mes>/<int:ano>/<int:cartao_id>/', views.deletar_fatura, name='deletar_fatura'),
     path('cobrancas/', views.mural_cobrancas, name='mural_cobrancas'),
     path('fatura/', views.fatura_pdf, name='fatura_pdf'),
     path('editar/<str:tipo>/<int:id>/', views.editar_cadastro, name='editar_cadastro'),
