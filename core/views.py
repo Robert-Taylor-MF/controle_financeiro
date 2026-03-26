@@ -242,13 +242,10 @@ def ratear_transacao(request, transacao_id):
             # Deleta a transação original para não duplicar sua fatura
             transacao_original.delete()
             
-            messages.success(request, "Despesa fragmentada com sucesso!")
-            return redirect('dashboard') # Volta para a tela inicial
+            messages.success(request, "Despesa fragmentada com sucesso (Rateio aplicado)!")
             
-    return render(request, 'ratear_transacao.html', {
-        'transacao': transacao_original,
-        'pessoas': pessoas
-    })
+    # Redireciona de forma transparente para onde o usuário estava (Dashboard ou Extrato)
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 @login_required    
 def extrato_faturas(request):

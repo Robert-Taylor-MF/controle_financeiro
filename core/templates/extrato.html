@@ -118,9 +118,9 @@
                     <td class="py-3 px-4 text-right font-bold text-slate-100 whitespace-nowrap">R$ {{ t.valor }}</td>
                     
                     <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-2">
-                        <a href="{% url 'ratear_transacao' t.id %}" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
+                        <button type="button" onclick="abrirModalRateio('{{ t.id }}', '{{ t.descricao|escapejs }}', '{{ t.valor }}')" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
                             <i data-lucide="split-square-horizontal" class="w-4 h-4 inline-block"></i>
-                        </a>
+                        </button>
                         <button onclick="deletarTransacao('{{ t.id }}')" class="inline-block bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-red-900/50 hover:border-red-500" title="Excluir Registro">
                             <i data-lucide="trash-2" class="w-4 h-4 inline-block"></i>
                         </button>
@@ -153,6 +153,9 @@
         </div>
     </div>
 
+{% include 'modal_rateio.html' %}
+
+{% endblock %}
     <script>
         let obliterarDados = null;
 
