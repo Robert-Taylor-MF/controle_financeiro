@@ -110,11 +110,16 @@ def dashboard(request):
         })
     total_sem_dono = todos_gastos_mes.filter(responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
 
+    # 11. CÁLCULO DE SALDO RESTANTE (Mana - Meus Gastos)
+    total_gasto_pessoal = gasto_essencial + gasto_emocao + gasto_futuro + gasto_indefinido
+    saldo_restante = renda - total_gasto_pessoal
+
     contexto = {
         'transacoes': ultimas_transacoes,
         'categorias': categorias,
         'pessoas': pessoas,
         'renda': renda,
+        'saldo_restante': saldo_restante,
         'gastos': {'essencial': gasto_essencial, 'emocao': gasto_emocao, 'futuro': gasto_futuro, 'indefinido': gasto_indefinido},
         'metas': {'essencial': meta_essencial, 'emocao': meta_emocao, 'futuro': meta_futuro},
         'pcts': {'essencial': pct_essencial, 'emocao': pct_emocao, 'futuro': pct_futuro},
