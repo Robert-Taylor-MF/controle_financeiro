@@ -150,3 +150,17 @@ To prevent horizontal squishing and vertical stretching as the databases grow:
 - **Primary Button:** The main button will just be a generic action icon (e.g., `<i data-lucide="plus"></i>` or `<i data-lucide="swords"></i>`).
 - **Sub-buttons:** Inside the container, place the 3 original buttons inside a wrapper that starts hidden/collapsed. On hover (or focus/click), they animate upwards (`translate-y-0 opacity-100`).
 - **Styling:** The sub-buttons will be smaller (e.g., `p-3` and `w-12 h-12`) and their texts will only appear next to them as tooltips, ensuring they look sleek and discrete on both mobile and desktop.
+
+## Proposed Changes - Saldo Restante Indicator (Task 12)
+**Goal:** Offer the user a realistic, real-time "Leftover Balance" (`Saldo Restante`) indicator for the active month, comparing injected Mana (Income) versus all personal registered expenses.
+
+### core/views.py
+- Inside `def dashboard(request):`, sum the 4 categoric personal expenses (`gasto_essencial`, `gasto_emocao`, `gasto_futuro`, `gasto_indefinido`) into `total_gasto_pessoal`.
+- Calculate `saldo_restante = renda - total_gasto_pessoal`.
+- Add `saldo_restante` into the return `contexto`.
+
+### core/templates/dashboard.html
+- Modify the `<header>` where `Mana Total (Líquido)` is presently displayed (around line 28).
+- Change it into a Flex row grouping. Keep the `Mana Recebida` in purple.
+- Add an adjacent block called `Saldo Restante`, displaying the {{ saldo_restante }}.
+- Apply dynamic coloring: Green (`text-emerald-400`) if positive or zero, Red (`text-red-500`) if negative.

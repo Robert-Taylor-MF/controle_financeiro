@@ -42,3 +42,8 @@
 - [x] Remove the large banner for "Boss do Mês" above the Loot table in the Dashboard.
 - [x] Redesign it as a compact "Card" and integrate it into the top Summary Grid (Vitalidade, Stamina, Tesouro).
 - [x] Adjust the grid layout to support 4 columns (`md:grid-cols-2 xl:grid-cols-4`).
+
+### 7. Saldo Restante (Remaining Balance) Indicator
+- [x] Calculate `saldo_restante` = `renda - total_gasto_pessoal` in `dashboard` view.
+- [x] Add `saldo_restante` inside `views.py` context.
+- [x] Render the new indicator next to "Mana Total" in `dashboard.html` header, styling it green if positive and red if negative.
