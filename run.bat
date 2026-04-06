@@ -42,4 +42,7 @@ echo.
 echo Pressione CTRL+C para derrubar os escudos e parar o servidor.
 echo ==============================================================
 
+echo [OPEN] Abrindo Motor de Forja no navegador padrao...
+start http://localhost:8000
+
 waitress-serve --port=8000 setup.wsgi:application
