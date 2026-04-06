@@ -5,7 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
+from django.http import JsonResponse, get_object_or_404
 from django.contrib import messages
 from django.db.models import Sum, Q
 from decimal import Decimal
@@ -290,7 +291,7 @@ def central_cadastros(request):
         'form_categoria': CategoriaForm(),
         'form_renda': RendaMensalForm(),
         'cartoes': CartaoCredito.objects.all(),
-        'pessoas': Pessoa.objects.filter(ativo=True),
+        'pessoas': Pessoa.objects.all(),
         'categorias': Categoria.objects.all(),
         'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
         'oraculo_key': oraculo_key,
@@ -509,6 +510,7 @@ def deletar_transacao(request, transacao_id):
         except Exception as e:
             print(f"\n[ERRO API DELETAR] Falha ao destruir: {str(e)}\n")
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
             
 @login_required
 @csrf_exempt
@@ -524,6 +526,7 @@ def deletar_fatura(request, mes, ano, cartao_id):
         except Exception as e:
             print(f"\n[ERRO API OBLITERAR] Falha na magia: {str(e)}\n")
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
         
 # ==========================================
 # MURAL DE RECOMPENSAS E FATURAMENTO
@@ -749,6 +752,7 @@ def deletar_cofre(request, cofre_id):
             return JsonResponse({'status': 'sucesso'})
         except Exception as e:
             return JsonResponse({'status': 'erro'}, status=400)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
         
 @login_required
 @csrf_exempt
@@ -760,6 +764,7 @@ def deletar_instituicao(request, inst_id):
             return JsonResponse({'status': 'sucesso'})
         except Exception as e:
             return JsonResponse({'status': 'erro'}, status=400)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
 
 @login_required
 def enfrentar_boss_mes(request):
@@ -1044,22 +1049,15 @@ from django.contrib.auth.decorators import login_required
 @login_required
 @csrf_exempt
 def deletar_cadastro(request, tipo, id):
-    """
-    Guardião da Exclusão.
-    Assegura que nenhum loot perca o histórico validando conexões antes de exilar.
-    """
     if request.method == 'DELETE':
         from .models import Pessoa, CartaoCredito, Categoria, RendaMensal, Transacao
-        from django.http import JsonResponse
         try:
             if tipo == 'pessoa':
                 obj = Pessoa.objects.get(id=id)
                 if obj.is_owner:
                     return JsonResponse({'status': 'erro', 'mensagem': 'Você não pode banir o Titular do Sistema.'})
                 if Transacao.objects.filter(responsavel=obj).exists() or RendaMensal.objects.filter(pessoa=obj).exists():
-                    obj.ativo = False
-                    obj.save()
-                    return JsonResponse({'status': 'sucesso', 'mensagem': 'Membro desativado. Histórico financeiro preservado na guilda!'})
+                    return JsonResponse({'status': 'erro', 'mensagem': 'Membro atrelado a faturas ou rendas. Exclusão bloqueada para preservar o histórico.'})
                 obj.delete()
                 
             elif tipo == 'cartao':
@@ -1085,5 +1083,6 @@ def deletar_cadastro(request, tipo, id):
             
         except Exception as e:
             return JsonResponse({'status': 'erro', 'mensagem': f"Falha na exclusão: {str(e)}"})
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
 
     return JsonResponse({'status': 'erro', 'mensagem': 'Apenas método DELETE permitido.'})

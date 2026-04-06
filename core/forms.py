@@ -45,11 +45,6 @@ class RendaMensalForm(forms.ModelForm):
             'valor_liquido': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'step': '0.01'}),
         }
         
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if 'pessoa' in self.fields:
-            self.fields['pessoa'].queryset = Pessoa.objects.filter(ativo=True)
-        
 class DespesaAvulsaForm(forms.ModelForm):
     class Meta:
         model = Transacao
@@ -64,11 +59,6 @@ class DespesaAvulsaForm(forms.ModelForm):
             'mes_fatura': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'ano_fatura': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
         }
-        
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if 'responsavel' in self.fields:
-            self.fields['responsavel'].queryset = Pessoa.objects.filter(ativo=True)
         
 class InstituicaoForm(forms.ModelForm):
     class Meta:
