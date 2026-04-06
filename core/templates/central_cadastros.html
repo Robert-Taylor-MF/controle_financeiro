@@ -19,6 +19,9 @@
         <button onclick="mudarAba('categorias')" id="btn-categorias" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-yellow-400 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="book-marked" class="w-4 h-4"></i> Grimório (Categorias)
         </button>
+        <button onclick="mudarAba('oraculo')" id="btn-oraculo" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-blue-500 transition-colors whitespace-nowrap flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Oráculo (IA)
+        </button>
     </div>
 
     <!-- ABA RENDA -->
@@ -38,9 +41,14 @@
                             <h4 class="font-bold text-slate-100">{{ r.pessoa.nome }}</h4>
                             <p class="text-xs text-slate-400 uppercase tracking-widest mt-1">Mês {{ r.mes }}/{{ r.ano }}</p>
                         </div>
-                        <a href="{% url 'editar_cadastro' 'renda' r.id %}" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-700 transition-colors border border-slate-700 hover:border-blue-500/50" title="Editar Registro">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </a>
+                        <div class="flex gap-2">
+                            <a href="{% url 'editar_cadastro' 'renda' r.id %}" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-700 transition-colors border border-slate-700 hover:border-blue-500/50" title="Editar Registro">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </a>
+                            <button onclick="deletarCadastro('renda', {{ r.id }})" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors border border-slate-700 hover:border-red-500/50" title="Banir Registro">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="text-right mt-auto border-t border-slate-700/50 pt-3">
                         <span class="font-black text-emerald-400 text-xl">R$ {{ r.valor_liquido }}</span>
@@ -82,9 +90,14 @@
                         <div class="flex items-baseline gap-1">
                             <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">Lv.</span><span class="text-emerald-400 font-black text-lg">{{ p.level }}</span>
                         </div>
-                        <a href="{% url 'editar_cadastro' 'pessoa' p.id %}" class="bg-slate-800 p-2 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-700 transition-colors border border-slate-600 hover:border-blue-500/50" title="Editar Registro">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </a>
+                        <div class="flex gap-2">
+                            <a href="{% url 'editar_cadastro' 'pessoa' p.id %}" class="bg-slate-800 p-2 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-700 transition-colors border border-slate-600 hover:border-blue-500/50" title="Editar Registro">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </a>
+                            <button onclick="deletarCadastro('pessoa', {{ p.id }})" class="bg-slate-800 p-2 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors border border-slate-600 hover:border-red-500/50" title="Banir Aliado">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             {% endfor %}
@@ -111,9 +124,14 @@
                                 <h4 class="font-black text-slate-100 text-lg uppercase tracking-wider">{{ cartao.nome }}</h4>
                                 <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Fechamento: Dia {{ cartao.dia_fechamento }}</p>
                             </div>
-                            <a href="{% url 'editar_cadastro' 'cartao' cartao.id %}" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-800 hover:border-blue-500/50" title="Editar Registro">
-                                <i data-lucide="pencil" class="w-4 h-4"></i>
-                            </a>
+                            <div class="flex gap-2">
+                                <a href="{% url 'editar_cadastro' 'cartao' cartao.id %}" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-800 hover:border-blue-500/50" title="Editar Registro">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </a>
+                                <button onclick="deletarCadastro('cartao', {{ cartao.id }})" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-red-400 transition-colors border border-slate-800 hover:border-red-500/50" title="Destruir Arma">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="flex justify-between items-end border-t border-slate-700/50 pt-3">
@@ -153,11 +171,48 @@
                             <span class="text-[10px] uppercase tracking-widest text-slate-500">{{ c.get_tipo_regra_display }}</span>
                         </div>
                     </div>
-                    <a href="{% url 'editar_cadastro' 'categoria' c.id %}" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-700 hover:border-blue-500/50" title="Editar Registro">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </a>
+                    <div class="flex gap-2">
+                        <a href="{% url 'editar_cadastro' 'categoria' c.id %}" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-700 hover:border-blue-500/50" title="Editar Registro">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </a>
+                        <button onclick="deletarCadastro('categoria', {{ c.id }})" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-red-400 transition-colors border border-slate-700 hover:border-red-500/50" title="Esquecer Feitiço">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
             {% endfor %}
+        </div>
+    </div>
+
+    <!-- ABA ORACULO -->
+    <div id="aba-oraculo" class="aba-conteudo hidden relative">
+        <div class="flex flex-col gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">A Essência do Oráculo</h3>
+            <p class="text-sm text-slate-400">Forneça o poder mágico necessário para a extração veloz de Faturas em PDF (Google Gemini API).</p>
+        </div>
+        
+        <div class="bg-slate-900 border border-blue-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.15)] w-full max-w-xl">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="oraculo">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Google Gemini API Key</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="key" class="text-blue-500 w-4 h-4"></i>
+                        </div>
+                        <input type="password" name="api_key_gemini" value="{{ oraculo_key|default_if_none:'' }}" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono">
+                    </div>
+                    {% if has_env_fallback %}
+                        <p class="text-xs text-yellow-500 mt-2 font-bold"><i data-lucide="alert-circle" class="w-3 h-3 inline"></i> Nota: Nenhuma chave foi achada neste banco de dados, mas o Oráculo tem energia pelo arquivo .env local oculto.</p>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="w-full py-3 mt-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i> Renovar Energia do Oráculo
+                </button>
+            </form>
         </div>
     </div>
 

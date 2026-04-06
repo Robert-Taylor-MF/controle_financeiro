@@ -187,10 +187,23 @@ def central_cadastros(request):
         elif acao == 'renda':
             form = RendaMensalForm(request.POST)
             if form.is_valid(): form.save(); messages.success(request, "Mana (Renda Mensal) canalizada com sucesso!")
+        elif acao == 'oraculo':
+            api_key = request.POST.get('api_key_gemini', '')
+            user = request.user
+            from .models import MestreSeguranca
+            m_seg, created = MestreSeguranca.objects.get_or_create(user=user, defaults={'pergunta_secreta': '-', 'resposta_secreta': '-'})
+            m_seg.gemini_api_key = api_key
+            m_seg.save()
+            messages.success(request, "A essência do Oráculo foi renovada com sucesso!")
             
         return redirect('central_cadastros')
     
     # Se for GET (apenas a carregar a página), preparamos os 4 formulários e as listas
+    import os
+    ms = getattr(request.user, 'seguranca', None)
+    oraculo_key = ms.gemini_api_key if ms else None
+    has_env_fallback = bool(not oraculo_key and os.getenv("GEMINI_API_KEY"))
+
     contexto = {
         'form_cartao': CartaoCreditoForm(),
         'form_pessoa': PessoaForm(),
@@ -200,6 +213,8 @@ def central_cadastros(request):
         'pessoas': Pessoa.objects.all(),
         'categorias': Categoria.objects.all(),
         'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
+        'oraculo_key': oraculo_key,
+        'has_env_fallback': has_env_fallback,
     }
     return render(request, 'central_cadastros.html', contexto)
 
@@ -684,3 +699,211 @@ def enfrentar_boss_mes(request):
         messages.error(request, f"DERROTA na incursão de {mes_ano_atual}! O teu Dano (R$ {dano_total:.2f}) superou a tua Mana (R$ {mana_total:.2f}). O Boss venceu desta vez.")
 
     return redirect(f"/?mes={mes}&ano={ano}")
+
+# ==========================================
+# SETUP DE CONTA INICIAL E AUTENTICAÇÃO
+# ==========================================
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.models import User
+
+def custom_login_view(request):
+    """
+    Interceptor do fluxo de login que redireciona para a tela 
+    de Setup caso seja a primeira rodada na guilda.
+    """
+    if not User.objects.filter(is_superuser=True).exists():
+        return redirect('setup_admin')
+    # Se existe o master, carrega a view de login oficial do Django
+    return auth_views.LoginView.as_view(template_name='login.html')(request)
+
+def setup_admin(request):
+    """
+    Cria a conta do líder da guilda no banco limpo e envia de volta ao form de login.
+    """
+    if User.objects.filter(is_superuser=True).exists():
+        return redirect('login')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
+        pergunta = request.POST.get('pergunta_secreta')
+        resposta = request.POST.get('resposta_secreta')
+        api_key = request.POST.get('api_key_gemini', '')
+        
+        if password == password_confirm:
+            try:
+                user = User.objects.create_superuser(username, email, password)
+                from .models import MestreSeguranca
+                MestreSeguranca.objects.create(user=user, pergunta_secreta=pergunta, resposta_secreta=resposta, gemini_api_key=api_key)
+                
+                messages.success(request, "Líder da guilda forjado com sucesso! Adentre a forja com o novo login.")
+                return redirect('login')
+            except Exception as e:
+                messages.error(request, f"Erro ao forjar o líder: {str(e)}")
+        else:
+            messages.error(request, "As senhas não coincidem. Feitiço de defesa ativado.")
+            
+    return render(request, 'setup_admin.html')
+
+from django.contrib.auth.decorators import login_required
+from .models import Pessoa
+
+@login_required
+def setup_owner(request):
+    """
+    Força a criação do Titular do sistema (Pessoa com is_owner=True).
+    Caso contrário o sistema entra em loop no middleware RequireOwnerMiddleware.
+    """
+    if Pessoa.objects.filter(is_owner=True).exists():
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        nome = nome.strip() if nome else ""
+        telefone = request.POST.get('telefone', '')
+        chave_pix = request.POST.get('chave_pix', '')
+        foto_perfil = request.FILES.get('foto_perfil')
+        
+        if nome:
+            Pessoa.objects.create(
+                nome=nome,
+                telefone=telefone,
+                chave_pix=chave_pix,
+                foto_perfil=foto_perfil,
+                is_owner=True,
+                ativo=True,
+                level=1,
+                xp_atual=0
+            )
+            messages.success(request, f"O Titular {nome} foi nomeado Mestre da Guilda! O Dashboard agora está acessível.")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "O Herói Principal precisa ter um nome. Revise o pergaminho.")
+            
+    return render(request, 'setup_owner.html')
+
+def recuperar_acesso(request):
+    """
+    Fluxo que recupera acesso.
+    Fase 1: Coleta username e acha pergunta.
+    Fase 2: Coleta resposta e nova senha.
+    """
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        fase = request.POST.get('fase', '1') 
+        
+        user = User.objects.filter(username=username).first()
+        if not user:
+            messages.error(request, "Herói desconhecido nos registros.")
+            return render(request, 'esqueceu_senha.html', {'fase': '1'})
+            
+        mestre_seguranca = getattr(user, 'seguranca', None)
+        if not mestre_seguranca:
+            messages.error(request, "Este herói não possui a Magia de Recuperação (Pergunta) configurada.")
+            return render(request, 'esqueceu_senha.html', {'fase': '1'})
+
+        if fase == '1':
+            return render(request, 'esqueceu_senha.html', {
+                'fase': '2',
+                'username': username,
+                'pergunta': mestre_seguranca.pergunta_secreta
+            })
+            
+        elif fase == '2':
+            resposta = request.POST.get('resposta')
+            nova_senha = request.POST.get('nova_senha')
+            nova_senha_conf = request.POST.get('nova_senha_confirm')
+            
+            if resposta and str(resposta).lower().strip() == str(mestre_seguranca.resposta_secreta).lower().strip():
+                if nova_senha == nova_senha_conf:
+                    user.set_password(nova_senha)
+                    user.save()
+                    messages.success(request, "A Antiga Chave foi destruída. Nova Chave Forjada com Sucesso!")
+                    return redirect('login')
+                else:
+                    messages.error(request, "As novas senhas não coincidem.")
+            else:
+                messages.error(request, "A Resposta Mágica está incorreta. O escudo refletiu sua magia.")
+                
+            return render(request, 'esqueceu_senha.html', {
+                'fase': '2',
+                'username': username,
+                'pergunta': mestre_seguranca.pergunta_secreta
+            })
+            
+    return render(request, 'esqueceu_senha.html', {'fase': '1'})
+
+@login_required
+def mudar_senha_interna(request):
+    """ View restrita aos donos para alterar senha em uso. """
+    if request.method == 'POST':
+        senha_antiga = request.POST.get('senha_antiga')
+        nova_senha = request.POST.get('nova_senha')
+        nova_senha_conf = request.POST.get('nova_senha_confirm')
+        
+        user = request.user
+        
+        if user.check_password(senha_antiga):
+            if nova_senha == nova_senha_conf:
+                user.set_password(nova_senha)
+                user.save()
+                
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user)
+                
+                messages.success(request, "Senha do Cofre atualizada e blindada com sucesso!")
+                return redirect('dashboard')
+            else:
+                messages.error(request, "As novas senhas não coincidem.")
+        else:
+            messages.error(request, "Sua chave atual está incorreta. Refletindo o ataque.")
+            
+    return render(request, 'mudar_senha_interna.html')
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def deletar_cadastro(request, tipo, id):
+    """
+    Guardião da Exclusão.
+    Assegura que nenhum loot perca o histórico validando conexões antes de exilar.
+    """
+    if request.method == 'DELETE':
+        from .models import Pessoa, CartaoCredito, Categoria, RendaMensal, Transacao
+        from django.http import JsonResponse
+        try:
+            if tipo == 'pessoa':
+                obj = Pessoa.objects.get(id=id)
+                if obj.is_owner:
+                    return JsonResponse({'status': 'erro', 'mensagem': 'Você não pode banir o Titular do Sistema.'})
+                if Transacao.objects.filter(responsavel=obj).exists() or RendaMensal.objects.filter(pessoa=obj).exists():
+                    return JsonResponse({'status': 'erro', 'mensagem': 'Membro atrelado a faturas ou rendas. Exclusão bloqueada para preservar o histórico.'})
+                obj.delete()
+                
+            elif tipo == 'cartao':
+                obj = CartaoCredito.objects.get(id=id)
+                if Transacao.objects.filter(cartao=obj).exists():
+                    return JsonResponse({'status': 'erro', 'mensagem': 'Este cartão possui despesas associadas. Não pode ser destruído.'})
+                obj.delete()
+                
+            elif tipo == 'categoria':
+                obj = Categoria.objects.get(id=id)
+                if Transacao.objects.filter(categoria=obj).exists():
+                    return JsonResponse({'status': 'erro', 'mensagem': 'Existem pergaminhos usando esta categoria. Exclusão bloqueada.'})
+                obj.delete()
+                
+            elif tipo == 'renda':
+                obj = RendaMensal.objects.get(id=id)
+                obj.delete()
+                
+            else:
+                return JsonResponse({'status': 'erro', 'mensagem': 'Entidade de exclusão desconhecida.'})
+                
+            return JsonResponse({'status': 'sucesso', 'mensagem': 'Loot obliterado definitivamente.'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': f"Falha na exclusão: {str(e)}"})
+
+    return JsonResponse({'status': 'erro', 'mensagem': 'Apenas método DELETE permitido.'})

@@ -51,9 +51,12 @@
                 </div>
             </div>
 
-            <button type="submit" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded shadow-[0_0_15px_rgba(185,28,28,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2 mt-4">
-                <i data-lucide="log-in" class="w-5 h-5"></i> Adentrar a Forja
+            <button type="submit" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded shadow-[0_0_15px_rgba(185,28,28,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2 mt-4 cursor-pointer">
+                <i data-lucide="swords" class="w-5 h-5"></i> Iniciar Expedição
             </button>
+            <div class="text-center mt-6">
+                <a href="{% url 'recuperar_acesso' %}" class="text-xs text-slate-500 hover:text-red-400 uppercase tracking-widest font-bold transition-colors">Perdi a Chave do Cofre (Esqueci a Senha)</a>
+            </div>
             
             <input type="hidden" name="next" value="{{ next|default:'/' }}">
         </form>

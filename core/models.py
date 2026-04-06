@@ -202,3 +202,13 @@ class HistoricoCofre(models.Model):
 
     def __str__(self):
         return f"{self.cofre.nome} | {self.get_tipo_display()} | R$ {self.valor}"
+
+from django.contrib.auth.models import User
+class MestreSeguranca(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='seguranca')
+    pergunta_secreta = models.CharField(max_length=200)
+    resposta_secreta = models.CharField(max_length=200)
+    gemini_api_key = models.CharField(max_length=255, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+
+    def __str__(self):
+        return f"Segurança do Mestre: {self.user.username}"

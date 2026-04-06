@@ -42,12 +42,8 @@ echo ==============================================================
 echo Instalacao concluida com sucesso!
 echo ==============================================================
 echo.
-set /p criar_admin="Deseja criar um usuario administrador agora? (Recomendado) [S/N]: "
-if /i "%criar_admin%"=="S" (
-    echo Criando Superusuario...
-    python manage.py createsuperuser
-)
-
+echo O ambiente esta pronto para forjar sua financa gamificada.
+echo O usuario master podera ser criado abrindo sua interface web no primeiro acesso.
 echo.
 echo Tudo pronto! Para iniciar o servidor em mode de producao (Waitress), execute run.bat.
 pause

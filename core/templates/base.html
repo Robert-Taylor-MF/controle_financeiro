@@ -57,6 +57,10 @@
             </div>
             {% endif %}
 
+            <a href="{% url 'mudar_senha_interna' %}" class="text-slate-500 hover:text-yellow-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-yellow-900/50 transition-all shadow-inner" title="Alterar Chave do Cofre (Senha)">
+                <i data-lucide="key-round" class="w-5 h-5"></i>
+            </a>
+
             <form method="POST" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="text-slate-500 hover:text-red-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-red-900/50 transition-all shadow-inner" title="Abandonar Forja (Sair)">
@@ -115,24 +119,33 @@
             return cookieValue;
         }
 
-        let transacaoParaDeletar = null;
+        let urlDelecaoAtual = null;
 
-        function deletarTransacao(id) {
-            transacaoParaDeletar = id;
+        function abrirModalExcluir() {
             document.getElementById('modal-excluir').classList.remove('hidden');
             document.getElementById('modal-excluir').classList.add('flex');
         }
 
+        function deletarTransacao(id) {
+            urlDelecaoAtual = `/api/deletar-transacao/${id}/`;
+            abrirModalExcluir();
+        }
+
+        function deletarCadastro(tipo, id) {
+            urlDelecaoAtual = `/api/deletar-cadastro/${tipo}/${id}/`;
+            abrirModalExcluir();
+        }
+
         function fecharModalExcluir() {
-            transacaoParaDeletar = null;
+            urlDelecaoAtual = null;
             document.getElementById('modal-excluir').classList.add('hidden');
             document.getElementById('modal-excluir').classList.remove('flex');
         }
 
         function executarDelecao() {
-            if (!transacaoParaDeletar) return;
+            if (!urlDelecaoAtual) return;
             
-            fetch(`/api/deletar-transacao/${transacaoParaDeletar}/`, {
+            fetch(urlDelecaoAtual, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': obterTokenCSRF()
@@ -180,6 +193,7 @@
         <a href="{% url 'extrato_faturas' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-slate-100 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="scroll" class="w-6 h-6"></i> Pergaminhos</a>
         <a href="{% url 'banco_guilda' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-emerald-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="landmark" class="w-6 h-6"></i> Banco</a>
         <a href="{% url 'central_cadastros' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-blue-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="settings" class="w-6 h-6"></i> QG</a>
+        <a href="{% url 'mudar_senha_interna' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-yellow-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="key-round" class="w-6 h-6"></i> Mudar Senha</a>
         <a href="/admin/" target="_blank" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-purple-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="database" class="w-6 h-6"></i> Painel Admin</a>
     </div>
 
