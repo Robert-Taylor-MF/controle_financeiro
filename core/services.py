@@ -37,7 +37,7 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
 
     from .models import MestreSeguranca
     ms = MestreSeguranca.objects.first()
-    chave_api = (ms.gemini_api_key if ms and ms.gemini_api_key else os.getenv("GEMINI_API_KEY"))
+    chave_api = (ms.get_api_key() if ms and ms.get_api_key() else os.getenv("GEMINI_API_KEY"))
     
     if not chave_api:
         return False, "O Oráculo está sem magia. Configure a Chave API do Gemini no QG (Central de Cadastros) ou no arquivo local."

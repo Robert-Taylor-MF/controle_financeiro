@@ -205,13 +205,38 @@ class HistoricoCofre(models.Model):
 
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
-from cryptography_fields.fields import EncryptedCharField
+from django.conf import settings
+import base64
+
+def get_fernet():
+    key = base64.urlsafe_b64encode(settings.SECRET_KEY.encode()[:32].ljust(32, b'X'))
+    return Fernet(key)
 
 class MestreSeguranca(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='seguranca')
     pergunta_secreta = models.CharField(max_length=200)
-    resposta_secreta = models.CharField(max_length=200) # Deixaremos limpo para o match não quebrar agora, o ideal seria Hash.
-    gemini_api_key = EncryptedCharField(max_length=255, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+    resposta_secreta = models.CharField(max_length=500) 
+    gemini_api_key = models.CharField(max_length=500, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+    
+    def set_api_key(self, raw_key):
+        if raw_key: self.gemini_api_key = get_fernet().encrypt(raw_key.encode('utf-8')).decode('utf-8')
+        else: self.gemini_api_key = None
+
+    def get_api_key(self):
+        if self.gemini_api_key:
+            try: return get_fernet().decrypt(self.gemini_api_key.encode('utf-8')).decode('utf-8')
+            except: return self.gemini_api_key # Fallback for old unencrypted
+        return None
+
+    def set_resposta(self, resp):
+        if resp: self.resposta_secreta = get_fernet().encrypt(resp.lower().strip().encode('utf-8')).decode('utf-8')
+        else: self.resposta_secreta = ""
+
+    def get_resposta(self):
+        if self.resposta_secreta:
+            try: return get_fernet().decrypt(self.resposta_secreta.encode('utf-8')).decode('utf-8')
+            except: return self.resposta_secreta.lower().strip() # Fallback
+        return ""
     
     # Cofre do Tempo (Backup Configuration)
     diretorio_backup = models.CharField(max_length=500, blank=True, null=True, help_text="Caminho do HD ou Google Drive")

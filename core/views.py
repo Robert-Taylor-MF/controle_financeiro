@@ -192,7 +192,7 @@ def central_cadastros(request):
             user = request.user
             from .models import MestreSeguranca
             m_seg, created = MestreSeguranca.objects.get_or_create(user=user, defaults={'pergunta_secreta': '-', 'resposta_secreta': '-'})
-            m_seg.gemini_api_key = api_key
+            m_seg.set_api_key(api_key)
             m_seg.save()
             messages.success(request, "A essência do Oráculo foi renovada com sucesso!")
         elif acao == 'configurar_backup':
@@ -274,7 +274,7 @@ def central_cadastros(request):
     # Se for GET (apenas a carregar a página), preparamos os 4 formulários e as listas
     import os
     ms = getattr(request.user, 'seguranca', None)
-    oraculo_key = ms.gemini_api_key if ms else None
+    oraculo_key = ms.get_api_key() if ms else None
     has_env_fallback = bool(not oraculo_key and os.getenv("GEMINI_API_KEY"))
     
     backup_config = {
@@ -909,7 +909,10 @@ def setup_admin(request):
             try:
                 user = User.objects.create_superuser(username, email, password)
                 from .models import MestreSeguranca
-                MestreSeguranca.objects.create(user=user, pergunta_secreta=pergunta, resposta_secreta=resposta, gemini_api_key=api_key)
+                ms_obj = MestreSeguranca(user=user, pergunta_secreta=pergunta)
+                ms_obj.set_resposta(resposta)
+                ms_obj.set_api_key(api_key)
+                ms_obj.save()
                 
                 messages.success(request, "Líder da guilda forjado com sucesso! Adentre a forja com o novo login.")
                 return redirect('login')
@@ -989,7 +992,7 @@ def recuperar_acesso(request):
             nova_senha = request.POST.get('nova_senha')
             nova_senha_conf = request.POST.get('nova_senha_confirm')
             
-            if resposta and str(resposta).lower().strip() == str(mestre_seguranca.resposta_secreta).lower().strip():
+            if resposta and str(resposta).lower().strip() == str(mestre_seguranca.get_resposta()).lower().strip():
                 if nova_senha == nova_senha_conf:
                     user.set_password(nova_senha)
                     user.save()
