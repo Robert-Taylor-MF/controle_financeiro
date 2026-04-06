@@ -9,9 +9,6 @@
             <p class="text-slate-400">Gerencie o patrimônio e as metas da sua party.</p>
         </div>
         <div class="flex items-center gap-4">
-            <button onclick="abrirModalForja()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-emerald-500 text-emerald-400 font-bold rounded-lg shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest text-xs">
-                <i data-lucide="hammer" class="w-4 h-4"></i> Forjar Instituição / Meta
-            </button>
             <div class="bg-slate-800 border border-slate-700 px-6 py-3 rounded-lg shadow-xl text-right">
                 <p class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-1">Tesouro Total</p>
                 <p class="text-xl font-black text-emerald-400">R$ {{ tesouro_total|floatformat:2 }}</p>
@@ -42,6 +39,15 @@
         </div>
     </div>
     {% endif %}
+
+    <div class="mb-8 flex flex-col sm:flex-row items-center gap-4">
+        <button onclick="abrirModalBanco()" class="w-full sm:w-auto px-6 py-3 bg-blue-900/40 hover:bg-blue-600 border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+            <i data-lucide="building-2" class="w-4 h-4"></i> Forjar Banco
+        </button>
+        <button onclick="abrirModalMeta()" class="w-full sm:w-auto px-6 py-3 bg-emerald-900/40 hover:bg-emerald-600 border border-emerald-500/50 hover:border-emerald-400 text-emerald-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs">
+            <i data-lucide="target" class="w-4 h-4"></i> Forjar Nova Meta
+        </button>
+    </div>
 
     <div class="mb-6 flex items-center gap-3 flex-wrap">
         <span class="text-xs uppercase font-bold text-slate-500"><i data-lucide="building-2" class="w-4 h-4 inline"></i> Bancos Ativos:</span>
@@ -83,40 +89,50 @@
         {% endfor %}
     </div>
 
-    <div id="modal-forja" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-8 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-4xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-200" id="modal-forja-content">
-            <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
-                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest"><i data-lucide="hammer" class="w-6 h-6 inline text-emerald-500 mr-2"></i> Forja de Tesouros</h3>
-                <button onclick="fecharModalForja()" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+    <!-- MODAL FORJAR BANCO -->
+    <div id="modal-banco" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-blue-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-banco-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="building-2" class="w-6 h-6 text-blue-400"></i> Novo Banco</h3>
+                <button onclick="fecharModalBanco()" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-slate-800/50 p-6 rounded-lg border border-slate-700 col-span-1 h-fit">
-                    <h4 class="font-bold text-slate-300 mb-4 flex items-center gap-2"><i data-lucide="building-2" class="w-4 h-4 text-blue-400"></i> 1. Novo Banco</h4>
-                    <form method="POST">
-                        {% csrf_token %}
-                        <input type="hidden" name="acao" value="instituicao">
-                        {{ form_instituicao.as_p }}
-                        <button type="submit" class="mt-4 w-full py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow transition-colors text-sm">Gravar Banco</button>
-                    </form>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="instituicao">
+                {{ form_instituicao.as_p }}
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalBanco()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow transition-colors text-sm">Gravar Banco</button>
                 </div>
-                <div class="bg-slate-800/50 p-6 rounded-lg border border-slate-700 col-span-1 md:col-span-2">
-                    <h4 class="font-bold text-slate-300 mb-4 flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-emerald-400"></i> 2. Nova Meta</h4>
-                    <form method="POST">
-                        {% csrf_token %}
-                        <input type="hidden" name="acao" value="cofre">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {{ form_cofre.as_p }}
-                        </div>
-                        <button type="submit" class="mt-6 w-full py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Ativar Missão</button>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <div id="modal-ouro" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700 p-8 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-sm transform scale-95 transition-transform duration-200" id="modal-ouro-content">
+    <!-- MODAL FORJAR META -->
+    <div id="modal-meta" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-emerald-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(16,185,129,0.3)] w-full max-w-2xl transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-meta-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-6 h-6 text-emerald-400"></i> Nova Meta (Cofre)</h3>
+                <button onclick="fecharModalMeta()" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="cofre">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {{ form_cofre.as_p }}
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalMeta()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-[2] py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Ativar Missão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-ouro" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-sm transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-ouro-content">
             <div class="flex justify-center mb-4">
                 <div id="modal-icone-bg" class="p-3 rounded-full bg-slate-800 border border-slate-700">
                     <i data-lucide="coins" id="modal-icone" class="w-8 h-8 text-slate-400"></i>
@@ -159,17 +175,30 @@
         }, 4000);
 
         // ==========================================
-        // MODAL DA FORJA (Novo Banco / Cofre)
+        // MODAL BANCO E META
         // ==========================================
-        function abrirModalForja() {
-            const m = document.getElementById('modal-forja');
-            const c = document.getElementById('modal-forja-content');
+        function abrirModalBanco() {
+            const m = document.getElementById('modal-banco');
+            const c = document.getElementById('modal-banco-content');
             m.classList.remove('hidden'); m.classList.add('flex');
             setTimeout(() => c.classList.replace('scale-95', 'scale-100'), 10);
         }
-        function fecharModalForja() {
-            const m = document.getElementById('modal-forja');
-            const c = document.getElementById('modal-forja-content');
+        function fecharModalBanco() {
+            const m = document.getElementById('modal-banco');
+            const c = document.getElementById('modal-banco-content');
+            c.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { m.classList.add('hidden'); m.classList.remove('flex'); }, 150);
+        }
+
+        function abrirModalMeta() {
+            const m = document.getElementById('modal-meta');
+            const c = document.getElementById('modal-meta-content');
+            m.classList.remove('hidden'); m.classList.add('flex');
+            setTimeout(() => c.classList.replace('scale-95', 'scale-100'), 10);
+        }
+        function fecharModalMeta() {
+            const m = document.getElementById('modal-meta');
+            const c = document.getElementById('modal-meta-content');
             c.classList.replace('scale-100', 'scale-95');
             setTimeout(() => { m.classList.add('hidden'); m.classList.remove('flex'); }, 150);
         }

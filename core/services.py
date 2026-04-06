@@ -1,12 +1,14 @@
 import os
 import json
 import pdfplumber
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 from .models import Transacao, Pessoa, CartaoCredito, Categoria
+from datetime import datetime, timedelta
 
 # 2. Execute a função para carregar o arquivo .env
-load_dotenv()
+# Usamos `override=True` para garantir que ele Puxe do .env e ignore qualquer variável global do Windows presa na memória
+load_dotenv(override=True)
 
 def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     texto_fatura = ""
@@ -33,9 +35,17 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     # ==========================================
     print("\n[DEBUG] Categorias enviadas para a IA:", string_categorias)
 
-    chave_api = os.getenv("GEMINI_API_KEY")
-    genai.configure(api_key=chave_api)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    from .models import MestreSeguranca
+    ms = MestreSeguranca.objects.first()
+    chave_api = (ms.gemini_api_key if ms and ms.gemini_api_key else os.getenv("GEMINI_API_KEY"))
+    
+    if not chave_api:
+        return False, "O Oráculo está sem magia. Configure a Chave API do Gemini no QG (Central de Cadastros) ou no arquivo local."
+
+    try:
+        client = genai.Client(api_key=chave_api)
+    except Exception as e:
+        return False, f"Falha ao evocar o Oráculo (Erro na Chave): {str(e)}"
     
     # Prompt blindado
     prompt = f"""
@@ -58,7 +68,10 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     """
     
     try:
-        resposta = model.generate_content(prompt + "\n\nTexto:\n" + texto_fatura)
+        resposta = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt + "\n\nTexto:\n" + texto_fatura
+        )
         texto_ia = resposta.text.strip()
         
         # ==========================================
@@ -66,10 +79,24 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
         # ==========================================
         print("\n[DEBUG] Resposta pura da IA:\n", texto_ia)
 
-        if texto_ia.startswith('```json'):
-            texto_ia = texto_ia.replace('```json', '').replace('```', '').strip()
-            
-        dados_extraidos = json.loads(texto_ia)
+        # Tenta extrair apenas o bloco JSON caso a IA tenha adicionado texto explicativo antes ou depois
+        if '```json' in texto_ia:
+            texto_ia = texto_ia.split('```json')[1].split('```')[0].strip()
+        elif '```' in texto_ia:
+            partes = texto_ia.split('```')
+            if len(partes) >= 3:
+                texto_ia = partes[1].strip()
+
+        # Se houver sujeira, isola apenas o que está entre os colchetes do Array JSON
+        primeiro_colchete = texto_ia.find('[')
+        ultimo_colchete = texto_ia.rfind(']')
+        if primeiro_colchete != -1 and ultimo_colchete != -1:
+            texto_ia = texto_ia[primeiro_colchete:ultimo_colchete+1]
+
+        try:
+            dados_extraidos = json.loads(texto_ia)
+        except json.JSONDecodeError as e:
+            return False, f"O Oráculo se confundiu na profecia (Erro de JSON): {str(e)}. Tente novamente."
         
         cartao = CartaoCredito.objects.get(id=cartao_id)
         dono_principal = Pessoa.objects.get(is_owner=True) 
@@ -87,18 +114,60 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
                 # ==========================================
                 print(f"[DEBUG] IA sugeriu: '{cat_nome}' -> Banco encontrou: {categoria_obj}")
 
-            nova_transacao = Transacao.objects.create(
-                descricao=item['descricao'],
-                valor=item['valor'],
-                data_compra=item['data_compra'],
-                responsavel=None,
-                cartao=cartao,
-                categoria=categoria_obj,
-                status='PENDENTE',
-                mes_fatura=int(mes_fatura),
-                ano_fatura=int(ano_fatura)
-            )
-            transacoes_criadas.append(nova_transacao)
+            # ==========================================
+            # ALGORITMO DE CONCILIAÇÃO BANCÁRIA (O Feitiço de Fusão)
+            # ==========================================
+            try:
+                # Converte a data_compra devolvida pela IA (YYYY-MM-DD) para um objeto date do Python
+                data_ia = datetime.strptime(item['data_compra'], '%Y-%m-%d').date()
+            except ValueError:
+                data_ia = None
+                
+            transacao_existente = None
+            
+            if data_ia:
+                # Busca transações PENDENTES no mesmo cartão com o exato valor
+                candidatas = Transacao.objects.filter(
+                    cartao=cartao,
+                    valor=item['valor'],
+                    status='PENDENTE'
+                )
+                
+                # Procura a que mais se aproxima (margem de erro de até 1 dia pela transição de fuso ou sistema da maquininha)
+                for t in candidatas:
+                    delta = abs((t.data_compra - data_ia).days)
+                    if delta <= 1:
+                        transacao_existente = t
+                        break
+
+            if transacao_existente:
+                # MATCH! Encontrou o gasto diário
+                # Altera o status para faturado e vincula competência
+                transacao_existente.status = 'FATURADO'
+                transacao_existente.mes_fatura = int(mes_fatura)
+                transacao_existente.ano_fatura = int(ano_fatura)
+                
+                # Se não tinha categoria na manual mas a IA sugeriu, aproveita a sugestão
+                if not transacao_existente.categoria and categoria_obj:
+                    transacao_existente.categoria = categoria_obj
+                    
+                transacao_existente.save()
+                transacoes_criadas.append(transacao_existente)
+                print(f"[DEBUG] Conciliou: '{transacao_existente.descricao}' (Manual) com '{item['descricao']}' (Fatura)")
+            else:
+                # Sem manual ou sem bater os dados? Cria uma nova (o registro do PDF)
+                nova_transacao = Transacao.objects.create(
+                    descricao=item['descricao'],
+                    valor=item['valor'],
+                    data_compra=item['data_compra'],
+                    responsavel=None,
+                    cartao=cartao,
+                    categoria=categoria_obj,
+                    status='PENDENTE',
+                    mes_fatura=int(mes_fatura),
+                    ano_fatura=int(ano_fatura)
+                )
+                transacoes_criadas.append(nova_transacao)
             
         return True, f"{len(transacoes_criadas)} despesas extraídas e categorizadas!"
         

@@ -9,7 +9,7 @@
     </header>
 
     <div class="bg-slate-800 p-8 rounded-lg border border-slate-700 shadow-xl max-w-2xl">
-        <form method="POST" class="space-y-4">
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
             {% csrf_token %}
             
             {{ form.as_p }}

@@ -11,19 +11,38 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Carrega as chaves do cofre (.env)
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ylnb_eam)$$1gf(*7k8y^m1=_l3_63q71_#j*nkq^*w)wettm3'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-do-not-use-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+# ==========================================
+# HEADER DE SEGURANÇA & XSS (BLUE TEAM)
+# ==========================================
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+if os.getenv('USE_HTTPS', 'False').lower() == 'true':
+    # Em produção com domínio pago
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000 # 1 Ano
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 ALLOWED_HOSTS = []
 
@@ -48,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.RequireOwnerMiddleware',
 ]
 
 ROOT_URLCONF = 'setup.urls'
@@ -62,6 +82,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.dados_rpg',
             ],
         },
     },
@@ -116,3 +137,16 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# ==========================================
+# MÍDIA (Uploads de usuários, Avatar, etc)
+# ==========================================
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==========================================
+# ROTAS DE AUTENTICAÇÃO (LOGIN/LOGOUT)
+# ==========================================
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'

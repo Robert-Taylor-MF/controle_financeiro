@@ -6,17 +6,7 @@
         <p class="text-slate-400">Gira a sua party, recursos e armamento financeiro.</p>
     </header>
 
-    {% if messages %}
-        <div class="mb-6">
-            {% for message in messages %}
-                <div class="p-4 rounded-md bg-green-900/50 text-green-400 border border-green-800 flex items-center gap-2">
-                    <i data-lucide="check-circle" class="w-5 h-5"></i> {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    <div class="border-b border-slate-700 mb-6 flex gap-4 overflow-x-auto">
+    <div class="border-b border-slate-700 mb-8 flex gap-4 overflow-x-auto">
         <button onclick="mudarAba('renda')" id="btn-renda" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-purple-400 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="coins" class="w-4 h-4"></i> Tesouraria (Renda)
         </button>
@@ -29,122 +19,393 @@
         <button onclick="mudarAba('categorias')" id="btn-categorias" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-yellow-400 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="book-marked" class="w-4 h-4"></i> Grimório (Categorias)
         </button>
+        <button onclick="mudarAba('oraculo')" id="btn-oraculo" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-blue-500 transition-colors whitespace-nowrap flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Oráculo (IA)
+        </button>
+        <button onclick="mudarAba('backup')" id="btn-backup" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-emerald-500 transition-colors whitespace-nowrap flex items-center gap-2">
+            <i data-lucide="archive-restore" class="w-4 h-4"></i> Guardião do Tempo (Backup)
+        </button>
     </div>
 
-    <div id="aba-renda" class="aba-conteudo hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 h-fit lg:col-span-1">
-            <h3 class="text-xl font-bold text-purple-400 mb-4 border-b border-slate-700 pb-2">Canalizar Mana (Novo Salário)</h3>
+    <!-- ABA RENDA -->
+    <div id="aba-renda" class="aba-conteudo hidden relative">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Histórico de Recebimentos</h3>
+            <button onclick="abrirModalCadastro('renda')" class="px-5 py-2.5 bg-purple-900/40 hover:bg-purple-600 border border-purple-500/50 hover:border-purple-400 text-purple-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest w-full sm:w-auto">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Canalizar Mana
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {% for r in rendas %}
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col justify-between transition-all hover:border-purple-500 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-slate-100">{{ r.pessoa.nome }}</h4>
+                            <p class="text-xs text-slate-400 uppercase tracking-widest mt-1">Mês {{ r.mes }}/{{ r.ano }}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'editar_cadastro' 'renda' r.id %}" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-700 transition-colors border border-slate-700 hover:border-blue-500/50" title="Editar Registro">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </a>
+                            <button onclick="deletarCadastro('renda', {{ r.id }})" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors border border-slate-700 hover:border-red-500/50" title="Banir Registro">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-right mt-auto border-t border-slate-700/50 pt-3">
+                        <span class="font-black text-emerald-400 text-xl">R$ {{ r.valor_liquido }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ABA PESSOAS -->
+    <div id="aba-pessoas" class="aba-conteudo hidden relative">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Membros Ativos</h3>
+            <button onclick="abrirModalCadastro('pessoas')" class="px-5 py-2.5 bg-red-900/40 hover:bg-red-600 border border-red-500/50 hover:border-red-400 text-red-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest w-full sm:w-auto">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Recrutar Aliado
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {% for p in pessoas %}
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col justify-between transition-all hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)] group relative overflow-hidden">
+                    {% if p.is_owner %}
+                    <div class="absolute top-0 right-0 bg-red-900/80 text-white text-[9px] font-black tracking-widest px-3 py-1 uppercase rounded-bl-lg border-b border-l border-red-500/50 z-10">Titular</div>
+                    {% endif %}
+                    
+                    <div class="flex items-center gap-4 mb-4 z-10">
+                        {% if p.foto_perfil %}
+                            <img src="{{ p.foto_perfil.url }}" class="w-12 h-12 rounded-full border-2 border-slate-600 object-cover">
+                        {% else %}
+                            <div class="w-12 h-12 rounded-full bg-slate-900 border-2 border-slate-600 flex items-center justify-center text-slate-500 font-bold text-lg">{{ p.nome|first }}</div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0 pr-10">
+                            <h4 class="font-bold text-slate-100 truncate">{{ p.nome }}</h4>
+                            {% if p.telefone %}<p class="text-xs text-slate-400 mt-1 truncate">{{ p.telefone }}</p>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 z-10">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">Lv.</span><span class="text-emerald-400 font-black text-lg">{{ p.level }}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="{% url 'editar_cadastro' 'pessoa' p.id %}" class="bg-slate-800 p-2 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-700 transition-colors border border-slate-600 hover:border-blue-500/50" title="Editar Registro">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </a>
+                            <button onclick="deletarCadastro('pessoa', {{ p.id }})" class="bg-slate-800 p-2 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors border border-slate-600 hover:border-red-500/50" title="Banir Aliado">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ABA CARTÕES -->
+    <div id="aba-cartoes" class="aba-conteudo hidden relative">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Armamento Disponível</h3>
+            <button onclick="abrirModalCadastro('cartoes')" class="px-5 py-2.5 bg-blue-900/40 hover:bg-blue-600 border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest w-full sm:w-auto">
+                <i data-lucide="credit-card" class="w-4 h-4"></i> Forjar Cartão
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {% for cartao in cartoes %}
+                <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-xl transition-all hover:border-blue-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] group">
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-5 h-full flex flex-col justify-between relative z-10">
+                        <i data-lucide="credit-card" class="absolute -right-4 -bottom-4 w-32 h-32 text-slate-800/50 z-[-1] group-hover:text-blue-900/10 transition-colors"></i>
+                        
+                        <div class="flex justify-between items-start mb-8">
+                            <div>
+                                <h4 class="font-black text-slate-100 text-lg uppercase tracking-wider">{{ cartao.nome }}</h4>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Fechamento: Dia {{ cartao.dia_fechamento }}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="{% url 'editar_cadastro' 'cartao' cartao.id %}" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-800 hover:border-blue-500/50" title="Editar Registro">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </a>
+                                <button onclick="deletarCadastro('cartao', {{ cartao.id }})" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-red-400 transition-colors border border-slate-800 hover:border-red-500/50" title="Destruir Arma">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-end border-t border-slate-700/50 pt-3">
+                            <div>
+                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Vencimento</p>
+                                <p class="text-sm text-slate-300 font-bold">Dia {{ cartao.dia_vencimento }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Limite Total</p>
+                                <span class="font-black text-emerald-400 text-lg">R$ {{ cartao.limite_total }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ABA CATEGORIAS -->
+    <div id="aba-categorias" class="aba-conteudo hidden relative">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Feitiços Conhecidos</h3>
+            <button onclick="abrirModalCadastro('categorias')" class="px-5 py-2.5 bg-yellow-900/40 hover:bg-yellow-600 border border-yellow-500/50 hover:border-yellow-400 text-yellow-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest w-full sm:w-auto">
+                <i data-lucide="wand-2" class="w-4 h-4"></i> Aprender Feitiço
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+            {% for c in categorias %}
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center transition-all hover:border-yellow-500 hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-slate-900 p-2 rounded-md border border-slate-700 group-hover:border-yellow-500/50 transition-colors">
+                            <i data-lucide="book-marked" class="w-4 h-4 text-yellow-500/70"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-200">{{ c.nome }}</h4>
+                            <span class="text-[10px] uppercase tracking-widest text-slate-500">{{ c.get_tipo_regra_display }}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{% url 'editar_cadastro' 'categoria' c.id %}" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-700 hover:border-blue-500/50" title="Editar Registro">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </a>
+                        <button onclick="deletarCadastro('categoria', {{ c.id }})" class="bg-slate-900 p-2 rounded text-slate-500 hover:text-red-400 transition-colors border border-slate-700 hover:border-red-500/50" title="Esquecer Feitiço">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ABA ORACULO -->
+    <div id="aba-oraculo" class="aba-conteudo hidden relative">
+        <div class="flex flex-col gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">A Essência do Oráculo</h3>
+            <p class="text-sm text-slate-400">Forneça o poder mágico necessário para a extração veloz de Faturas em PDF (Google Gemini API).</p>
+        </div>
+        
+        <div class="bg-slate-900 border border-blue-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.15)] w-full max-w-xl">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="oraculo">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Google Gemini API Key</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="key" class="text-blue-500 w-4 h-4"></i>
+                        </div>
+                        <input type="password" name="api_key_gemini" value="{{ oraculo_key|default_if_none:'' }}" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono">
+                    </div>
+                    {% if has_env_fallback %}
+                        <p class="text-xs text-yellow-500 mt-2 font-bold"><i data-lucide="alert-circle" class="w-3 h-3 inline"></i> Nota: Nenhuma chave foi achada neste banco de dados, mas o Oráculo tem energia pelo arquivo .env local oculto.</p>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="w-full py-3 mt-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i> Renovar Energia do Oráculo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ABA BACKUP -->
+    <div id="aba-backup" class="aba-conteudo hidden relative">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Guardião do Tempo (Automático)</h3>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <form method="POST" class="w-full sm:w-auto flex">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="backup_manual">
+                    <button type="submit" class="w-full px-5 py-2.5 bg-emerald-900/40 hover:bg-emerald-600 border border-emerald-500/50 hover:border-emerald-400 text-emerald-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                        <i data-lucide="download-cloud" class="w-4 h-4"></i> Gerar Ponto Manual
+                    </button>
+                </form>
+                <button type="button" onclick="abrirModalCadastro('restore')" class="w-full sm:w-auto px-5 py-2.5 bg-red-900/40 hover:bg-red-800 border border-red-500/50 hover:border-red-400 text-red-500 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest">
+                    <i data-lucide="flame" class="w-4 h-4"></i> Importar (Perigo)
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-slate-900 border border-emerald-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(16,185,129,0.15)] w-full max-w-xl">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="configurar_backup">
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ritmo Temporal (Frequência)</label>
+                        <select name="frequencia" class="w-full bg-slate-950 border border-slate-700 rounded py-2 px-3 text-sm text-slate-200 outline-none focus:border-emerald-500 uppercase tracking-wider font-bold">
+                            <option value="MANUAL" {% if backup_config.frequencia == 'MANUAL' %}selected{% endif %}>Desligado (Apenas Manual)</option>
+                            <option value="DIARIO" {% if backup_config.frequencia == 'DIARIO' %}selected{% endif %}>Diante da Alvorada (Diário)</option>
+                            <option value="SEMANAL" {% if backup_config.frequencia == 'SEMANAL' %}selected{% endif %}>Dias Específicos (Semanal)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Horário Marcado</label>
+                            <input type="time" name="horario" value="{{ backup_config.horario|time:'H:i' }}" class="w-full bg-slate-950 border border-slate-700 rounded py-2 px-3 text-sm text-slate-200 outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Dias da Semana</label>
+                            <div class="flex flex-wrap gap-2">
+                                {% with dias_array=backup_config.dias|default:'' %}
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="0" {% if '0' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Seg</label>
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="1" {% if '1' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Ter</label>
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="2" {% if '2' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Qua</label>
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="3" {% if '3' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Qui</label>
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="4" {% if '4' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Sex</label>
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="5" {% if '5' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Sáb</label>
+                                <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-950 px-2 py-1 rounded border border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors select-none"><input type="checkbox" name="dias" value="6" {% if '6' in dias_array %}checked{% endif %} class="accent-emerald-500 bg-slate-900 border-emerald-500/30">Dom</label>
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Santuário Externo (Diretório Absoluto)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="ipt-diretorio" name="diretorio" value="{{ backup_config.diretorio|default_if_none:'' }}" placeholder="Onde o Guardião salvará (HD Externo/GDrive)" class="flex-1 bg-slate-950 border border-slate-700 rounded py-2 px-3 text-sm text-slate-200 outline-none focus:border-emerald-500 font-mono tracking-tighter" readonly>
+                            <button type="button" onclick="procurarPasta(this)" class="px-3 md:px-4 bg-emerald-900/40 hover:bg-emerald-600 border border-emerald-500/50 hover:border-emerald-400 text-emerald-400 hover:text-white rounded transition-colors flex items-center justify-center min-w-[44px]">
+                                <i data-lucide="folder-search" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" onclick="document.getElementById('ipt-diretorio').value=''" class="px-3 md:px-4 bg-red-900/40 hover:bg-red-800 border border-red-500/50 hover:border-red-400 text-red-500 hover:text-white rounded transition-colors flex items-center justify-center min-w-[44px]" title="Limpar Seleção (Padrão)">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-emerald-500/70 mt-1">Se em branco, os zip(s) ficarão na pasta oculta nativa do sistema.</p>
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full py-3 mt-6 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2 text-sm">
+                    <i data-lucide="save" class="w-4 h-4"></i> Salvar Engrenagens do Tempo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAIS ESCONDIDOS (Flutuantes) -->
+    <!-- ========================================================================= -->
+
+    <!-- Modal Renda -->
+    <div id="modal-renda" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-purple-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(168,85,247,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-renda-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="coins" class="w-6 h-6 text-purple-400"></i> Canalizar Mana</h3>
+                <button onclick="fecharModalCadastro('renda')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
             <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="renda">
                 <div class="space-y-4">{{ form_renda.as_p }}</div>
-                <button type="submit" class="mt-6 w-full px-6 py-2 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded shadow transition-all flex justify-center items-center gap-2">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Registar Renda
-                </button>
-            </form>
-        </div>
-        <div class="lg:col-span-2 space-y-4">
-            <h3 class="text-xl font-bold text-slate-200 mb-4">Histórico de Recebimentos</h3>
-            {% for r in rendas %}
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center transition-all hover:border-slate-500">
-                    <div>
-                        <h4 class="font-bold text-slate-100">{{ r.pessoa.nome }}</h4>
-                        <p class="text-sm text-slate-400">Competência: Mês {{ r.mes }} / {{ r.ano }}</p>
-                    </div>
-                    <div class="text-right flex items-center gap-4">
-                        <span class="font-bold text-green-400 text-lg">R$ {{ r.valor_liquido }}</span>
-                        <a href="{% url 'editar_cadastro' 'renda' r.id %}" class="text-slate-500 hover:text-blue-400 transition-colors" title="Editar Registro">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </a>
-                    </div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('renda')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Registar Renda</button>
                 </div>
-            {% endfor %}
+            </form>
         </div>
     </div>
 
-    <div id="aba-pessoas" class="aba-conteudo hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 h-fit lg:col-span-1">
-            <h3 class="text-xl font-bold text-red-400 mb-4 border-b border-slate-700 pb-2">Recrutar Aliado</h3>
-            <form method="POST">
+    <!-- Modal Pessoas -->
+    <div id="modal-pessoas" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-red-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(239,68,68,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 overflow-y-auto max-h-[90vh]" id="modal-pessoas-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="user-plus" class="w-6 h-6 text-red-500"></i> Recrutar Aliado</h3>
+                <button onclick="fecharModalCadastro('pessoas')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="pessoa">
                 <div class="space-y-4">{{ form_pessoa.as_p }}</div>
-                <button type="submit" class="mt-6 w-full px-6 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded shadow transition-all flex justify-center items-center gap-2">
-                    <i data-lucide="user-plus" class="w-4 h-4"></i> Adicionar à Party
-                </button>
-            </form>
-        </div>
-        <div class="lg:col-span-2 space-y-4">
-            <h3 class="text-xl font-bold text-slate-200 mb-4">Membros Ativos</h3>
-            {% for p in pessoas %}
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center transition-all hover:border-slate-500">
-                    <div>
-                        <h4 class="font-bold text-slate-100">{{ p.nome }} {% if p.is_owner %}<span class="ml-2 text-[10px] bg-red-900/50 text-red-400 px-2 py-1 rounded">TITULAR</span>{% endif %}</h4>
-                        {% if p.telefone %}<p class="text-xs text-slate-400 mt-1">{{ p.telefone }}</p>{% endif %}
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <a href="{% url 'editar_cadastro' 'pessoa' p.id %}" class="text-slate-500 hover:text-blue-400 transition-colors" title="Editar Registro">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </a>
-                    </div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('pessoas')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Adicionar Party</button>
                 </div>
-            {% endfor %}
+            </form>
         </div>
     </div>
 
-    <div id="aba-cartoes" class="aba-conteudo hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 h-fit lg:col-span-1">
-            <h3 class="text-xl font-bold text-blue-400 mb-4 border-b border-slate-700 pb-2">Forjar Cartão</h3>
+    <!-- Modal Cartões -->
+    <div id="modal-cartoes" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-blue-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-cartoes-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="credit-card" class="w-6 h-6 text-blue-400"></i> Forjar Cartão</h3>
+                <button onclick="fecharModalCadastro('cartoes')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
             <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="cartao">
                 <div class="space-y-4">{{ form_cartao.as_p }}</div>
-                <button type="submit" class="mt-6 w-full px-6 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow transition-all flex justify-center items-center gap-2">
-                    <i data-lucide="credit-card" class="w-4 h-4"></i> Guardar Arma
-                </button>
-            </form>
-        </div>
-        <div class="lg:col-span-2 space-y-4">
-            <h3 class="text-xl font-bold text-slate-200 mb-4">Armamento Disponível</h3>
-            {% for cartao in cartoes %}
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center transition-all hover:border-slate-500">
-                    <div>
-                        <h4 class="font-bold text-slate-100">{{ cartao.nome }}</h4>
-                        <p class="text-sm text-slate-400">Vence dia {{ cartao.dia_vencimento }}</p>
-                    </div>
-                    <div class="text-right flex items-center gap-4">
-                        <span class="text-green-500 font-bold">R$ {{ cartao.limite_total }}</span>
-                        <a href="{% url 'editar_cadastro' 'cartao' cartao.id %}" class="text-slate-500 hover:text-blue-400 transition-colors" title="Editar Registro">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </a>
-                    </div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('cartoes')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Guardar Arma</button>
                 </div>
-            {% endfor %}
+            </form>
         </div>
     </div>
 
-    <div id="aba-categorias" class="aba-conteudo hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 h-fit lg:col-span-1">
-            <h3 class="text-xl font-bold text-yellow-400 mb-4 border-b border-slate-700 pb-2">Nova Categoria</h3>
+    <!-- Modal Categorias -->
+    <div id="modal-categorias" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-yellow-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(234,179,8,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-categorias-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="wand-2" class="w-6 h-6 text-yellow-400"></i> Aprender Feitiço</h3>
+                <button onclick="fecharModalCadastro('categorias')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
             <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="categoria">
                 <div class="space-y-4">{{ form_categoria.as_p }}</div>
-                <button type="submit" class="mt-6 w-full px-6 py-2 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded shadow transition-all flex justify-center items-center gap-2">
-                    <i data-lucide="wand-2" class="w-4 h-4"></i> Aprender Feitiço
-                </button>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('categorias')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Registrar Categoria</button>
+                </div>
             </form>
         </div>
-        <div class="lg:col-span-2 space-y-4">
-            <h3 class="text-xl font-bold text-slate-200 mb-4">Feitiços Conhecidos</h3>
-            {% for c in categorias %}
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 flex justify-between items-center transition-all hover:border-slate-500">
-                    <h4 class="font-bold text-slate-100">{{ c.nome }} <span class="text-xs text-slate-500 ml-2">({{ c.get_tipo_regra_display }})</span></h4>
-                    <a href="{% url 'editar_cadastro' 'categoria' c.id %}" class="text-slate-500 hover:text-blue-400 transition-colors" title="Editar Registro">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </a>
+    </div>
+
+    <!-- Modal RESTORE (PERIGO) -->
+    <div id="modal-restore" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[110] backdrop-blur-md p-4">
+        <div class="bg-slate-950 border-2 border-red-900 p-8 rounded-xl shadow-[0_0_70px_rgba(239,68,68,0.4)] w-full max-w-md transform scale-95 transition-transform duration-200" id="modal-restore-content">
+            
+            <div class="flex flex-col items-center mb-6 border-b border-red-900/50 pb-6">
+                <i data-lucide="skull" class="w-16 h-16 text-red-500 mb-3 animate-pulse"></i>
+                <h3 class="text-2xl font-black text-white uppercase tracking-widest text-center">Protocolo de Ressurreição</h3>
+                <p class="text-xs text-red-400 text-center font-bold mt-2 uppercase">ATENÇÃO: Toda a base, usuários e faturas atuais serão aniquiladas permanentemente e sobrepostas por este arquivo .zip!</p>
+            </div>
+            
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="restauro_critico">
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2 text-center select-none">Mundo Anterior (.zip)</label>
+                        <input type="file" name="arquivo_zip" accept=".zip" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-red-900/30 file:text-red-400 hover:file:bg-red-900/50 border border-slate-800 rounded p-1 bg-slate-900">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2 text-center"><i data-lucide="lock" class="w-3 h-3 inline"></i> Autenticação Mestra</label>
+                        <input type="password" name="senha_mestre" placeholder="Sua senha de login..." required class="w-full bg-slate-900 border border-red-900/40 rounded py-3 px-4 text-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none text-center tracking-widest font-mono">
+                    </div>
                 </div>
-            {% endfor %}
+                
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('restore')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Abortar</button>
+                    <button type="submit" class="flex-1 py-3 bg-red-700 hover:bg-red-600 text-white font-black rounded shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all text-sm uppercase tracking-widest">Sobrepor Tudo</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -169,6 +430,42 @@
             }
         }
         
+        async function procurarPasta(btn) {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i>';
+            lucide.createIcons();
+            try {
+                const res = await fetch("{% url 'api_selecionar_pasta' %}");
+                const data = await res.json();
+                if (data.path) {
+                    document.getElementById('ipt-diretorio').value = data.path;
+                } else if (data.error) {
+                    console.error("Erro do Tkinter Local: " + data.error);
+                }
+            } catch(e) {
+                console.error("Janela Externa Indisponível: ", e);
+            }
+            btn.innerHTML = originalHtml;
+            lucide.createIcons();
+        }
+        
+        // Modal System
+        function abrirModalCadastro(idModal) {
+            const m = document.getElementById('modal-' + idModal);
+            const c = document.getElementById('modal-' + idModal + '-content');
+            m.classList.remove('hidden'); m.classList.add('flex');
+            // Timeout para garantir que o flex foi aplicado antes do transform
+            setTimeout(() => c.classList.replace('scale-95', 'scale-100'), 10);
+        }
+        
+        function fecharModalCadastro(idModal) {
+            const m = document.getElementById('modal-' + idModal);
+            const c = document.getElementById('modal-' + idModal + '-content');
+            c.classList.replace('scale-100', 'scale-95');
+            // Tempo para animação acabar antes de dar hidden
+            setTimeout(() => { m.classList.add('hidden'); m.classList.remove('flex'); }, 150);
+        }
+
         // Inicia na aba de Renda ao carregar a página
         document.addEventListener("DOMContentLoaded", function() {
             mudarAba('renda');

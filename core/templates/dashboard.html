@@ -1,35 +1,85 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-<header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-    <div>
+<header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+    <div class="flex-1">
         <h2 class="text-3xl font-bold text-slate-100">Visão do Tesouro</h2>
         
-        <form method="GET" action="{% url 'dashboard' %}" class="mt-2 flex items-center gap-2">
-            <span class="text-slate-500 text-xs font-bold uppercase tracking-wider mr-1">Competência:</span>
-            <select name="mes" onchange="this.form.submit()" class="bg-slate-900 text-slate-300 border border-slate-700 rounded p-1 text-sm focus:border-purple-500 outline-none cursor-pointer transition-colors hover:border-slate-500 shadow-sm">
-                <option value="1" {% if mes_atual == '1' %}selected{% endif %}>Janeiro</option>
-                <option value="2" {% if mes_atual == '2' %}selected{% endif %}>Fevereiro</option>
-                <option value="3" {% if mes_atual == '3' %}selected{% endif %}>Março</option>
-                <option value="4" {% if mes_atual == '4' %}selected{% endif %}>Abril</option>
-                <option value="5" {% if mes_atual == '5' %}selected{% endif %}>Maio</option>
-                <option value="6" {% if mes_atual == '6' %}selected{% endif %}>Junho</option>
-                <option value="7" {% if mes_atual == '7' %}selected{% endif %}>Julho</option>
-                <option value="8" {% if mes_atual == '8' %}selected{% endif %}>Agosto</option>
-                <option value="9" {% if mes_atual == '9' %}selected{% endif %}>Setembro</option>
-                <option value="10" {% if mes_atual == '10' %}selected{% endif %}>Outubro</option>
-                <option value="11" {% if mes_atual == '11' %}selected{% endif %}>Novembro</option>
-                <option value="12" {% if mes_atual == '12' %}selected{% endif %}>Dezembro</option>
-            </select>
-            <input type="number" name="ano" value="{{ ano_atual }}" onchange="this.form.submit()" class="w-20 bg-slate-900 text-slate-300 border border-slate-700 rounded p-1 text-sm focus:border-purple-500 outline-none cursor-pointer transition-colors hover:border-slate-500 shadow-sm">
-        </form>
+        <div class="mt-3 text-center md:text-left">
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-full py-1.5 px-4 shadow-lg hover:border-purple-500/50 transition-all w-fit mx-auto md:mx-0">
+                <button type="button" onclick="mudarMes(-1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Mês Anterior">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                
+                <div class="flex flex-col items-center justify-center min-w-[100px]">
+                    <h3 class="text-sm font-black text-slate-100 uppercase tracking-widest flex items-center select-none">
+                        {% if mes_atual == '1' %}JAN
+                        {% elif mes_atual == '2' %}FEV
+                        {% elif mes_atual == '3' %}MAR
+                        {% elif mes_atual == '4' %}ABR
+                        {% elif mes_atual == '5' %}MAI
+                        {% elif mes_atual == '6' %}JUN
+                        {% elif mes_atual == '7' %}JUL
+                        {% elif mes_atual == '8' %}AGO
+                        {% elif mes_atual == '9' %}SET
+                        {% elif mes_atual == '10' %}OUT
+                        {% elif mes_atual == '11' %}NOV
+                        {% elif mes_atual == '12' %}DEZ
+                        {% endif %}
+                        <span class="text-purple-500 ml-1 cursor-pointer hover:underline hover:text-purple-300 transition-colors" onclick="mudarAno()" title="Saltar para outro Ano">/ {{ ano_atual }}</span>
+                    </h3>
+                    
+                    <div class="flex items-center gap-1 mt-1">
+                        {% for i in '123456789'|make_list %}{% with mes_loop=forloop.counter|stringformat:"s" %}
+                        <button type="button" onclick="irParaMes('{{ mes_loop }}')" title="Mês {{ mes_loop }}" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == mes_loop %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        {% endwith %}{% endfor %}
+                        <button type="button" onclick="irParaMes('10')" title="Outubro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '10' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        <button type="button" onclick="irParaMes('11')" title="Novembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '11' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        <button type="button" onclick="irParaMes('12')" title="Dezembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '12' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                    </div>
+                </div>
+
+                <button type="button" onclick="mudarMes(1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Próximo Mês">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
+                <input type="hidden" name="mes" id="input-timeline-mes" value="{{ mes_atual }}">
+                <input type="number" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
+            </form>
+        </div>
     </div>
     
-    <div class="text-left md:text-right bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border border-slate-700 md:border-none">
-        <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
-        <p class="text-2xl font-bold text-purple-400">R$ {{ renda|floatformat:2 }}</p>
+    <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0 text-right shrink-0">
+        <!-- Mana Recebida -->
+        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border border-slate-700 md:border-none">
+            <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
+            <p class="text-xl md:text-2xl font-bold text-purple-400 whitespace-nowrap">R$ {{ renda|floatformat:2 }}</p>
+        </div>
+        
+        <!-- Saldo Restante -->
+        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none">
+            <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
+            <p class="text-xl md:text-2xl font-bold whitespace-nowrap {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
+                R$ {{ saldo_restante|floatformat:2 }}
+            </p>
+        </div>
     </div>
 </header>
+
+<!-- TABS DE NAVEGAÇÃO DO DASHBOARD -->
+<div class="border-b border-slate-700 mb-6 flex gap-4 overflow-x-auto">
+    <button onclick="mudarAbaDashboard('pessoal')" id="btn-dashboard-pessoal" class="aba-btn-dash px-4 py-2 text-slate-100 font-bold border-b-2 border-slate-300 transition-colors whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="user" class="w-4 h-4"></i> Visão Pessoal
+    </button>
+    <button onclick="mudarAbaDashboard('party')" id="btn-dashboard-party" class="aba-btn-dash px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-red-400 transition-colors whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="users" class="w-4 h-4"></i> Visão da Party
+    </button>
+</div>
+
+<!-- CONTAINER DA VISÃO PESSOAL (Conteúdo anterior) -->
+<div id="aba-dashboard-pessoal" class="aba-conteudo-dash block">
 
     {% if gastos.indefinido > 0 %}
         <div class="mb-6 p-4 rounded-lg bg-orange-900/40 border border-orange-700 flex items-center justify-between shadow-lg animate-pulse">
@@ -44,7 +94,7 @@
         </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         
         <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
             <div class="flex justify-between items-center mb-2">
@@ -80,19 +130,22 @@
             </div>
         </div>
 
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    🔮 Magia / Futuro (20%)
-                </h3>
-                <span class="text-xs font-bold text-purple-400">{{ pcts.futuro }}%</span>
-            </div>
-            <p class="text-2xl font-bold text-slate-100 mb-1">R$ {{ gastos.futuro|floatformat:2 }}</p>
-            <p class="text-xs text-slate-500 mb-4">Meta ideal: R$ {{ metas.futuro|floatformat:2 }}</p>
-            
-            <div class="w-full bg-slate-900 rounded-full h-2.5">
-                <div class="h-2.5 rounded-full bg-purple-500 transition-all duration-1000" style="width: {{ pcts.futuro }}%"></div>
-            </div>
+        <div class="bg-slate-800 p-6 rounded-lg border-l-4 border-emerald-500 shadow-lg relative overflow-hidden group">
+            <i data-lucide="gem" class="absolute -right-4 -bottom-4 w-24 h-24 text-emerald-500/10 group-hover:scale-110 transition-transform"></i>
+            <h3 class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                <i data-lucide="landmark" class="w-4 h-4 text-emerald-500"></i> Tesouro da Guilda
+            </h3>
+            <p class="text-3xl font-black text-slate-100">R$ {{ tesouro_total|floatformat:2 }}</p>
+        </div>
+        <div class="bg-slate-900 rounded-lg border border-red-900/50 shadow-[0_0_15px_rgba(220,38,38,0.2)] flex flex-col justify-center items-center text-center group hover:border-red-500 transition-colors relative overflow-hidden p-6">
+            <i data-lucide="skull" class="absolute -right-4 -bottom-4 w-28 h-28 text-red-500/10 group-hover:scale-110 transition-transform"></i>
+            <h3 class="text-red-500 font-black uppercase tracking-widest text-sm mb-1 z-10 flex items-center gap-2">
+                <i data-lucide="swords" class="w-4 h-4"></i> Boss do Mês
+            </h3>
+            <p class="text-xs text-slate-400 mb-4 z-10">Desafie o lorde por XP massivo!</p>
+            <a href="{% url 'enfrentar_boss_mes' %}?mes={{ mes_atual }}&ano={{ ano_atual }}" class="px-5 py-2.5 bg-red-700 hover:bg-red-600 text-white text-xs font-bold rounded shadow-[0_0_10px_rgba(220,38,38,0.4)] transition-all z-10 flex items-center gap-2 uppercase tracking-widest">
+                Combater
+            </a>
         </div>
     </div>
 
@@ -161,9 +214,9 @@
                     <td class="py-3 px-4 text-right font-bold text-slate-100 whitespace-nowrap">R$ {{ t.valor }}</td>
                     
                     <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-2">
-                        <a href="{% url 'ratear_transacao' t.id %}" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
+                        <button type="button" onclick="abrirModalRateio('{{ t.id }}', '{{ t.descricao|escapejs }}', '{{ t.valor }}')" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
                             <i data-lucide="split-square-horizontal" class="w-4 h-4 inline-block"></i>
-                        </a>
+                        </button>
                         
                         <button onclick="deletarTransacao('{{ t.id }}')" class="inline-block bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-red-900/50 hover:border-red-500" title="Excluir Registro">
                             <i data-lucide="trash-2" class="w-4 h-4 inline-block"></i>
@@ -180,13 +233,57 @@
             </tbody>
         </table>
     </div>
+</div> <!-- FIM DA ABA PESSOAL -->
 
-    <button onclick="abrirModalDespesa()" class="fixed bottom-28 right-8 bg-red-600 hover:bg-red-500 text-white w-16 h-16 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.6)] flex items-center justify-center text-3xl transition-all hover:scale-110 z-40 border-2 border-red-400">
-        +
-    </button>
+<!-- CONTAINER DA VISÃO DA PARTY -->
+<div id="aba-dashboard-party" class="aba-conteudo-dash hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    {% for info in gastos_party %}
+        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl relative overflow-hidden group hover:border-slate-500 transition-colors">
+            <div class="flex items-center gap-4 relative z-10">
+                {% if info.pessoa.foto_perfil %}
+                    <img src="{{ info.pessoa.foto_perfil.url }}" class="w-16 h-16 rounded-full border-2 border-slate-600 object-cover">
+                {% else %}
+                    <div class="w-16 h-16 rounded-full bg-slate-900 border-2 border-slate-600 flex items-center justify-center text-slate-400 text-2xl font-bold">
+                        {{ info.pessoa.nome|make_list|first|upper }}
+                    </div>
+                {% endif %}
+                
+                <div>
+                    <h3 class="text-xl font-black text-slate-100">{{ info.pessoa.nome }}</h3>
+                    <p class="text-xs text-slate-400 font-mono tracking-widest uppercase mb-2">{{ info.pessoa.get_titulo }} <span class="text-emerald-500 font-bold uppercase ml-1">Lv.{{ info.pessoa.level }}</span></p>
+                    <p class="text-2xl font-black {% if info.total > 0 %}text-red-400{% else %}text-slate-500{% endif %}">
+                        <span class="text-sm">R$</span> {{ info.total|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+            
+            <i data-lucide="swords" class="absolute -bottom-4 -right-4 w-32 h-32 text-slate-700/10 group-hover:text-red-900/20 transition-colors rotate-12"></i>
+        </div>
+    {% endfor %}
 
-    <div id="modal-despesa" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
-        <div class="bg-slate-800 p-8 rounded-lg border border-slate-600 shadow-2xl w-full max-w-2xl relative">
+    {% if total_sem_dono > 0 %}
+    <div class="bg-slate-900 p-6 rounded-lg border border-slate-700 shadow-xl overflow-hidden relative border-dashed">
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-16 h-16 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-500 text-2xl font-bold">
+                <i data-lucide="ghost" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-black text-slate-400 uppercase">Loot Sem Dono</h3>
+                <p class="text-xs text-slate-500 font-mono tracking-widest ml-1 mb-2">Despesas soltas</p>
+                <p class="text-2xl font-black text-slate-300">
+                    <span class="text-sm">R$</span> {{ total_sem_dono|floatformat:2 }}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<!-- FIM DA ABA PARTY -->
+
+
+
+    <div id="modal-despesa" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-900 p-8 rounded-xl border border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.3)] w-full max-w-2xl relative">
             
             <button onclick="fecharModalDespesa()" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 text-xl font-bold">X</button>
             
@@ -243,6 +340,21 @@
     </div>
 
     <script>
+        function mudarAbaDashboard(abaId) {
+            // Esconde todas as abas de dashboard
+            document.querySelectorAll('.aba-conteudo-dash').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.aba-btn-dash').forEach(el => {
+                el.classList.remove('border-slate-300', 'text-slate-100');
+                el.classList.add('border-transparent');
+            });
+            
+            // Exibe a aba correta
+            document.getElementById('aba-dashboard-' + abaId).classList.remove('hidden');
+            const btn = document.getElementById('btn-dashboard-' + abaId);
+            btn.classList.remove('border-transparent');
+            btn.classList.add('border-slate-300', 'text-slate-100');
+        }
+
         function abrirModalDespesa() {
             document.getElementById('modal-despesa').classList.remove('hidden');
         }
@@ -292,6 +404,171 @@
             linha.style.display = mostrarLinha ? "" : "none";
         });
     }
+
+    // Timeline JS
+    function mudarMes(delta) {
+        let mesAtual = parseInt(document.getElementById('input-timeline-mes').value);
+        let anoAtual = parseInt(document.getElementById('input-timeline-ano').value);
+
+        let novoMes = mesAtual + delta;
+        if (novoMes > 12) {
+            novoMes = 1;
+            anoAtual += 1;
+        } else if (novoMes < 1) {
+            novoMes = 12;
+            anoAtual -= 1;
+        }
+
+        document.getElementById('input-timeline-mes').value = novoMes;
+        document.getElementById('input-timeline-ano').value = anoAtual;
+        document.getElementById('form-timeline').submit();
+    }
+
+    function irParaMes(mesStr) {
+        document.getElementById('input-timeline-mes').value = mesStr;
+        document.getElementById('form-timeline').submit();
+    }
+
+    function mudarAno() {
+        let anoAtual = document.getElementById('input-timeline-ano').value;
+        let novoAno = prompt("Mestre Temporal, para qual Ano deseja viajar?", anoAtual);
+        if (novoAno && !isNaN(novoAno) && novoAno.length === 4) {
+            document.getElementById('input-timeline-ano').value = novoAno;
+            document.getElementById('form-timeline').submit();
+        }
+    }
 </script>
+
+<!-- FAB MENU CENTRAL -->
+<div class="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3 group">
+    
+    <!-- Sub-buttons -->
+    <div class="flex flex-col items-end gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto mb-2">
+        
+        <button onclick="abrirModalFatura()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
+            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Emitir Fatura</span>
+            <div class="bg-green-700 text-green-100 p-3 rounded-full shadow-[0_0_15px_rgba(21,128,61,0.5)] border border-green-500">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+        </button>
+
+        <button onclick="abrirModalOraculo()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
+            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Invocar Oráculo</span>
+            <div class="bg-purple-700 text-purple-100 p-3 rounded-full shadow-[0_0_15px_rgba(147,51,234,0.5)] border border-purple-500">
+                <i data-lucide="eye" class="w-5 h-5"></i>
+            </div>
+        </button>
+
+        <button onclick="abrirModalDespesa()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
+            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Registrar Dano</span>
+            <div class="bg-red-700 text-red-100 p-3 rounded-full shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500">
+                <i data-lucide="swords" class="w-5 h-5"></i>
+            </div>
+        </button>
+        
+    </div>
+
+    <!-- Main Trigger Button -->
+    <button class="bg-slate-950 hover:bg-slate-900 border border-red-900/50 hover:border-red-500 text-red-500 p-4 md:p-5 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all focus:outline-none hover:scale-105">
+        <i data-lucide="shield" class="w-7 h-7 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300"></i>
+    </button>
+</div>
+
+<div id="modal-oraculo" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(147,51,234,0.3)] w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <h3 class="text-2xl font-black text-purple-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="eye" class="w-6 h-6"></i> Forja de Dados</h3>
+            <button onclick="fecharModalOraculo()" class="text-slate-500 hover:text-red-500"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+        </div>
+        
+        <form method="POST" action="{% url 'importar_fatura' %}" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            <select name="cartao_id" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-3">
+                <option value="" disabled selected>Selecione o Cartão...</option>
+                {% for cartao in cartoes %}
+                    <option value="{{ cartao.id }}">{{ cartao.nome }}</option>
+                {% endfor %}
+            </select>
+            <div class="grid grid-cols-2 gap-4">
+                <select name="mes_fatura" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-3">
+                    <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+                <input type="number" name="ano_fatura" value="2026" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-3">
+            </div>
+            <input type="file" name="fatura_pdf" accept="application/pdf" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-2">
+            <button type="submit" class="w-full mt-2 px-6 py-4 bg-purple-700 hover:bg-purple-600 text-white font-black uppercase rounded shadow-[0_0_15px_rgba(147,51,234,0.4)]">Extrair Transações</button>
+        </form>
+    </div>
+</div>
+<script>
+    function abrirModalOraculo() { document.getElementById('modal-oraculo').classList.remove('hidden'); document.getElementById('modal-oraculo').classList.add('flex'); }
+    function fecharModalOraculo() {
+        document.getElementById('modal-oraculo').classList.add('hidden');
+        document.getElementById('modal-oraculo').classList.remove('flex');
+    }
+    
+    function abrirModalFatura() {
+        document.getElementById('modal-fatura').classList.remove('hidden');
+        document.getElementById('modal-fatura').classList.add('flex');
+    }
+
+    function fecharModalFatura() {
+        document.getElementById('modal-fatura').classList.add('hidden');
+        document.getElementById('modal-fatura').classList.remove('flex');
+    }
+</script>
+
+<!-- MODAL GERAR FATURA (Substitui a página Mural) -->
+<div id="modal-fatura" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-green-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(21,128,61,0.3)] w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <div>
+                <h3 class="text-2xl font-black text-green-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="file-text" class="w-6 h-6"></i> Mural de Recompensas</h3>
+                <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Emita o Decreto (Fatura) em PDF</p>
+            </div>
+            <button onclick="fecharModalFatura()" class="text-slate-500 hover:text-red-500"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+        </div>
+        
+        <form method="GET" action="{% url 'fatura_pdf' %}" target="_blank" class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Selecione o Aliado (Devedor)</label>
+                <select name="pessoa_id" required class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-3 focus:border-green-500 outline-none transition-colors shadow-inner">
+                    <option value="">-- Selecione o membro --</option>
+                    {% for p in pessoas %}
+                        <option value="{{ p.id }}">{{ p.nome }} {% if p.telefone %}({{ p.telefone }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Competência (Mês)</label>
+                    <select name="mes" class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-3 focus:border-green-500 outline-none transition-colors shadow-inner">
+                        <option value="1" {% if mes_atual == '1' %}selected{% endif %}>Janeiro</option>
+                        <option value="2" {% if mes_atual == '2' %}selected{% endif %}>Fevereiro</option>
+                        <option value="3" {% if mes_atual == '3' %}selected{% endif %}>Março</option>
+                        <option value="4" {% if mes_atual == '4' %}selected{% endif %}>Abril</option>
+                        <option value="5" {% if mes_atual == '5' %}selected{% endif %}>Maio</option>
+                        <option value="6" {% if mes_atual == '6' %}selected{% endif %}>Junho</option>
+                        <option value="7" {% if mes_atual == '7' %}selected{% endif %}>Julho</option>
+                        <option value="8" {% if mes_atual == '8' %}selected{% endif %}>Agosto</option>
+                        <option value="9" {% if mes_atual == '9' %}selected{% endif %}>Setembro</option>
+                        <option value="10" {% if mes_atual == '10' %}selected{% endif %}>Outubro</option>
+                        <option value="11" {% if mes_atual == '11' %}selected{% endif %}>Novembro</option>
+                        <option value="12" {% if mes_atual == '12' %}selected{% endif %}>Dezembro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Ano</label>
+                    <input type="number" name="ano" value="{{ ano_atual }}" class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-3 focus:border-green-500 outline-none transition-colors shadow-inner">
+                </div>
+            </div>
+
+            </button>
+        </form>
+    </div>
+</div>
+
+{% include 'modal_rateio.html' %}
 
 {% endblock %}

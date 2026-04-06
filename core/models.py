@@ -2,17 +2,64 @@ from django.db import models
 from decimal import Decimal
 
 class Pessoa(models.Model):
-    """
-    Representa você e os amigos para quem você empresta o cartão.
-    """
     nome = models.CharField(max_length=100)
     telefone = models.CharField(max_length=20, blank=True, null=True)
     is_owner = models.BooleanField(default=False)
     chave_pix = models.CharField(max_length=150, blank=True, null=True)
+    level = models.IntegerField(default=1)
+    xp_atual = models.IntegerField(default=0)
+    
+    # ANTI-EXPLOIT: Lembra qual foi o último mês que o jogador derrotou o Boss
+    ultimo_mes_fechado = models.CharField(max_length=7, blank=True, null=True) # Ex: '03/2026'
+    
+    # HISTÓRICO ANTI-FARM: Lembra todos os meses batidos separados por vírgula
+    meses_fechados = models.TextField(blank=True, null=True, default="")
+    
+    # O CAMPO RESGATADO DA FORJA ANTIGA
     ativo = models.BooleanField(default=True)
     
+    # ==========================================
+    # SISTEMA DE RPG (GAMIFICAÇÃO)
+    # ==========================================
+    foto_perfil = models.ImageField(upload_to='avatares/', blank=True, null=True)
+    level = models.IntegerField(default=1)
+    xp_atual = models.IntegerField(default=0)
+
+    # O seu "Hunter Rank" muda conforme o seu level
+    def get_titulo(self):
+        if self.level <= 5: return "Camponês Endividado"
+        elif self.level <= 10: return "Escudeiro de Cobre"
+        elif self.level <= 20: return "Caçador de Recompensas"
+        elif self.level <= 40: return "Cavaleiro de Prata"
+        elif self.level <= 60: return "Mestre da Forja"
+        elif self.level < 100: return "Lorde do Tesouro"
+        else: return "Dragão Ancião"
+
+    # Quanto de XP falta para upar de nível? (Ex: Nível 1 precisa de 100xp, Nível 2 de 200xp...)
+    def xp_para_proximo_level(self):
+        return self.level * 100
+
+    # Calcula a % da barra de energia verde que vai ficar embaixo da sua foto
+    def progresso_xp(self):
+        teto = self.xp_para_proximo_level()
+        pct = (self.xp_atual / teto) * 100
+        return min(int(pct), 100)
+
+    def ganhar_xp(self, quantidade):
+        self.xp_atual += quantidade
+        subiu_de_nivel = False
+        
+        # Um laço de repetição (while) caso você ganhe MUITA XP de uma vez e suba 2 níveis seguidos
+        while self.xp_atual >= self.xp_para_proximo_level():
+            self.xp_atual -= self.xp_para_proximo_level() # Deduz a XP gasta para upar
+            self.level += 1 # LEVEL UP!
+            subiu_de_nivel = True
+            
+        self.save()
+        return subiu_de_nivel
+
     def __str__(self):
-        return f"{self.nome} ({'Titular' if self.is_owner else 'Terceiro'})"
+        return self.nome
 
 class CartaoCredito(models.Model):
     """
@@ -155,3 +202,22 @@ class HistoricoCofre(models.Model):
 
     def __str__(self):
         return f"{self.cofre.nome} | {self.get_tipo_display()} | R$ {self.valor}"
+
+from django.contrib.auth.models import User
+from cryptography.fernet import Fernet
+from cryptography_fields.fields import EncryptedCharField
+
+class MestreSeguranca(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='seguranca')
+    pergunta_secreta = models.CharField(max_length=200)
+    resposta_secreta = models.CharField(max_length=200) # Deixaremos limpo para o match não quebrar agora, o ideal seria Hash.
+    gemini_api_key = EncryptedCharField(max_length=255, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+    
+    # Cofre do Tempo (Backup Configuration)
+    diretorio_backup = models.CharField(max_length=500, blank=True, null=True, help_text="Caminho do HD ou Google Drive")
+    frequencia_backup = models.CharField(max_length=20, default='MANUAL')
+    horario_backup = models.TimeField(null=True, blank=True)
+    dias_backup = models.CharField(max_length=50, blank=True, null=True, help_text="0,1,2,3,4,5,6")
+
+    def __str__(self):
+        return f"Segurança do Mestre: {self.user.username}"

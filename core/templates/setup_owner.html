@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ForjaDev - Herói Titular</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen flex items-center justify-center relative overflow-hidden">
+    
+    <div class="absolute top-[-20%] left-[-10%] w-96 h-96 bg-red-900/20 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-[-20%] right-[-10%] w-96 h-96 bg-emerald-900/10 rounded-full blur-[100px]"></div>
+
+    <div class="bg-slate-900 border border-slate-800 p-10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-md z-10 my-8">
+        
+        <div class="flex flex-col items-center justify-center mb-6">
+            <div class="bg-slate-950 p-4 rounded-full border border-slate-800 shadow-inner mb-4">
+                <i data-lucide="crown" class="text-red-500 w-12 h-12"></i>
+            </div>
+            <h1 class="text-3xl font-black tracking-tighter text-slate-100 uppercase">Herói <span class="text-red-600">Titular</span></h1>
+            <p class="text-slate-500 text-sm mt-2 tracking-widest uppercase font-bold text-center">Registrar Membro Oficial</p>
+            <p class="text-slate-400 text-xs mt-2 text-center px-4">Você superou os portões da autenticação. Mas a guilda das finanças requer um Personagem Titular (Dono) para atrelar os saques de recompensa. Dê um nome ao seu herói para acessar o Painel.</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bg-red-950/50 border border-red-900 text-red-400 p-3 rounded text-sm text-center mb-6 flex items-center justify-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nome de Exibição / Herói</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="user" class="text-slate-600 w-4 h-4"></i>
+                    </div>
+                    <input type="text" name="nome" placeholder="Ex: Guerreiro Místico..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all" required autofocus>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Contato Mágico (Zap/Telefone)</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="phone" class="text-slate-600 w-4 h-4"></i>
+                    </div>
+                    <input type="text" name="telefone" placeholder="Ex: (11) 99999-9999" class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Baú de Ouro Rápido (Chave PIX)</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="key" class="text-slate-600 w-4 h-4"></i>
+                    </div>
+                    <input type="text" name="chave_pix" placeholder="E-mail, CPF, NuBank..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Brasão do Herói (Avatar)</label>
+                <div class="relative">
+                    <input type="file" name="foto_perfil" accept="image/*" class="w-full bg-slate-950 border border-slate-700 rounded py-2 px-3 text-slate-200 text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-red-900/50 file:text-red-400 hover:file:bg-red-800 transition-colors cursor-pointer">
+                </div>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded shadow-[0_0_15px_rgba(185,28,28,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2 mt-4">
+                <i data-lucide="shield" class="w-5 h-5"></i> Iniciar Sessão de Jogo
+            </button>
+        </form>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -15,12 +15,14 @@ class CartaoCreditoForm(forms.ModelForm):
 class PessoaForm(forms.ModelForm):
     class Meta:
         model = Pessoa
-        fields = ['nome', 'telefone', 'chave_pix', 'is_owner']
+        fields = ['nome', 'telefone', 'chave_pix', 'foto_perfil']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'telefone': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'chave_pix': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'placeholder': 'CPF, E-mail, Celular ou Aleatória...'}),
-            'is_owner': forms.CheckboxInput(attrs={'class': 'w-5 h-5 text-red-600 bg-slate-900 border-slate-700 rounded focus:ring-red-500'}),
+            'foto_perfil': forms.FileInput(attrs={
+                'class': 'w-full bg-slate-900 border border-slate-700 rounded text-slate-400 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-bold file:bg-emerald-900/50 file:text-emerald-400 hover:file:bg-emerald-800 transition-colors'
+            }),
         }
 
 class CategoriaForm(forms.ModelForm):
