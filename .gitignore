@@ -25,6 +25,7 @@ media/
 uploads/
 backups/
 tmp_restore/
+staticfiles/
 
 # IDE & Editor Settings
 .vscode/

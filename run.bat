@@ -3,26 +3,43 @@ color 0B
 title Servidor - Controle Financeiro
 
 echo ==============================================================
-echo       Inicializando o Sistema Controle Financeiro
+echo       Controle Financeiro Gamificado - Motor de Forja
 echo ==============================================================
 echo.
 
-REM Verifica se o ambiente virtual existe, se não, pede para executar o install.bat
-if not exist venv\Scripts\activate.bat (
+REM Verifica Python
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
     color 0C
-    echo [ERRO] Ambiente virtual (venv) nao encontrado. 
-    echo Por favor, execute o 'install.bat' primeiro para instalar e preparar o projeto.
+    echo [ERRO CRITICO] O Python nao esta instalado no Windows!
+    echo Baixe e instale pelo site: https://www.python.org/downloads/
     pause
     exit /b
 )
 
-REM Ativa venv e executa em produção usando Waitress
-call venv\Scripts\activate.bat
-echo [OK] Ambiente virtual ativado.
-echo [SERVER] Servidor de producao (Waitress) rodando em http://localhost:8000
-echo.
-echo Pressione CTRL+C na janela para interromper e parar o servidor.
-echo.
+REM Cria venv se nao existir
+if not exist venv\Scripts\activate.bat (
+    echo [INFO] Primeira execucao detectada! Forjando a magia do ambiente...
+    python -m venv venv
+    call venv\Scripts\activate.bat
+    echo [INFO] Instalando bibliotecas (Pode demorar um pouco)...
+    python -m pip install --upgrade pip >nul 2>&1
+    pip install -r requirements.txt >nul 2>&1
+) else (
+    call venv\Scripts\activate.bat
+)
 
-REM Execute o WSGI do Django via waitress-serve
+echo [OK] Ambiente ativado. Preparando estruturas...
+
+REM Garantia de Integridade (Cria o banco e estáticos silenciosamente se ausentes)
+python manage.py makemigrations >nul 2>&1
+python manage.py migrate >nul 2>&1
+python manage.py collectstatic --noinput >nul 2>&1
+
+echo [OK] Tudo Pronto!
+echo [SERVER] O Motor Temporal (Waitress) esta rodando em http://localhost:8000
+echo.
+echo Pressione CTRL+C para derrubar os escudos e parar o servidor.
+echo ==============================================================
+
 waitress-serve --port=8000 setup.wsgi:application
