@@ -1,41 +1,67 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-<header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-    <div>
+<header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+    <div class="flex-1">
         <h2 class="text-3xl font-bold text-slate-100">Visão do Tesouro</h2>
         
-        <form method="GET" action="{% url 'dashboard' %}" class="mt-2 flex items-center gap-2">
-            <span class="text-slate-500 text-xs font-bold uppercase tracking-wider mr-1">Competência:</span>
-            <select name="mes" onchange="this.form.submit()" class="bg-slate-900 text-slate-300 border border-slate-700 rounded p-1 text-sm focus:border-purple-500 outline-none cursor-pointer transition-colors hover:border-slate-500 shadow-sm">
-                <option value="1" {% if mes_atual == '1' %}selected{% endif %}>Janeiro</option>
-                <option value="2" {% if mes_atual == '2' %}selected{% endif %}>Fevereiro</option>
-                <option value="3" {% if mes_atual == '3' %}selected{% endif %}>Março</option>
-                <option value="4" {% if mes_atual == '4' %}selected{% endif %}>Abril</option>
-                <option value="5" {% if mes_atual == '5' %}selected{% endif %}>Maio</option>
-                <option value="6" {% if mes_atual == '6' %}selected{% endif %}>Junho</option>
-                <option value="7" {% if mes_atual == '7' %}selected{% endif %}>Julho</option>
-                <option value="8" {% if mes_atual == '8' %}selected{% endif %}>Agosto</option>
-                <option value="9" {% if mes_atual == '9' %}selected{% endif %}>Setembro</option>
-                <option value="10" {% if mes_atual == '10' %}selected{% endif %}>Outubro</option>
-                <option value="11" {% if mes_atual == '11' %}selected{% endif %}>Novembro</option>
-                <option value="12" {% if mes_atual == '12' %}selected{% endif %}>Dezembro</option>
-            </select>
-            <input type="number" name="ano" value="{{ ano_atual }}" onchange="this.form.submit()" class="w-20 bg-slate-900 text-slate-300 border border-slate-700 rounded p-1 text-sm focus:border-purple-500 outline-none cursor-pointer transition-colors hover:border-slate-500 shadow-sm">
-        </form>
+        <div class="mt-3 text-center md:text-left">
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-full py-1.5 px-4 shadow-lg hover:border-purple-500/50 transition-all w-fit mx-auto md:mx-0">
+                <button type="button" onclick="mudarMes(-1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Mês Anterior">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                
+                <div class="flex flex-col items-center justify-center min-w-[100px]">
+                    <h3 class="text-sm font-black text-slate-100 uppercase tracking-widest flex items-center select-none">
+                        {% if mes_atual == '1' %}JAN
+                        {% elif mes_atual == '2' %}FEV
+                        {% elif mes_atual == '3' %}MAR
+                        {% elif mes_atual == '4' %}ABR
+                        {% elif mes_atual == '5' %}MAI
+                        {% elif mes_atual == '6' %}JUN
+                        {% elif mes_atual == '7' %}JUL
+                        {% elif mes_atual == '8' %}AGO
+                        {% elif mes_atual == '9' %}SET
+                        {% elif mes_atual == '10' %}OUT
+                        {% elif mes_atual == '11' %}NOV
+                        {% elif mes_atual == '12' %}DEZ
+                        {% endif %}
+                        <span class="text-purple-500 ml-1 cursor-pointer hover:underline hover:text-purple-300 transition-colors" onclick="mudarAno()" title="Saltar para outro Ano">/ {{ ano_atual }}</span>
+                    </h3>
+                    
+                    <div class="flex items-center gap-1 mt-1">
+                        {% for i in '123456789'|make_list %}{% with mes_loop=forloop.counter|stringformat:"s" %}
+                        <button type="button" onclick="irParaMes('{{ mes_loop }}')" title="Mês {{ mes_loop }}" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == mes_loop %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        {% endwith %}{% endfor %}
+                        <button type="button" onclick="irParaMes('10')" title="Outubro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '10' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        <button type="button" onclick="irParaMes('11')" title="Novembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '11' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        <button type="button" onclick="irParaMes('12')" title="Dezembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '12' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                    </div>
+                </div>
+
+                <button type="button" onclick="mudarMes(1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Próximo Mês">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
+                <input type="hidden" name="mes" id="input-timeline-mes" value="{{ mes_atual }}">
+                <input type="number" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
+            </form>
+        </div>
     </div>
     
-    <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0 text-right">
+    <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0 text-right shrink-0">
         <!-- Mana Recebida -->
-        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border border-slate-700 md:border-none flex-1 md:flex-none">
+        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border border-slate-700 md:border-none">
             <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
-            <p class="text-2xl font-bold text-purple-400">R$ {{ renda|floatformat:2 }}</p>
+            <p class="text-xl md:text-2xl font-bold text-purple-400 whitespace-nowrap">R$ {{ renda|floatformat:2 }}</p>
         </div>
         
         <!-- Saldo Restante -->
-        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none flex-1 md:flex-none">
+        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none">
             <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
-            <p class="text-2xl font-bold {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
+            <p class="text-xl md:text-2xl font-bold whitespace-nowrap {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
                 R$ {{ saldo_restante|floatformat:2 }}
             </p>
         </div>
@@ -377,6 +403,39 @@
             // Aplica a invisibilidade ou visibilidade instantânea
             linha.style.display = mostrarLinha ? "" : "none";
         });
+    }
+
+    // Timeline JS
+    function mudarMes(delta) {
+        let mesAtual = parseInt(document.getElementById('input-timeline-mes').value);
+        let anoAtual = parseInt(document.getElementById('input-timeline-ano').value);
+
+        let novoMes = mesAtual + delta;
+        if (novoMes > 12) {
+            novoMes = 1;
+            anoAtual += 1;
+        } else if (novoMes < 1) {
+            novoMes = 12;
+            anoAtual -= 1;
+        }
+
+        document.getElementById('input-timeline-mes').value = novoMes;
+        document.getElementById('input-timeline-ano').value = anoAtual;
+        document.getElementById('form-timeline').submit();
+    }
+
+    function irParaMes(mesStr) {
+        document.getElementById('input-timeline-mes').value = mesStr;
+        document.getElementById('form-timeline').submit();
+    }
+
+    function mudarAno() {
+        let anoAtual = document.getElementById('input-timeline-ano').value;
+        let novoAno = prompt("Mestre Temporal, para qual Ano deseja viajar?", anoAtual);
+        if (novoAno && !isNaN(novoAno) && novoAno.length === 4) {
+            document.getElementById('input-timeline-ano').value = novoAno;
+            document.getElementById('form-timeline').submit();
+        }
     }
 </script>
 

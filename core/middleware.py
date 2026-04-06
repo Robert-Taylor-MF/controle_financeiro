@@ -17,6 +17,7 @@ class RequireOwnerMiddleware:
                     reverse('setup_owner'),
                     reverse('logout'),
                     reverse('setup_admin'),
+                    reverse('inicio'),
                 ]
                 
                 # Ignora assets estáticos, mídia e painel admin padrão

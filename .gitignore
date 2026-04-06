@@ -23,6 +23,8 @@ venv.bak/
 # User Uploads
 media/
 uploads/
+backups/
+tmp_restore/
 
 # IDE & Editor Settings
 .vscode/

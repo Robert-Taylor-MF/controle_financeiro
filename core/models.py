@@ -204,11 +204,20 @@ class HistoricoCofre(models.Model):
         return f"{self.cofre.nome} | {self.get_tipo_display()} | R$ {self.valor}"
 
 from django.contrib.auth.models import User
+from cryptography.fernet import Fernet
+from cryptography_fields.fields import EncryptedCharField
+
 class MestreSeguranca(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='seguranca')
     pergunta_secreta = models.CharField(max_length=200)
-    resposta_secreta = models.CharField(max_length=200)
-    gemini_api_key = models.CharField(max_length=255, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+    resposta_secreta = models.CharField(max_length=200) # Deixaremos limpo para o match não quebrar agora, o ideal seria Hash.
+    gemini_api_key = EncryptedCharField(max_length=255, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+    
+    # Cofre do Tempo (Backup Configuration)
+    diretorio_backup = models.CharField(max_length=500, blank=True, null=True, help_text="Caminho do HD ou Google Drive")
+    frequencia_backup = models.CharField(max_length=20, default='MANUAL')
+    horario_backup = models.TimeField(null=True, blank=True)
+    dias_backup = models.CharField(max_length=50, blank=True, null=True, help_text="0,1,2,3,4,5,6")
 
     def __str__(self):
         return f"Segurança do Mestre: {self.user.username}"

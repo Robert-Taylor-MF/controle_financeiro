@@ -195,6 +195,79 @@ def central_cadastros(request):
             m_seg.gemini_api_key = api_key
             m_seg.save()
             messages.success(request, "A essência do Oráculo foi renovada com sucesso!")
+        elif acao == 'configurar_backup':
+            frequencia = request.POST.get('frequencia', 'MANUAL')
+            horario = request.POST.get('horario')
+            dias_list = request.POST.getlist('dias')
+            dias = ",".join(dias_list) if dias_list else ""
+            diretorio = request.POST.get('diretorio')
+            
+            user = request.user
+            from .models import MestreSeguranca
+            m_seg, created = MestreSeguranca.objects.get_or_create(user=user, defaults={'pergunta_secreta': '-', 'resposta_secreta': '-'})
+            m_seg.frequencia_backup = frequencia
+            m_seg.dias_backup = dias
+            m_seg.diretorio_backup = diretorio
+            
+            if horario:
+                m_seg.horario_backup = horario
+            else:
+                m_seg.horario_backup = None
+                
+            m_seg.save()
+            messages.success(request, "Cronograma do Guardião do Tempo foi calibrado.")
+        
+        elif acao == 'backup_manual':
+            from .backup_service import gerar_zip_backup
+            caminho = gerar_zip_backup()
+            messages.success(request, f"Bênção Temporal! Backup guardado com sucesso: {caminho}")
+            
+        elif acao == 'restauro_critico':
+            senha = request.POST.get('senha_mestre')
+            
+            # Validação severa da senha da pessoa rodando o backup
+            from django.contrib.auth import authenticate
+            if not authenticate(username=request.user.username, password=senha):
+                messages.error(request, "Senha Mestra incorreta! Protocolo de Restauração Abortado.")
+                return redirect('central_cadastros')
+                
+            if request.FILES.get('arquivo_zip'):
+                zip_file = request.FILES['arquivo_zip']
+                import zipfile, os, shutil
+                from django.conf import settings
+                from django.db import connection
+                
+                tmp_dir = os.path.join(settings.BASE_DIR, 'tmp_restore')
+                os.makedirs(tmp_dir, exist_ok=True)
+                
+                try:
+                    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                        zip_ref.extractall(tmp_dir)
+                        
+                    db_extracted = os.path.join(tmp_dir, 'db.sqlite3')
+                    media_extracted = os.path.join(tmp_dir, 'media')
+                    
+                    connection.close() # Solta o arquivo pro SO
+                    
+                    if os.path.exists(db_extracted):
+                        shutil.copy2(db_extracted, os.path.join(settings.BASE_DIR, 'db.sqlite3'))
+                    
+                    if os.path.exists(media_extracted):
+                        media_target = os.path.join(settings.BASE_DIR, 'media')
+                        if os.path.exists(media_target):
+                            shutil.rmtree(media_target)
+                        shutil.copytree(media_extracted, media_target)
+                        
+                    messages.success(request, "Cronos obedece! O banco de dados foi completamente reconstruído pela linha do tempo importada. Acesse o sistema novamente.")
+                    from django.contrib.auth import logout
+                    logout(request)
+                    return redirect('login') 
+                    
+                except Exception as e:
+                    messages.error(request, f"Erro fatal ao invocar o túnel do tempo: {str(e)}")
+                finally:
+                    if os.path.exists(tmp_dir):
+                        shutil.rmtree(tmp_dir)
             
         return redirect('central_cadastros')
     
@@ -203,6 +276,13 @@ def central_cadastros(request):
     ms = getattr(request.user, 'seguranca', None)
     oraculo_key = ms.gemini_api_key if ms else None
     has_env_fallback = bool(not oraculo_key and os.getenv("GEMINI_API_KEY"))
+    
+    backup_config = {
+        'frequencia': ms.frequencia_backup if ms else 'MANUAL',
+        'horario': ms.horario_backup if ms else None,
+        'dias': ms.dias_backup if ms else '',
+        'diretorio': ms.diretorio_backup if ms else '',
+    }
 
     contexto = {
         'form_cartao': CartaoCreditoForm(),
@@ -215,6 +295,7 @@ def central_cadastros(request):
         'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
         'oraculo_key': oraculo_key,
         'has_env_fallback': has_env_fallback,
+        'backup_config': backup_config
     }
     return render(request, 'central_cadastros.html', contexto)
 
@@ -417,6 +498,7 @@ def sala_de_guerra(request):
     
     return render(request, 'sala_de_guerra.html', contexto)
 
+@login_required
 @csrf_exempt
 def deletar_transacao(request, transacao_id):
     if request.method == 'DELETE': # Note que agora usamos o método DELETE
@@ -428,6 +510,7 @@ def deletar_transacao(request, transacao_id):
             print(f"\n[ERRO API DELETAR] Falha ao destruir: {str(e)}\n")
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
             
+@login_required
 @csrf_exempt
 def deletar_fatura(request, mes, ano, cartao_id):
     if request.method == 'DELETE':
@@ -502,6 +585,39 @@ def editar_cadastro(request, tipo, id):
     # Se alguém tentar acessar uma URL que não existe, joga de volta pro QG
     if tipo not in mapa_modelos:
         return redirect('central_cadastros')
+
+from django.http import JsonResponse
+def api_selecionar_pasta(request):
+    """
+    Aciona o Tkinter localmente na máquina servidora (Seu Windows) 
+    para abrir o diálago nativo de "Selecionar Pasta" e devolver o Target Dir.
+    """
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        folder = filedialog.askdirectory(parent=root, title="Onde o Guardião deve salvar?")
+        root.destroy()
+        return JsonResponse({'path': folder})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+import json
+def api_status_backup(request):
+    """Lê o arquivo de estado do backup forjado na thread de background"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'none'})
+    status_file = os.path.join(settings.BASE_DIR, 'backups', 'status.json')
+    if os.path.exists(status_file):
+        try:
+            with open(status_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return JsonResponse(data)
+        except Exception:
+            return JsonResponse({'status': 'none'})
+    return JsonResponse({'status': 'none'})
 
     Modelo, Formulario, nome_entidade = mapa_modelos[tipo]
     
@@ -582,6 +698,7 @@ def banco_guilda(request):
     }
     return render(request, 'banco_guilda.html', contexto)
 
+@login_required
 @csrf_exempt
 def atualizar_cofre(request, cofre_id):
     """ API para depositar ou sacar ouro gravando no Livro Razão e dando XP """
@@ -622,6 +739,7 @@ def atualizar_cofre(request, cofre_id):
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
     return JsonResponse({'status': 'invalido'}, status=400)
 
+@login_required
 @csrf_exempt
 def deletar_cofre(request, cofre_id):
     if request.method == 'DELETE':
@@ -632,6 +750,7 @@ def deletar_cofre(request, cofre_id):
         except Exception as e:
             return JsonResponse({'status': 'erro'}, status=400)
         
+@login_required
 @csrf_exempt
 def deletar_instituicao(request, inst_id):
     if request.method == 'DELETE':
@@ -706,15 +825,69 @@ def enfrentar_boss_mes(request):
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.models import User
 
+@csrf_exempt
 def custom_login_view(request):
-    """
-    Interceptor do fluxo de login que redireciona para a tela 
-    de Setup caso seja a primeira rodada na guilda.
-    """
+    try:
+        if User.objects.count() == 0:
+            return redirect('inicio')
+    except Exception:
+        pass
     if not User.objects.filter(is_superuser=True).exists():
         return redirect('setup_admin')
     # Se existe o master, carrega a view de login oficial do Django
     return auth_views.LoginView.as_view(template_name='login.html')(request)
+
+from django.db import connection
+import zipfile
+import os
+import shutil
+from django.conf import settings
+
+def inicio(request):
+    """
+    A Encruzilhada: Apenas alcançável se o banco estiver vazio.
+    Se já existe Superuser, manda pro login.
+    """
+    if User.objects.exists():
+        return redirect('login')
+        
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+        if acao == 'restaurar' and request.FILES.get('arquivo_zip'):
+            zip_file = request.FILES['arquivo_zip']
+            
+            tmp_dir = os.path.join(settings.BASE_DIR, 'tmp_restore')
+            os.makedirs(tmp_dir, exist_ok=True)
+            
+            try:
+                with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                    zip_ref.extractall(tmp_dir)
+                    
+                db_extracted = os.path.join(tmp_dir, 'db.sqlite3')
+                media_extracted = os.path.join(tmp_dir, 'media')
+                
+                # Desconecta o BD para soltar o lock (vital no Windows)
+                connection.close()
+                
+                if os.path.exists(db_extracted):
+                    shutil.copy2(db_extracted, os.path.join(settings.BASE_DIR, 'db.sqlite3'))
+                
+                if os.path.exists(media_extracted):
+                    media_target = os.path.join(settings.BASE_DIR, 'media')
+                    if os.path.exists(media_target):
+                        shutil.rmtree(media_target)
+                    shutil.copytree(media_extracted, media_target)
+                    
+                messages.success(request, "Cronos retrocedeu o tempo! Banco de dados original restaurado. Por favor, inicie sua sessão.")
+            except Exception as e:
+                messages.error(request, f"Falha ao realizar a magia do tempo: {str(e)}")
+            finally:
+                if os.path.exists(tmp_dir):
+                    shutil.rmtree(tmp_dir)
+                    
+            return redirect('login')
+            
+    return render(request, 'bem_vindo.html')
 
 def setup_admin(request):
     """
@@ -863,7 +1036,9 @@ def mudar_senha_interna(request):
     return render(request, 'mudar_senha_interna.html')
 
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
+@login_required
 @csrf_exempt
 def deletar_cadastro(request, tipo, id):
     """
