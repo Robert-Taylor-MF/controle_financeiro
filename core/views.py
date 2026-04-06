@@ -5,8 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib import messages
 from django.db.models import Sum, Q
 from decimal import Decimal
@@ -589,7 +589,30 @@ def editar_cadastro(request, tipo, id):
     if tipo not in mapa_modelos:
         return redirect('central_cadastros')
 
-from django.http import JsonResponse
+
+
+    Modelo, Formulario, nome_entidade = mapa_modelos[tipo]
+    
+    # Busca o item exato no banco de dados
+    instancia = get_object_or_404(Modelo, id=id)
+
+    if request.method == 'POST':
+        # Carrega o formulário com os dados novos enviados pela tela, substituindo a instância velha
+        form = Formulario(request.POST, request.FILES, instance=instancia)
+        if form.is_valid():
+            form.save()
+            return redirect('central_cadastros')
+    else:
+        # Se for GET, apenas desenha o formulário já preenchido com os dados atuais
+        form = Formulario(instance=instancia)
+
+    contexto = {
+        'form': form,
+        'nome_entidade': nome_entidade,
+        'tipo': tipo,
+    }
+    return render(request, 'editar_cadastro.html', contexto)
+
 def api_selecionar_pasta(request):
     """
     Aciona o Tkinter localmente na máquina servidora (Seu Windows) 
@@ -621,28 +644,6 @@ def api_status_backup(request):
         except Exception:
             return JsonResponse({'status': 'none'})
     return JsonResponse({'status': 'none'})
-
-    Modelo, Formulario, nome_entidade = mapa_modelos[tipo]
-    
-    # Busca o item exato no banco de dados
-    instancia = get_object_or_404(Modelo, id=id)
-
-    if request.method == 'POST':
-        # Carrega o formulário com os dados novos enviados pela tela, substituindo a instância velha
-        form = Formulario(request.POST, request.FILES, instance=instancia)
-        if form.is_valid():
-            form.save()
-            return redirect('central_cadastros')
-    else:
-        # Se for GET, apenas desenha o formulário já preenchido com os dados atuais
-        form = Formulario(instance=instancia)
-
-    contexto = {
-        'form': form,
-        'nome_entidade': nome_entidade,
-        'tipo': tipo,
-    }
-    return render(request, 'editar_cadastro.html', contexto)
 
 # ==========================================
 # BANCO DA GUILDA (WEALTH MANAGEMENT)
