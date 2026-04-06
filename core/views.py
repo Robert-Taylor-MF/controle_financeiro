@@ -290,7 +290,7 @@ def central_cadastros(request):
         'form_categoria': CategoriaForm(),
         'form_renda': RendaMensalForm(),
         'cartoes': CartaoCredito.objects.all(),
-        'pessoas': Pessoa.objects.all(),
+        'pessoas': Pessoa.objects.filter(ativo=True),
         'categorias': Categoria.objects.all(),
         'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
         'oraculo_key': oraculo_key,
@@ -1057,7 +1057,9 @@ def deletar_cadastro(request, tipo, id):
                 if obj.is_owner:
                     return JsonResponse({'status': 'erro', 'mensagem': 'Você não pode banir o Titular do Sistema.'})
                 if Transacao.objects.filter(responsavel=obj).exists() or RendaMensal.objects.filter(pessoa=obj).exists():
-                    return JsonResponse({'status': 'erro', 'mensagem': 'Membro atrelado a faturas ou rendas. Exclusão bloqueada para preservar o histórico.'})
+                    obj.ativo = False
+                    obj.save()
+                    return JsonResponse({'status': 'sucesso', 'mensagem': 'Membro desativado. Histórico financeiro preservado na guilda!'})
                 obj.delete()
                 
             elif tipo == 'cartao':
