@@ -112,7 +112,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
+        <div id="tour-vitalidade" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
                     🛡️ Vitalidade (50%)
@@ -129,7 +129,7 @@
             </div>
         </div>
 
-        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
+        <div id="tour-stamina" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
                     ⚡ Stamina (30%)
@@ -146,14 +146,14 @@
             </div>
         </div>
 
-        <div class="bg-slate-800 p-6 rounded-lg border-l-4 border-emerald-500 shadow-lg relative overflow-hidden group">
+        <div id="tour-tesouro" class="bg-slate-800 p-6 rounded-lg border-l-4 border-emerald-500 shadow-lg relative overflow-hidden group">
             <i data-lucide="gem" class="absolute -right-4 -bottom-4 w-24 h-24 text-emerald-500/10 group-hover:scale-110 transition-transform"></i>
             <h3 class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
                 <i data-lucide="landmark" class="w-4 h-4 text-emerald-500"></i> Tesouro da Guilda
             </h3>
             <p class="text-3xl font-black text-slate-100">R$ {{ tesouro_total|floatformat:2 }}</p>
         </div>
-        <div class="bg-slate-900 rounded-lg border border-red-900/50 shadow-[0_0_15px_rgba(220,38,38,0.2)] flex flex-col justify-center items-center text-center group hover:border-red-500 transition-colors relative overflow-hidden p-6">
+        <div id="tour-boss" class="bg-slate-900 rounded-lg border border-red-900/50 shadow-[0_0_15px_rgba(220,38,38,0.2)] flex flex-col justify-center items-center text-center group hover:border-red-500 transition-colors relative overflow-hidden p-6">
             <i data-lucide="skull" class="absolute -right-4 -bottom-4 w-28 h-28 text-red-500/10 group-hover:scale-110 transition-transform"></i>
             <h3 class="text-red-500 font-black uppercase tracking-widest text-sm mb-1 z-10 flex items-center gap-2">
                 <i data-lucide="swords" class="w-4 h-4"></i> Boss do Mês
@@ -165,7 +165,7 @@
         </div>
     </div>
 
-    <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
+    <div id="tour-loot" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
         <h3 class="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700 pb-2">Últimos Registros (Loot)</h3>
         
         <table id="tabelaLoot" class="w-full text-left border-collapse">
@@ -548,7 +548,7 @@
 </script>
 
 <!-- FAB MENU CENTRAL -->
-<div class="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3 group">
+<div id="tour-fab" class="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3 group">
     
     <!-- Sub-buttons -->
     <div class="flex flex-col items-end gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto mb-2">
