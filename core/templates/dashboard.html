@@ -85,16 +85,35 @@
 <div id="aba-dashboard-pessoal" class="aba-conteudo-dash block">
 
     {% if gastos.indefinido > 0 %}
-        <div class="mb-6 p-4 rounded-lg bg-orange-900/40 border border-orange-700 flex items-center justify-between shadow-lg animate-pulse">
-            <div class="flex items-center gap-4">
-                <span class="text-3xl">⚠️</span>
-                <div>
-                    <h4 class="text-orange-400 font-bold uppercase tracking-wider text-sm">Alerta de Conciliação</h4>
-                    <p class="text-slate-300 text-sm">Existem <strong class="text-orange-300">R$ {{ gastos.indefinido|floatformat:2 }}</strong> em gastos <span class="underline">sem categoria</span>. Eles não estão impactando as suas barras de vida!</p>
+        <a href="javascript:void(0)" onclick="filtrarSemCategoria()" class="block mb-6 group cursor-pointer">
+            <div class="relative p-5 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-800 to-amber-950/40 border border-amber-700/50 shadow-[0_0_25px_rgba(217,119,6,0.15)] hover:shadow-[0_0_35px_rgba(217,119,6,0.3)] transition-all overflow-hidden">
+                
+                <!-- Glow pulsante de fundo -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-pulse"></div>
+                
+                <div class="flex items-center gap-4 relative z-10">
+                    <!-- Ícone estilo quest -->
+                    <div class="w-14 h-14 rounded-full bg-amber-900/50 border-2 border-amber-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(217,119,6,0.3)] group-hover:scale-110 transition-transform">
+                        <i data-lucide="alert-triangle" class="w-7 h-7 text-amber-400"></i>
+                    </div>
+                    
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="text-amber-400 font-black uppercase tracking-widest text-xs">⚔️ Quest Ativa</h4>
+                            <span class="text-[10px] bg-amber-900/50 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700/50 font-mono">SIDE QUEST</span>
+                        </div>
+                        <p class="text-slate-200 text-sm font-bold">Classificar <span class="text-amber-300">R$ {{ gastos.indefinido|floatformat:2 }}</span> em loots sem encantamento (categoria)</p>
+                        <p class="text-slate-500 text-xs mt-1">Esses itens não estão impactando as suas barras de vida. Toque aqui para resolver →</p>
+                    </div>
+
+                    <!-- Badge de recompensa -->
+                    <div class="hidden md:flex flex-col items-center gap-1 shrink-0 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700 group-hover:border-amber-600/50 transition-colors">
+                        <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Recompensa</span>
+                        <span class="text-amber-400 font-black text-lg">📊 Precisão</span>
+                    </div>
                 </div>
             </div>
-            <p class="text-xs text-orange-500 italic hidden md:block">Classifique os itens abaixo para corrigir os cálculos.</p>
-        </div>
+        </a>
     {% endif %}
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -467,6 +486,19 @@
             // Aplica a invisibilidade ou visibilidade instantânea
             linha.style.display = mostrarLinha ? "" : "none";
         });
+    }
+
+    function filtrarSemCategoria() {
+        // Scroll até a tabela
+        const tabela = document.getElementById('tabelaLoot');
+        tabela.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Preenche o filtro da coluna "Classificação" (3ª coluna, index 2)
+        const filtros = tabela.querySelectorAll('.filtro-coluna');
+        if (filtros.length > 2) {
+            filtros[2].value = 'Indefinido';
+            aplicarFiltros('tabelaLoot');
+        }
     }
 
     // Timeline JS
