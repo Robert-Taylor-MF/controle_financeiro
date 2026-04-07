@@ -308,6 +308,12 @@ def central_cadastros(request):
 def ratear_transacao(request, transacao_id):
     # Puxa a transação original do banco
     transacao_original = get_object_or_404(Transacao, id=transacao_id)
+
+    # GUARD 1: Transação já rateada não pode ser rateada novamente
+    if '(Rateio:' in transacao_original.descricao:
+        messages.error(request, "Esta despesa já é resultado de um rateio e não pode ser dividida novamente!")
+        return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
     # Puxa todas as pessoas cadastradas para você escolher com quem dividir
     pessoas = Pessoa.objects.filter(ativo=True)
     
@@ -340,6 +346,11 @@ def ratear_transacao(request, transacao_id):
                         ano_fatura=transacao_original.ano_fatura
                     )
                 )
+
+        # GUARD 2: Precisa de pelo menos 2 pessoas para um rateio fazer sentido
+        if len(novos_registros) < 2:
+            messages.error(request, "Para dividir uma despesa, selecione pelo menos 2 pessoas!")
+            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
         
         # Regra de Ouro Financeira: O rateio TEM que bater com o valor original
         if soma_rateio != transacao_original.valor:
