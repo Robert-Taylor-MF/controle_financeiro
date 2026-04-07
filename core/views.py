@@ -396,6 +396,10 @@ def extrato_faturas(request):
     if sem_categoria:
         transacoes = transacoes.filter(categoria__isnull=True)
 
+    # Totaliza as transações filtradas
+    total_filtrado = transacoes.aggregate(Sum('valor'))['valor__sum'] or 0
+    qtd_transacoes = transacoes.count()
+
     # Valores padrão para os campos do filtro não ficarem vazios
     contexto = {
         'transacoes': transacoes,
@@ -404,7 +408,9 @@ def extrato_faturas(request):
         'mes_atual': mes or str(datetime.now().month),
         'ano_atual': ano or str(datetime.now().year),
         'cartao_selecionado': cartao_id or "",
-        'pessoas': Pessoa.objects.all()
+        'pessoas': Pessoa.objects.all(),
+        'total_filtrado': float(total_filtrado),
+        'qtd_transacoes': qtd_transacoes,
     }
     return render(request, 'extrato.html', contexto)
 

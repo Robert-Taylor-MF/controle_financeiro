@@ -54,6 +54,29 @@
         </form>
     </div>
 
+    <!-- TOTALIZADOR -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-slate-800 p-5 rounded-lg border border-slate-700 shadow-xl flex items-center gap-4 relative overflow-hidden group">
+            <div class="w-12 h-12 rounded-full bg-red-900/30 border-2 border-red-700 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(220,38,38,0.2)]">
+                <i data-lucide="coins" class="w-6 h-6 text-red-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Total Filtrado</p>
+                <p class="text-2xl font-black text-red-400"><span class="text-sm text-slate-500">R$</span> {{ total_filtrado|floatformat:2 }}</p>
+            </div>
+            <i data-lucide="receipt" class="absolute -bottom-3 -right-3 w-20 h-20 text-slate-700/10 rotate-12"></i>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-lg border border-slate-700 shadow-xl flex items-center gap-4 relative overflow-hidden">
+            <div class="w-12 h-12 rounded-full bg-purple-900/30 border-2 border-purple-700 flex items-center justify-center shrink-0">
+                <i data-lucide="scroll-text" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Registros</p>
+                <p class="text-2xl font-black text-purple-400">{{ qtd_transacoes }} <span class="text-sm text-slate-500">itens</span></p>
+            </div>
+        </div>
+    </div>
+
     <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
         <table id="tabelaLoot" class="w-full text-left border-collapse">
             <thead>
