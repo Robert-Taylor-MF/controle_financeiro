@@ -25,8 +25,10 @@ class Pessoa(models.Model):
     level = models.IntegerField(default=1)
     xp_atual = models.IntegerField(default=0)
 
-    # O seu "Hunter Rank" muda conforme o seu level
-    def get_titulo(self):
+    # ==========================================
+    # RANKS DO HERÓI TITULAR (Owner)
+    # ==========================================
+    def get_titulo_owner(self):
         if self.level <= 5: return "Camponês Endividado"
         elif self.level <= 10: return "Escudeiro de Cobre"
         elif self.level <= 20: return "Caçador de Recompensas"
@@ -35,9 +37,31 @@ class Pessoa(models.Model):
         elif self.level < 100: return "Lorde do Tesouro"
         else: return "Dragão Ancião"
 
-    # Quanto de XP falta para upar de nível? (Ex: Nível 1 precisa de 100xp, Nível 2 de 200xp...)
+    # ==========================================
+    # RANKS DA PARTY (Quem usa o cartão alheio)
+    # Títulos remetem a "quem gasta muito"
+    # ==========================================
+    def get_titulo_party(self):
+        if self.level <= 5: return "Novato Poupador"
+        elif self.level <= 10: return "Gastador Casual"
+        elif self.level <= 20: return "Faz-me-Rir no Caixa"
+        elif self.level <= 40: return "Devorador de Limite"
+        elif self.level <= 60: return "Rei do Parcelamento"
+        elif self.level < 100: return "Destruidor de Faturas"
+        else: return "Lenda do Gasto Infinito"
+
+    # Retorna o título correto baseado no tipo de pessoa
+    def get_titulo(self):
+        if self.is_owner:
+            return self.get_titulo_owner()
+        return self.get_titulo_party()
+
+    # Quanto de XP falta para upar de nível?
+    # Owner: level * 100 | Party: level * 150 (mais lento)
     def xp_para_proximo_level(self):
-        return self.level * 100
+        if self.is_owner:
+            return self.level * 100
+        return self.level * 150
 
     # Calcula a % da barra de energia verde que vai ficar embaixo da sua foto
     def progresso_xp(self):
@@ -57,6 +81,28 @@ class Pessoa(models.Model):
             
         self.save()
         return subiu_de_nivel
+
+    def atualizar_xp_por_gasto(self, total_gasto):
+        """
+        Recalcula o XP do membro da Party baseado no total histórico de gastos.
+        Regra: 10 XP por R$ 100 gastos (1 XP por R$ 10).
+        """
+        if self.is_owner:
+            return  # Owner tem seu próprio sistema de XP
+
+        xp_merecido = int(float(total_gasto) / 10)  # 10 XP por R$100 = 1 XP por R$10
+        
+        # Reseta e recalcula do zero para evitar inconsistências
+        self.level = 1
+        self.xp_atual = 0
+        
+        if xp_merecido > 0:
+            self.xp_atual = xp_merecido
+            while self.xp_atual >= self.xp_para_proximo_level():
+                self.xp_atual -= self.xp_para_proximo_level()
+                self.level += 1
+        
+        self.save()
 
     def __str__(self):
         return self.nome

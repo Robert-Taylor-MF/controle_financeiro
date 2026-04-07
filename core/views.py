@@ -109,6 +109,12 @@ def dashboard(request):
             'pessoa': p,
             'total': float(total_p)
         })
+
+        # Atualiza XP da Party baseado nos gastos HISTÓRICOS (acumulado de todos os meses)
+        if not p.is_owner:
+            total_historico = Transacao.objects.filter(responsavel=p).aggregate(Sum('valor'))['valor__sum'] or 0
+            p.atualizar_xp_por_gasto(total_historico)
+
     total_sem_dono = todos_gastos_mes.filter(responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
 
     # 10b. RANKING: Apenas quem gastou, ordenado do maior para o menor

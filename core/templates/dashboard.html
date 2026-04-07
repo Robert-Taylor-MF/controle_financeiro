@@ -272,6 +272,17 @@
                     <p class="text-2xl font-black {% if info.total > 0 %}text-red-400{% else %}text-slate-500{% endif %}">
                         <span class="text-sm">R$</span> {{ info.total|floatformat:2 }}
                     </p>
+                    {% if not info.pessoa.is_owner %}
+                    <div class="mt-2">
+                        <div class="flex justify-between text-[10px] text-slate-500 mb-0.5">
+                            <span>XP: {{ info.pessoa.xp_atual }}/{{ info.pessoa.xp_para_proximo_level }}</span>
+                            <span>Lv.{{ info.pessoa.level }}</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5">
+                            <div class="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ info.pessoa.progresso_xp }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             
@@ -331,6 +342,13 @@
             <div class="flex-1 min-w-0">
                 <h3 class="text-lg font-black text-slate-100 truncate">{{ info.pessoa.nome }} {% if info.pessoa.is_owner %}<span class="text-xs text-purple-400 font-mono">(Eu)</span>{% endif %}</h3>
                 <p class="text-xs text-slate-500 uppercase tracking-widest">{{ info.pessoa.get_titulo }} · Lv.{{ info.pessoa.level }}</p>
+                {% if not info.pessoa.is_owner %}
+                <div class="mt-1 max-w-[180px]">
+                    <div class="w-full bg-slate-900 rounded-full h-1">
+                        <div class="h-1 rounded-full bg-emerald-500 transition-all" style="width: {{ info.pessoa.progresso_xp }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Valor -->
