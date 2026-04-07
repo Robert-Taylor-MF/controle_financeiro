@@ -15,6 +15,9 @@ class Pessoa(models.Model):
     # HISTÓRICO ANTI-FARM: Lembra todos os meses batidos separados por vírgula
     meses_fechados = models.TextField(blank=True, null=True, default="")
     
+    # TUTORIAL: Se o usuário já viu o guia de introdução
+    tutorial_visto = models.BooleanField(default=False)
+    
     # O CAMPO RESGATADO DA FORJA ANTIGA
     ativo = models.BooleanField(default=True)
     

@@ -60,6 +60,10 @@
             </div>
             {% endif %}
 
+            <button onclick="abrirAjuda()" class="text-slate-500 hover:text-red-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-red-900/50 transition-all shadow-inner" title="Grimório de Ajuda (?)">
+                <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </button>
+
             <a href="{% url 'mudar_senha_interna' %}" class="text-slate-500 hover:text-yellow-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-yellow-900/50 transition-all shadow-inner" title="Alterar Chave do Cofre (Senha)">
                 <i data-lucide="key-round" class="w-5 h-5"></i>
             </a>
@@ -306,5 +310,6 @@
     </script>
     {% endif %}
 
+    {% include 'tutorial_onboarding.html' %}
 </body>
 </html>

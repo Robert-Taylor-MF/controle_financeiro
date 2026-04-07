@@ -140,6 +140,7 @@ def dashboard(request):
         'gastos_party': gastos_party,
         'total_sem_dono': float(total_sem_dono),
         'ranking_party': ranking_party,
+        'mostrar_tutorial': not dono.tutorial_visto if dono else False,
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={
@@ -1122,3 +1123,21 @@ def deletar_cadastro(request, tipo, id):
     return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
 
     return JsonResponse({'status': 'erro', 'mensagem': 'Apenas método DELETE permitido.'})
+
+@login_required
+@csrf_exempt
+def marcar_tutorial_visto(request):
+    """
+    API para marcar que o usuário já concluiu ou pulou o tutorial.
+    """
+    if request.method == 'POST':
+        try:
+            dono = Pessoa.objects.filter(is_owner=True).first()
+            if dono:
+                dono.tutorial_visto = True
+                dono.save()
+                return JsonResponse({'status': 'sucesso', 'mensagem': 'Tutorial marcado como visto.'})
+            return JsonResponse({'status': 'erro', 'mensagem': 'Dono não encontrado.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=500)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
