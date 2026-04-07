@@ -331,7 +331,9 @@ def ratear_transacao(request, transacao_id):
                         responsavel=pessoa,
                         cartao=transacao_original.cartao,
                         categoria=transacao_original.categoria,
-                        status=transacao_original.status
+                        status=transacao_original.status,
+                        mes_fatura=transacao_original.mes_fatura,
+                        ano_fatura=transacao_original.ano_fatura
                     )
                 )
         
