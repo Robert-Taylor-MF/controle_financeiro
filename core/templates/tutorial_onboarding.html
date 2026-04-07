@@ -137,7 +137,7 @@
             progressText: 'Passo {{current}} de {{total}}',
             onDeselected: (element, step, { config, state }) => {
                 // Se o usuário fechou o tour clicando fora ou no 'X', marcamos como visto
-                if (state.activeStep === 5) { // Último step
+                if (state.activeStep === 11) { // Último step (12 passos total)
                    concluirTutorialBD();
                 }
             },
@@ -196,6 +196,54 @@
                         title: '🛡️ Central de Ações', 
                         description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
                         side: "left", align: 'end'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-banco', 
+                    popover: { 
+                        title: '🏦 Banco da Guilda', 
+                        description: 'Nesta câmara você gerencia seus cofres, metas de economia e instituições financeiras.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-qg', 
+                    popover: { 
+                        title: '🏰 QG de Operações', 
+                        description: 'O quartel-general onde você cadastra seus Aliados (Pessoas), Armas (Cartões) e Categorias.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-admin', 
+                    popover: { 
+                        title: '🔮 Painel Arcano', 
+                        description: 'Acesso direto ao núcleo do sistema para manutenções avançadas e ajustes finos.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-key', 
+                    popover: { 
+                        title: '🔑 Chave do Cofre', 
+                        description: 'Altere sua senha secreta para garantir que ninguém mais acesse seu tesouro.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-help', 
+                    popover: { 
+                        title: '📖 Grimório de Ajuda', 
+                        description: 'Sempre que tiver dúvidas ou quiser rever este tour, consulte o Grimório Arcano.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-logout', 
+                    popover: { 
+                        title: '🚪 Sair do Castelo', 
+                        description: 'Encerra sua jornada por hoje. Lembre-se: um bom mestre nunca abandona suas contas!',
+                        side: "bottom", align: 'center'
                     } 
                 },
             ]

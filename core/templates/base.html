@@ -29,11 +29,11 @@
             </div>
 
             <div class="hidden lg:flex items-center gap-1 h-full">
-                <a href="{% url 'dashboard' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-red-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i> Visão Geral</a>
-                <a href="{% url 'extrato_faturas' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-slate-300 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="scroll" class="w-4 h-4 mr-2"></i> Pergaminhos</a>
-                <a href="{% url 'banco_guilda' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-emerald-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="landmark" class="w-4 h-4 mr-2"></i> Banco</a>
-                <a href="{% url 'central_cadastros' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-blue-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="settings" class="w-4 h-4 mr-2"></i> QG</a>
-                <a href="/admin/" target="_blank" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-purple-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="database" class="w-4 h-4 mr-2"></i> Painel Admin</a>
+                <a id="tour-nav-dashboard" href="{% url 'dashboard' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-red-500 text-sm font-bold text-slate-100 transition-all"><i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i> Visão Geral</a>
+                <a id="tour-nav-extrato" href="{% url 'extrato_faturas' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-slate-300 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="scroll" class="w-4 h-4 mr-2"></i> Pergaminhos</a>
+                <a id="tour-nav-banco" href="{% url 'banco_guilda' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-emerald-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="landmark" class="w-4 h-4 mr-2"></i> Banco</a>
+                <a id="tour-nav-qg" href="{% url 'central_cadastros' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-blue-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="settings" class="w-4 h-4 mr-2"></i> QG</a>
+                <a id="tour-nav-admin" href="/admin/" target="_blank" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-purple-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="database" class="w-4 h-4 mr-2"></i> Painel Admin</a>
             </div>
         </div>
 
@@ -63,17 +63,17 @@
             </div>
             {% endif %}
 
-            <button onclick="abrirAjuda()" class="text-slate-500 hover:text-red-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-red-900/50 transition-all shadow-inner" title="Grimório de Ajuda (?)">
+            <button id="tour-nav-help" onclick="abrirAjuda()" class="text-slate-500 hover:text-red-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-red-900/50 transition-all shadow-inner" title="Grimório de Ajuda (?)">
                 <i data-lucide="help-circle" class="w-5 h-5"></i>
             </button>
 
-            <a href="{% url 'mudar_senha_interna' %}" class="text-slate-500 hover:text-yellow-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-yellow-900/50 transition-all shadow-inner" title="Alterar Chave do Cofre (Senha)">
+            <a id="tour-nav-key" href="{% url 'mudar_senha_interna' %}" class="text-slate-500 hover:text-yellow-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-yellow-900/50 transition-all shadow-inner" title="Alterar Chave do Cofre (Senha)">
                 <i data-lucide="key-round" class="w-5 h-5"></i>
             </a>
 
             <form method="POST" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button type="submit" class="text-slate-500 hover:text-red-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-red-900/50 transition-all shadow-inner" title="Abandonar Forja (Sair)">
+                <button id="tour-nav-logout" type="submit" class="text-slate-500 hover:text-red-500 bg-slate-950 p-2 rounded-lg border border-slate-800 hover:border-red-900/50 transition-all shadow-inner" title="Abandonar Forja (Sair)">
                     <i data-lucide="power" class="w-5 h-5"></i>
                 </button>
             </form>
