@@ -111,6 +111,9 @@ def dashboard(request):
         })
     total_sem_dono = todos_gastos_mes.filter(responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
 
+    # 10b. RANKING: Apenas quem gastou, ordenado do maior para o menor
+    ranking_party = sorted([g for g in gastos_party if g['total'] > 0], key=lambda x: x['total'], reverse=True)
+
     # 11. CÁLCULO DE SALDO RESTANTE (Mana - Meus Gastos)
     total_gasto_pessoal = gasto_essencial + gasto_emocao + gasto_futuro + gasto_indefinido
     saldo_restante = renda - total_gasto_pessoal
@@ -130,6 +133,7 @@ def dashboard(request):
         'cartoes': cartoes, # <- Adicione isso para o Modal saber quais cartões existem
         'gastos_party': gastos_party,
         'total_sem_dono': float(total_sem_dono),
+        'ranking_party': ranking_party,
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={

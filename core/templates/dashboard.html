@@ -76,6 +76,9 @@
     <button onclick="mudarAbaDashboard('party')" id="btn-dashboard-party" class="aba-btn-dash px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-red-400 transition-colors whitespace-nowrap flex items-center gap-2">
         <i data-lucide="users" class="w-4 h-4"></i> Visão da Party
     </button>
+    <button onclick="mudarAbaDashboard('ranking')" id="btn-dashboard-ranking" class="aba-btn-dash px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-amber-400 transition-colors whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="trophy" class="w-4 h-4"></i> Ranking
+    </button>
 </div>
 
 <!-- CONTAINER DA VISÃO PESSOAL (Conteúdo anterior) -->
@@ -280,8 +283,67 @@
 </div>
 <!-- FIM DA ABA PARTY -->
 
+<!-- CONTAINER DA ABA RANKING -->
+<div id="aba-dashboard-ranking" class="aba-conteudo-dash hidden mb-8">
+    {% if ranking_party %}
+    <div class="space-y-3">
+        {% for info in ranking_party %}
+        <div class="bg-slate-800 p-4 md:p-5 rounded-lg border {% if forloop.counter == 1 %}border-amber-600/50 shadow-[0_0_15px_rgba(217,119,6,0.15)]{% elif forloop.counter == 2 %}border-slate-400/40{% elif forloop.counter == 3 %}border-orange-800/40{% else %}border-slate-700{% endif %} flex items-center gap-4 hover:bg-slate-750 transition-colors group">
+            
+            <!-- Posição -->
+            <div class="text-center w-10 shrink-0">
+                {% if forloop.counter == 1 %}
+                    <span class="text-3xl">🥇</span>
+                {% elif forloop.counter == 2 %}
+                    <span class="text-3xl">🥈</span>
+                {% elif forloop.counter == 3 %}
+                    <span class="text-3xl">🥉</span>
+                {% else %}
+                    <span class="text-xl font-black text-slate-500">#{{ forloop.counter }}</span>
+                {% endif %}
+            </div>
 
+            <!-- Foto -->
+            {% if info.pessoa.foto_perfil %}
+                <img src="{{ info.pessoa.foto_perfil.url }}" class="w-14 h-14 rounded-full border-2 {% if forloop.counter == 1 %}border-amber-500{% else %}border-slate-600{% endif %} object-cover shrink-0">
+            {% else %}
+                <div class="w-14 h-14 rounded-full bg-slate-900 border-2 {% if forloop.counter == 1 %}border-amber-500{% else %}border-slate-600{% endif %} flex items-center justify-center text-slate-400 text-xl font-bold shrink-0">
+                    {{ info.pessoa.nome|make_list|first|upper }}
+                </div>
+            {% endif %}
 
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-black text-slate-100 truncate">{{ info.pessoa.nome }} {% if info.pessoa.is_owner %}<span class="text-xs text-purple-400 font-mono">(Eu)</span>{% endif %}</h3>
+                <p class="text-xs text-slate-500 uppercase tracking-widest">{{ info.pessoa.get_titulo }} · Lv.{{ info.pessoa.level }}</p>
+            </div>
+
+            <!-- Valor -->
+            <div class="text-right shrink-0">
+                <p class="text-xl md:text-2xl font-black {% if forloop.counter == 1 %}text-amber-400{% else %}text-red-400{% endif %}">
+                    <span class="text-xs text-slate-500">R$</span> {{ info.total|floatformat:2 }}
+                </p>
+            </div>
+
+            <!-- Botão Fatura -->
+            {% if not info.pessoa.is_owner %}
+            <a href="{% url 'fatura_pdf' %}?pessoa_id={{ info.pessoa.id }}&mes={{ mes_atual }}&ano={{ ano_atual }}" target="_blank" class="shrink-0 bg-green-900/30 hover:bg-green-700 text-green-400 hover:text-white py-2 px-3 rounded-lg transition-all text-xs font-bold border border-green-900/50 hover:border-green-500 flex items-center gap-1.5 shadow-lg opacity-70 group-hover:opacity-100" title="Gerar Fatura de {{ info.pessoa.nome }}">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                <span class="hidden md:inline">Fatura</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <i data-lucide="trophy" class="w-16 h-16 text-slate-700 mx-auto mb-4"></i>
+        <p class="text-slate-500 text-lg font-bold">Nenhum guerreiro gastou neste mês.</p>
+        <p class="text-slate-600 text-sm">Importe uma fatura para ver o ranking de gastos.</p>
+    </div>
+    {% endif %}
+</div>
+<!-- FIM DA ABA RANKING -->
     <div id="modal-despesa" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div class="bg-slate-900 p-8 rounded-xl border border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.3)] w-full max-w-2xl relative">
             
