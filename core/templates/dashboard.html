@@ -437,51 +437,6 @@
             document.getElementById('form-timeline').submit();
         }
     }
-
-    function obterCSRF() {
-        const cookies = document.cookie.split(';');
-        for (let c of cookies) {
-            const [k, v] = c.trim().split('=');
-            if (k === 'csrftoken') return decodeURIComponent(v);
-        }
-        return '';
-    }
-
-    function salvarResponsavel(transacaoId, pessoaId) {
-        fetch(`/api/atualizar-responsavel/${transacaoId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': obterCSRF()
-            },
-            body: JSON.stringify({ pessoa_id: pessoaId || null })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status !== 'sucesso') {
-                console.error('[Forja] Falha ao salvar responsável:', data.mensagem);
-            }
-        })
-        .catch(err => console.error('[Forja] Erro de rede:', err));
-    }
-
-    function salvarCategoria(transacaoId, categoriaId) {
-        fetch(`/api/atualizar-categoria/${transacaoId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': obterCSRF()
-            },
-            body: JSON.stringify({ categoria_id: categoriaId || null })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status !== 'sucesso') {
-                console.error('[Forja] Falha ao salvar categoria:', data.mensagem);
-            }
-        })
-        .catch(err => console.error('[Forja] Erro de rede:', err));
-    }
 </script>
 
 <!-- FAB MENU CENTRAL -->

@@ -167,6 +167,48 @@
                 alert('Falha crítica na magia de destruição!');
             });
         }
+
+        function salvarResponsavel(transacaoId, pessoaId) {
+            fetch(`/api/atualizar-responsavel/${transacaoId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': obterTokenCSRF()
+                },
+                body: JSON.stringify({ pessoa_id: pessoaId || null })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status !== 'sucesso') {
+                    alert('Falha ao salvar responsável: ' + (data.mensagem || 'Erro desconhecido'));
+                }
+            })
+            .catch(err => {
+                console.error('[Forja] Erro de rede:', err);
+                alert('Erro de conexão ao salvar responsável!');
+            });
+        }
+
+        function salvarCategoria(transacaoId, categoriaId) {
+            fetch(`/api/atualizar-categoria/${transacaoId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': obterTokenCSRF()
+                },
+                body: JSON.stringify({ categoria_id: categoriaId || null })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status !== 'sucesso') {
+                    alert('Falha ao salvar categoria: ' + (data.mensagem || 'Erro desconhecido'));
+                }
+            })
+            .catch(err => {
+                console.error('[Forja] Erro de rede:', err);
+                alert('Erro de conexão ao salvar categoria!');
+            });
+        }
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
