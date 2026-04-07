@@ -384,6 +384,11 @@ def extrato_faturas(request):
         transacoes = transacoes.filter(ano_fatura=ano)
     if cartao_id:
         transacoes = transacoes.filter(cartao_id=cartao_id)
+    
+    # Filtro especial: só itens sem categoria (vindo da Quest do Dashboard)
+    sem_categoria = request.GET.get('sem_categoria')
+    if sem_categoria:
+        transacoes = transacoes.filter(categoria__isnull=True)
 
     # Valores padrão para os campos do filtro não ficarem vazios
     contexto = {

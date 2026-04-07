@@ -85,7 +85,7 @@
 <div id="aba-dashboard-pessoal" class="aba-conteudo-dash block">
 
     {% if gastos.indefinido > 0 %}
-        <a href="javascript:void(0)" onclick="filtrarSemCategoria()" class="block mb-6 group cursor-pointer">
+        <a href="/extrato/?mes={{ mes_atual }}&ano={{ ano_atual }}&sem_categoria=1" class="block mb-6 group cursor-pointer">
             <div class="relative p-5 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-800 to-amber-950/40 border border-amber-700/50 shadow-[0_0_25px_rgba(217,119,6,0.15)] hover:shadow-[0_0_35px_rgba(217,119,6,0.3)] transition-all overflow-hidden">
                 
                 <!-- Glow pulsante de fundo -->
@@ -104,12 +104,6 @@
                         </div>
                         <p class="text-slate-200 text-sm font-bold">Classificar <span class="text-amber-300">R$ {{ gastos.indefinido|floatformat:2 }}</span> em loots sem encantamento (categoria)</p>
                         <p class="text-slate-500 text-xs mt-1">Esses itens não estão impactando as suas barras de vida. Toque aqui para resolver →</p>
-                    </div>
-
-                    <!-- Badge de recompensa -->
-                    <div class="hidden md:flex flex-col items-center gap-1 shrink-0 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700 group-hover:border-amber-600/50 transition-colors">
-                        <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Recompensa</span>
-                        <span class="text-amber-400 font-black text-lg">📊 Precisão</span>
                     </div>
                 </div>
             </div>
