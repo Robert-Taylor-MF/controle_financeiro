@@ -296,6 +296,10 @@ def central_cadastros(request):
         'diretorio': ms.diretorio_backup if ms else '',
     }
 
+    # Carrega histórico de backups
+    from .backup_service import get_backup_history
+    backup_history = get_backup_history()
+
     contexto = {
         'form_cartao': CartaoCreditoForm(),
         'form_pessoa': PessoaForm(),
@@ -307,7 +311,8 @@ def central_cadastros(request):
         'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
         'oraculo_key': oraculo_key,
         'has_env_fallback': has_env_fallback,
-        'backup_config': backup_config
+        'backup_config': backup_config,
+        'backup_history': backup_history,
     }
     return render(request, 'central_cadastros.html', contexto)
 
@@ -1141,3 +1146,63 @@ def marcar_tutorial_visto(request):
         except Exception as e:
             return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=500)
     return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
+
+
+@login_required
+def api_status_backup(request):
+    """API endpoint que retorna o status atual do backup e o histórico dos últimos backups."""
+    import os, json
+    from django.conf import settings
+    
+    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+
+    # Lê status atual
+    status_data = {'status': 'idle', 'message': 'Nenhum backup registrado.', 'time': 0}
+    status_path = os.path.join(backup_dir, 'status.json')
+    if os.path.exists(status_path):
+        try:
+            with open(status_path, 'r', encoding='utf-8') as f:
+                status_data = json.load(f)
+        except Exception:
+            pass
+
+    # Lê histórico
+    history = []
+    history_path = os.path.join(backup_dir, 'backup_history.json')
+    if os.path.exists(history_path):
+        try:
+            with open(history_path, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except Exception:
+            pass
+
+    return JsonResponse({
+        'status': status_data.get('status', 'idle'),
+        'message': status_data.get('message', ''),
+        'time': status_data.get('time', 0),
+        'history': history[:5],  # Retorna os 5 mais recentes para o frontend
+    })
+
+
+@login_required
+def api_selecionar_pasta(request):
+    """Abre um diálogo de seleção de pasta nativo do SO (apenas Windows)."""
+    import subprocess, sys
+    
+    try:
+        if sys.platform == 'win32':
+            # Usa PowerShell para abrir o dialog nativo
+            command = (
+                'powershell -Command "Add-Type -AssemblyName System.Windows.Forms; '
+                '$f = New-Object System.Windows.Forms.FolderBrowserDialog; '
+                '$f.Description = \'Selecione o diretório de backup\'; '
+                '$result = $f.ShowDialog(); '
+                'if ($result -eq \'OK\') { Write-Output $f.SelectedPath }"'
+            )
+            result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=60)
+            pasta = result.stdout.strip()
+            if pasta:
+                return JsonResponse({'status': 'ok', 'pasta': pasta})
+        return JsonResponse({'status': 'cancelado', 'pasta': ''})
+    except Exception as e:
+        return JsonResponse({'status': 'erro', 'mensagem': str(e)})
