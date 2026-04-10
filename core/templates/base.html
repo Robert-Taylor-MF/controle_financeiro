@@ -249,6 +249,48 @@
         <a href="/admin/" target="_blank" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-purple-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="database" class="w-6 h-6"></i> Painel Admin</a>
     </div>
 
+    <!-- MODAL: ORÁCULO DE VERSÕES (ATUALIZAÇÃO) -->
+    <div id="modal-update-arvana" class="fixed inset-0 z-[10000] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div class="bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(245,158,11,0.3)] relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
+            
+            <div class="flex flex-col items-center text-center gap-6">
+                <div class="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/30 animate-pulse">
+                    <i data-lucide="refresh-cw" class="w-10 h-10 text-amber-500"></i>
+                </div>
+                
+                <div>
+                    <h3 class="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">Sincronia Arvana Disponível</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Um novo fragmento de conhecimento foi detectado no <span class="text-amber-400 font-bold">Grande Arquivo (GitHub)</span>. 
+                        Deseja sincronizar seu motor agora?
+                    </p>
+                    <div class="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 inline-flex items-center gap-3">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Nova Versão</span>
+                        <code id="update-version-tag" class="text-amber-400 font-mono font-bold">#v1.7</code>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 w-full">
+                    <button onclick="postponeUpdate()" class="px-6 py-3 rounded-xl border border-slate-700 text-slate-400 font-bold hover:bg-slate-800 transition-all">
+                        Depois
+                    </button>
+                    <button onclick="startGreatSync()" class="px-6 py-3 rounded-xl bg-amber-500 text-slate-950 font-black hover:bg-amber-400 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber-500/20">
+                        Sincronizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INDICADOR FLUTUANTE DE ATUALIZAÇÃO PENDENTE -->
+    <div id="update-indicator-floating" class="fixed bottom-24 right-5 md:right-10 z-[45] hidden animate-bounce">
+        <button onclick="showUpdateModal()" class="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2 border-slate-900 group relative">
+            <i data-lucide="arrow-up-circle" class="text-slate-950 w-6 h-6"></i>
+            <span class="absolute right-14 top-1/2 -translate-y-1/2 bg-slate-900 text-amber-500 text-[10px] font-bold px-3 py-1 rounded-full border border-amber-500/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Sincronia Pendente</span>
+        </button>
+    </div>
+
     <script>
         function toggleMenuMobile() {
             const menu = document.getElementById('menu-mobile');
@@ -310,6 +352,74 @@
                 setTimeout(() => toast.remove(), 500);
             }, 5000);
         }
+
+        // --- SISTEMA DE ATUALIZAÇÃO (SINCRONIA ARVANA) ---
+        async function checkUpdate() {
+            try {
+                const res = await fetch("{% url 'api_check_update' %}");
+                const data = await res.json();
+                
+                if (data.update_available) {
+                    document.getElementById('update-version-tag').innerText = '#' + data.remote_commit;
+                    
+                    if (sessionStorage.getItem('update_postponed') !== 'true') {
+                        showUpdateModal();
+                    } else {
+                        showUpdateIndicator();
+                    }
+                }
+            } catch (e) {
+                console.log("Falha ao consultar Oráculo de Versões.");
+            }
+        }
+
+        function showUpdateModal() {
+            const modal = document.getElementById('modal-update-arvana');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeUpdateModal() {
+            const modal = document.getElementById('modal-update-arvana');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function postponeUpdate() {
+            sessionStorage.setItem('update_postponed', 'true');
+            closeUpdateModal();
+            showUpdateIndicator();
+            mostrarAlertaFlutuante("A Sincronia foi adiada. O Guardião lembrará você.", "info");
+        }
+
+        function showUpdateIndicator() {
+            document.getElementById('update-indicator-floating').classList.remove('hidden');
+        }
+
+        async function startGreatSync() {
+            closeUpdateModal();
+            mostrarAlertaFlutuante("Iniciando Grande Sincronia... O Motor Temporal ira reiniciar.", "info");
+            
+            try {
+                const res = await fetch("{% url 'api_trigger_update' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const data = await res.json();
+                
+                if (data.status === 'sucesso') {
+                    // Espera o aviso sumir e tenta atualizar a pagina pra ver se o server caiu
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                }
+            } catch (e) {
+                mostrarAlertaFlutuante("Falha na Sincronia. Verifique sua conexao com o plano etereo (Internet).", "error");
+            }
+        }
+
+        // Inicia a busca logo ao entrar
+        setTimeout(checkUpdate, 2000);
     </script>
     {% endif %}
 

@@ -15,6 +15,7 @@ from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal, In
 from .services import processar_fatura_pdf
 from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm, InstituicaoForm, CofreForm
 from .forms import DespesaAvulsaForm
+from .utils_update import check_for_updates, trigger_update_signal
 
 @login_required
 def dashboard(request):
@@ -795,6 +796,30 @@ def deletar_cofre(request, cofre_id):
             return JsonResponse({'status': 'erro'}, status=400)
     return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
         
+@login_required
+@csrf_exempt
+@login_required
+def api_check_update(request):
+    """API para consultar se existe uma nova versao no Grande Arquivo (GitHub)"""
+    update_available, local, remote, error = check_for_updates()
+    return JsonResponse({
+        'update_available': update_available,
+        'local_commit': local[:7] if local else None,
+        'remote_commit': remote[:7] if remote else None,
+        'error': error
+    })
+
+@login_required
+@csrf_exempt
+def api_trigger_update(request):
+    """API para sinalizar que o usuário deseja sincronizar e reiniciar"""
+    if request.method == 'POST':
+        success = trigger_update_signal()
+        if success:
+            return JsonResponse({'status': 'sucesso', 'mensagem': 'Sinal de sincronia enviado. O Motor Temporal ira reiniciar em breve!'})
+        return JsonResponse({'status': 'erro', 'mensagem': 'Falha ao gravar sinalizador de update.'}, status=500)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Metodo nao permitido'}, status=405)
+
 @login_required
 @csrf_exempt
 def deletar_instituicao(request, inst_id):

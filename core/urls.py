@@ -31,4 +31,6 @@ urlpatterns = [
     path('api/deletar-instituicao/<int:inst_id>/', views.deletar_instituicao, name='deletar_instituicao'),
     path('boss-do-mes/', views.enfrentar_boss_mes, name='enfrentar_boss_mes'),
     path('api/marcar-tutorial-visto/', views.marcar_tutorial_visto, name='marcar_tutorial_visto'),
+    path('api/check-update/', views.api_check_update, name='api_check_update'),
+    path('api/trigger-update/', views.api_trigger_update, name='api_trigger_update'),
 ]
