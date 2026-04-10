@@ -191,23 +191,20 @@
                     } 
                 },
                 { 
-                    element: '#tour-fab', 
+                    element: '#tour-fab-trigger', 
                     popover: { 
                         title: '🛡️ Central de Ações', 
                         description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
-                        side: "left", align: 'end',
+                        side: "left", align: 'center',
                         offset: 20
                     },
                     onHighlightStarted: (element) => {
-                        element.classList.add('tour-expanding');
-                        if (driverObj) {
-                            setTimeout(() => {
-                                driverObj.refresh();
-                            }, 300); // Espera a transicao de expansao terminar antes de recalcular o foco
-                        }
+                        const container = document.getElementById('tour-fab');
+                        if (container) container.classList.add('tour-expanding');
                     },
                     onDeselected: (element) => {
-                        element.classList.remove('tour-expanding');
+                        const container = document.getElementById('tour-fab');
+                        if (container) container.classList.remove('tour-expanding');
                     }
                 },
                 { 
