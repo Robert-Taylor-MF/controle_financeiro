@@ -4,21 +4,28 @@ import sys
 
 def check_for_updates():
     """
-    Verifica se existem atualizações no GitHub.
-    Retorna (update_available, current_commit, remote_commit, error_msg)
+    Verifica se existem atualizações comparando o arquivo version.txt local e remoto.
+    Retorna (update_available, local_version, remote_version, error_msg)
     """
     try:
-        # Tenta fazer o fetch para atualizar as informações do remoto
-        # Usamos check=True para falhar se não houver internet
+        # 1. Lê a versão local
+        version_path = os.path.join(os.getcwd(), "version.txt")
+        local_version = "v?"
+        if os.path.exists(version_path):
+            with open(version_path, "r") as f:
+                local_version = f.read().strip()
+        
+        # 2. Faz o fetch para garantir que o remoto está atualizado
         subprocess.run(["git", "fetch", "origin", "main"], check=True, capture_output=True, text=True)
         
-        # Obtém o hash do commit local
-        local_commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+        # 3. Lê a versão remota do GitHub (sem baixar os arquivos ainda)
+        remote_version = subprocess.check_output(["git", "show", "origin/main:version.txt"]).decode().strip()
         
-        # Obtém o hash do commit remoto
-        remote_commit = subprocess.check_output(["git", "rev-parse", "origin/main"]).decode().strip()
-        
-        return local_commit != remote_commit, local_commit, remote_commit, None
+        return local_version != remote_version, local_version, remote_version, None
+    except subprocess.CalledProcessError as e:
+        return False, None, None, "Erro ao conectar com Grande Arquivo (GitHub)."
+    except Exception as e:
+        return False, None, None, str(e)
     except subprocess.CalledProcessError as e:
         return False, None, None, f"Erro ao consultar GitHub: {e.stderr}"
     except Exception as e:

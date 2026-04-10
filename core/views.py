@@ -804,8 +804,8 @@ def api_check_update(request):
     update_available, local, remote, error = check_for_updates()
     return JsonResponse({
         'update_available': update_available,
-        'local_commit': local[:7] if local else None,
-        'remote_commit': remote[:7] if remote else None,
+        'local_version': local,
+        'remote_version': remote,
         'error': error
     })
 

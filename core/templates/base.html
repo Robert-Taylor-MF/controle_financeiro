@@ -360,7 +360,7 @@
                 const data = await res.json();
                 
                 if (data.update_available) {
-                    document.getElementById('update-version-tag').innerText = '#' + data.remote_commit;
+                    document.getElementById('update-version-tag').innerText = 'v' + data.remote_version;
                     
                     if (sessionStorage.getItem('update_postponed') !== 'true') {
                         showUpdateModal();
