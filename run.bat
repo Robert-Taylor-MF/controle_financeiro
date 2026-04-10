@@ -13,7 +13,7 @@ REM Verifica Python
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     color 0E
-    echo [INFO] Python nao detectado. Preparando instalacao automatica (v3.13.4)...
+    echo [INFO] Python nao detectado. Preparando instalacao automatica [v3.13.4]...
     echo.
     set "PYTHON_INSTALLER=python_version\python-3.13.4.exe"
     if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "PYTHON_INSTALLER=python_version\python-3.13.4-amd64.exe"
