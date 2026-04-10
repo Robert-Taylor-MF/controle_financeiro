@@ -32,7 +32,7 @@ if not defined PYTHON_EXE (
     
     if exist "!INSTALLER!" (
         echo [INFO] Iniciando instalador: !INSTALLER!
-        echo [AVISO] Instalacao sera realizada em: %CD%\python_dist
+        echo [AVISO] Instalacao sera realizada em: !CD!\python_dist
         echo [AVISO] Por favor, aguarde a conclusao silenciosa...
         
         start /wait "" "!INSTALLER!" /passive InstallAllUsers=0 PrependPath=0 TargetDir="%CD%\python_dist" Include_test=0 Include_doc=0
@@ -76,7 +76,7 @@ REM --- ETAPA 3: VALIDACAO DO ESCUDO (VIRTUAL ENV CHECK) ---
 python -c "import sys, os; sys.exit(0 if os.path.normpath(sys.prefix).lower().startswith(os.path.normpath(r'%CD%\venv').lower()) else 1)" >nul 2>&1
 if %errorlevel% neq 0 (
     color 0C
-    echo [ERRO] O Escudo de Protecao (venv) nao esta ativo corretamente!
+    echo [ERRO] O Escudo de Protecao [venv] nao esta ativo corretamente!
     echo        O script esta tentando usar o Python global. Abortando.
     pause & exit /b
 )
