@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 color 0B
 title Servidor - Controle Financeiro
 
@@ -7,60 +8,89 @@ echo       Controle Financeiro Gamificado - Motor de Forja
 echo ==============================================================
 echo.
 
-setlocal enabledelayedexpansion
+REM --- ETAPA 1: LOCALIZAR MOTOR DE COMBUSTAO (PYTHON 3.13) ---
+set "PYTHON_EXE="
 
-REM Verifica Python
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
+REM 1. Tenta usar o Python Launcher para a versao 3.13
+py -3.13 --version >nul 2>&1
+if !errorlevel! equ 0 (
+    for /f "tokens=*" %%i in ('py -3.13 -c "import sys; print(sys.executable)"') do set "PYTHON_EXE=%%i"
+)
+
+REM 2. Se nao encontrou, tenta buscar em instalacao local previa
+if not defined PYTHON_EXE (
+    if exist "%CD%\python_dist\python.exe" set "PYTHON_EXE=%CD%\python_dist\python.exe"
+)
+
+REM 3. Se ainda nao encontrou, prepara a Forja do Python
+if not defined PYTHON_EXE (
     color 0E
-    echo [INFO] Python nao detectado. Preparando instalacao automatica [v3.13.4]...
-    echo.
-    set "PYTHON_INSTALLER=python_version\python-3.13.4.exe"
-    if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "PYTHON_INSTALLER=python_version\python-3.13.4-amd64.exe"
+    echo [INFO] Motor 3.13 nao detectado. Preparando instalacao isolada...
     
-    if exist "!PYTHON_INSTALLER!" (
-        echo [INFO] Iniciando instalador: !PYTHON_INSTALLER!
-        echo [AVISO] Por favor, aguarde a conclusao da instalacao.
-        echo [IMPORTANTE] Estamos configurando para "Add Python to PATH" automaticamente.
-        start /wait "" "!PYTHON_INSTALLER!" /passive InstallAllUsers=1 PrependPath=1
-        echo.
-        echo [OK] Instalacao concluida com sucesso!
-        echo [AVISO] Voce precisa FECHAR este terminal e abrir o run.bat novamente para o Windows reconhecer o Python.
-        pause
-        exit /b
+    set "INSTALLER=python_version\python-3.13.4.exe"
+    if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "INSTALLER=python_version\python-3.13.4-amd64.exe"
+    
+    if exist "!INSTALLER!" (
+        echo [INFO] Iniciando instalador: !INSTALLER!
+        echo [AVISO] Instalacao sera realizada em: %CD%\python_dist
+        echo [AVISO] Por favor, aguarde a conclusao silenciosa...
+        
+        start /wait "" "!INSTALLER!" /passive InstallAllUsers=0 PrependPath=0 TargetDir="%CD%\python_dist" Include_test=0 Include_doc=0
+        
+        if exist "%CD%\python_dist\python.exe" (
+            set "PYTHON_EXE=%CD%\python_dist\python.exe"
+            echo [OK] Motor instalado com sucesso em [python_dist].
+        ) else (
+            color 0C
+            echo [ERRO] Falha na instalacao automatica.
+            pause & exit /b
+        )
     ) else (
         color 0C
-        echo [ERRO CRITICO] O Python nao esta instalado e o instalador nao foi encontrado em:
-        echo !PYTHON_INSTALLER!
-        echo.
-        echo Baixe e instale manualmente pelo site: https://www.python.org/downloads/
-        pause
-        exit /b
+        echo [ERRO CRITICO] Instalador nao encontrado em: !INSTALLER!
+        pause & exit /b
     )
 )
 
-REM Cria ou Ativa venv
+echo [OK] Motor de Combustao (Python 3.13) localizado:
+echo      !PYTHON_EXE!
+echo.
+
+REM --- ETAPA 2: FORJAR AMBIENTE TEMPORAL (VENV) ---
 if not exist venv\Scripts\activate.bat (
     echo [INFO] Primeira execucao detectada! Forjando a magia do ambiente...
-    python -m venv venv
+    "!PYTHON_EXE!" -m venv venv
+    if !errorlevel! neq 0 (
+        echo [ERRO] Falha ao criar ambiente virtual com !PYTHON_EXE!
+        pause & exit /b
+    )
     call venv\Scripts\activate.bat
-    echo [INFO] Instalando bibliotecas, isso pode demorar um pouco...
+    echo [INFO] Instalando bibliotecas necessarias...
     python -m pip install --upgrade pip
     pip install -r requirements.txt
 ) else (
     call venv\Scripts\activate.bat
 )
 
-REM Verifica se bibliotecas essenciais estao presentes
+REM --- ETAPA 3: VALIDACAO DO ESCUDO (VIRTUAL ENV CHECK) ---
+python -c "import sys, os; sys.exit(0 if os.path.normpath(sys.prefix).lower().startswith(os.path.normpath(r'%CD%\venv').lower()) else 1)" >nul 2>&1
+if %errorlevel% neq 0 (
+    color 0C
+    echo [ERRO] O Escudo de Protecao (venv) nao esta ativo corretamente!
+    echo        O script esta tentando usar o Python global. Abortando.
+    pause & exit /b
+)
+
+REM Verifica bibliotecas (Waitress/Django) de forma robusta
 python -c "import waitress, django" >nul 2>&1 || (
     echo [INFO] Detectadas bibliotecas faltantes. Restaurando ambiente...
     python -m pip install --upgrade pip
     pip install -r requirements.txt
 )
 
-echo [OK] Ambiente ativado. Preparando estruturas...
+echo [OK] Ambiente ativado e validado. Preparando estruturas...
 
-REM Garantia de Integridade (Cria o banco e estáticos silenciosamente se ausentes)
+REM Garantia de Integridade
 python manage.py makemigrations >nul 2>&1
 python manage.py migrate >nul 2>&1
 python manage.py collectstatic --noinput >nul 2>&1

@@ -36,3 +36,6 @@ staticfiles/
 # OS Data
 .DS_Store
 Thumbs.db
+
+# Local Python Installation
+python_dist/
