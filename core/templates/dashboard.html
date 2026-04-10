@@ -551,7 +551,7 @@
 <div id="tour-fab" class="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3 group">
     
     <!-- Sub-buttons -->
-    <div class="flex flex-col items-end gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto mb-2">
+    <div id="tour-fab-menu" class="flex flex-col items-end gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto mb-2">
         
         <button onclick="abrirModalFatura()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
             <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Emitir Fatura</span>
@@ -724,6 +724,13 @@
     }
     .animate-spin-slow {
         animation: spin-slow 8s linear infinite;
+    }
+    
+    /* Força expansao do FAB durante o tour */
+    .fab-tour-active {
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
 </style>
 

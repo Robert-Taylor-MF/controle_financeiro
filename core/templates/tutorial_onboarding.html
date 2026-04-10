@@ -196,7 +196,15 @@
                         title: '🛡️ Central de Ações', 
                         description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
                         side: "left", align: 'end'
-                    } 
+                    },
+                    onHighlighted: (element) => {
+                        const menu = document.getElementById('tour-fab-menu');
+                        if (menu) menu.classList.add('fab-tour-active');
+                    },
+                    onDeselected: (element) => {
+                        const menu = document.getElementById('tour-fab-menu');
+                        if (menu) menu.classList.remove('fab-tour-active');
+                    }
                 },
                 { 
                     element: '#tour-nav-banco', 
