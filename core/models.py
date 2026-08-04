@@ -21,6 +21,10 @@ class Pessoa(models.Model):
     # O CAMPO RESGATADO DA FORJA ANTIGA
     ativo = models.BooleanField(default=True)
     
+    # GAMIFICAÇÃO 2.0 (HP e Classes)
+    orcamento_mensal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="HP Base do Mês (Para Owner)")
+    classe_atual = models.CharField(max_length=50, default="Aventureiro")
+    
     # ==========================================
     # SISTEMA DE RPG (GAMIFICAÇÃO)
     # ==========================================
@@ -333,3 +337,53 @@ class MestreSeguranca(models.Model):
 
     def __str__(self):
         return f"Segurança do Mestre: {self.user.username}"
+
+
+# ==========================================
+# GAMIFICAÇÃO 2.0 (Missões e Rateios)
+# ==========================================
+
+class Rateio(models.Model):
+    """
+    Controla como uma única transação é dividida entre membros da party.
+    Isso substitui o sistema antigo de duplicar a Transacao.
+    """
+    transacao = models.ForeignKey(Transacao, on_delete=models.CASCADE, related_name='rateios')
+    pessoa = models.ForeignKey(Pessoa, on_delete=models.CASCADE, related_name='rateios')
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.pessoa.nome} - R$ {self.valor} ({self.transacao.descricao})"
+
+class Quest(models.Model):
+    """
+    Missão de economia. O mestre cria a missão (ex: Gasto máximo no IFood de R$ 500).
+    """
+    titulo = models.CharField(max_length=200, help_text="Ex: Cortar o Ifood")
+    descricao = models.TextField(blank=True, null=True)
+    meta_valor = models.DecimalField(max_digits=10, decimal_places=2, help_text="Limite de gastos (HP do Boss)")
+    categoria_alvo = models.ForeignKey(Categoria, on_delete=models.CASCADE, null=True, blank=True)
+    recompensa_xp = models.IntegerField(default=500, help_text="XP para a Party se vencer o boss")
+    
+    # Para qual mês essa missão vale?
+    mes_vigencia = models.IntegerField()
+    ano_vigencia = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.titulo} - Limite: R$ {self.meta_valor}"
+
+class QuestStatus(models.Model):
+    """
+    Controla o estado final de uma missão (Vencida, Perdida, Pendente)
+    """
+    STATUS_CHOICES = [
+        ('PENDENTE', 'Em combate (Pendente)'),
+        ('VENCIDA', 'Vitória! Boss derrotado'),
+        ('PERDIDA', 'Derrota! Party aniquilada'),
+    ]
+    quest = models.OneToOneField(Quest, on_delete=models.CASCADE, related_name='status')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDENTE')
+    valor_gasto_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.quest.titulo} - {self.get_status_display()}"

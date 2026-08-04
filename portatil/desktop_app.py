@@ -5,6 +5,12 @@ import threading
 import urllib.request
 import webview
 
+# Início do Log para Debug do PyInstaller
+log_file = open('desktop_debug.log', 'w', encoding='utf-8')
+sys.stdout = log_file
+sys.stderr = log_file
+
+
 # Adiciona o diretório pai (raiz do projeto) ao sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
@@ -20,8 +26,17 @@ from django.core.management import call_command
 from waitress import serve
 from setup.wsgi import application
 
+import socket
+
+def get_free_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('', 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
 HOST = '127.0.0.1'
-PORT = 8000
+PORT = get_free_port()
 URL = f'http://{HOST}:{PORT}'
 
 def run_server():

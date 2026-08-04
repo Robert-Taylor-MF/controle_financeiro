@@ -4,7 +4,7 @@ import time
 import pdfplumber
 from google import genai
 from dotenv import load_dotenv
-from .models import Transacao, Pessoa, CartaoCredito, Categoria
+from core.models import Transacao, Pessoa, CartaoCredito, Categoria
 from datetime import datetime, timedelta
 
 # 2. Execute a função para carregar o arquivo .env
@@ -36,7 +36,7 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, user_id
     # ==========================================
     print("\n[DEBUG] Categorias enviadas para a IA:", string_categorias)
 
-    from .models import MestreSeguranca
+    from core.models import MestreSeguranca
     from django.core.cache import cache
 
     ms = MestreSeguranca.objects.first()

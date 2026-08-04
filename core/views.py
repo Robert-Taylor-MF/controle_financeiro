@@ -16,6 +16,9 @@ from .services import processar_fatura_pdf
 from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm, InstituicaoForm, CofreForm, DespesaRecorrenteForm
 from .forms import DespesaAvulsaForm
 
+from .services.rateio_service import processar_rateio
+from .services.rpg_service import get_hp_party, atualizar_classes_dinamicas, atualizar_status_quests
+
 @login_required
 def dashboard(request):
     # ==========================================
@@ -36,40 +39,7 @@ def dashboard(request):
                     valores_rateio[pessoa.id] = Decimal(val.replace(',', '.'))
                     
             if valores_rateio:
-                soma_party = sum(valores_rateio.values())
-                valor_total = nova_transacao.valor
-                
-                # Se a soma da party for menor ou igual ao valor total, podemos ratear
-                # (O que sobrar fica com o dono, ou 0 se ele pagou tudo pra eles e ele nao arca com nada)
-                if soma_party <= valor_total:
-                    valor_dono = valor_total - soma_party
-                    
-                    # Salva a original (agora ajustada pro Dono) se sobrou algo pra ele, senao deleta
-                    if valor_dono > 0:
-                        nova_transacao.valor = valor_dono
-                        nova_transacao.descricao = f"(Rateio: {nova_transacao.descricao})"
-                        nova_transacao.save()
-                    else:
-                        nova_transacao.delete()
-                        
-                    # Cria as fatias para a Party selecionada
-                    for pessoa_id, valor_fatia in valores_rateio.items():
-                        if valor_fatia > 0:
-                            aliado = pessoas.get(id=pessoa_id)
-                            desc_original = nova_transacao.descricao.replace('(Rateio: ', '').rstrip(')')
-                            Transacao.objects.create(
-                                descricao=f"{desc_original} (Rateio: {aliado.nome})",
-                                valor=valor_fatia,
-                                data_compra=nova_transacao.data_compra,
-                                cartao=nova_transacao.cartao,
-                                categoria=nova_transacao.categoria,
-                                responsavel=aliado,
-                                mes_fatura=nova_transacao.mes_fatura,
-                                ano_fatura=nova_transacao.ano_fatura
-                            )
-                    messages.success(request, f"Dano rateado dinamicamente com {len(valores_rateio)} membros da guilda!")
-                else:
-                    messages.error(request, "A soma do rateio excedeu o valor total. Rateio ignorado, gasto registrado integralmente para você.")
+                processar_rateio(nova_transacao, valores_rateio, request)
             
             # ==========================================
             # MISSÃO DIÁRIA: RECOMPENSA DE XP
@@ -87,7 +57,8 @@ def dashboard(request):
             # Pega o mês e ano que você digitou no formulário para recarregar a tela no lugar certo
             m = request.POST.get('mes_fatura')
             a = request.POST.get('ano_fatura')
-            return redirect(f"/?mes={m}&ano={a}")
+            
+            return redirect(f"/?mes={m}&ano={a}&ask_add_another=1")
             
     elif request.method == 'POST' and request.POST.get('acao') == 'injetar_recorrentes':
         mes_inj = int(request.POST.get('mes_fatura'))
@@ -156,6 +127,20 @@ def dashboard(request):
     gasto_emocao = float(meus_gastos.filter(categoria__tipo_regra='ESTILO_VIDA').aggregate(Sum('valor'))['valor__sum'] or 0)
     gasto_futuro = float(meus_gastos.filter(categoria__tipo_regra='FUTURO').aggregate(Sum('valor'))['valor__sum'] or 0)
     gasto_indefinido = float(meus_gastos.filter(categoria__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0)
+    
+    # 5.1 Subtrai os Rateios (o que os Aliados pagaram daquelas transações não pesa no seu HP)
+    from .models import Rateio
+    rateios_mes = Rateio.objects.filter(transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual)
+    
+    rateio_ess = float(rateios_mes.filter(transacao__categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
+    rateio_emo = float(rateios_mes.filter(transacao__categoria__tipo_regra='ESTILO_VIDA').aggregate(Sum('valor'))['valor__sum'] or 0)
+    rateio_fut = float(rateios_mes.filter(transacao__categoria__tipo_regra='FUTURO').aggregate(Sum('valor'))['valor__sum'] or 0)
+    rateio_ind = float(rateios_mes.filter(transacao__categoria__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0)
+    
+    gasto_essencial -= rateio_ess
+    gasto_emocao -= rateio_emo
+    gasto_futuro -= rateio_fut
+    gasto_indefinido -= rateio_ind
 
     # 6. Calcula a percentagem consumida
     pct_essencial = min(int((gasto_essencial / meta_essencial) * 100) if meta_essencial > 0 else 0, 100)
@@ -174,20 +159,35 @@ def dashboard(request):
 
     # 10. GASTOS DA PARTY (Visão da Party)
     gastos_party = []
-    todos_gastos_mes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual)
+    
+    from .models import Rateio
+    
     for p in pessoas:
-        total_p = todos_gastos_mes.filter(responsavel=p).aggregate(Sum('valor'))['valor__sum'] or 0
-        gastos_party.append({
-            'pessoa': p,
-            'total': float(total_p)
-        })
-
-        # Atualiza XP da Party baseado nos gastos HISTÓRICOS (acumulado de todos os meses)
+        # A party members expenses are the sum of their Rateios, or Transacoes directly assigned to them
         if not p.is_owner:
-            total_historico = Transacao.objects.filter(responsavel=p).aggregate(Sum('valor'))['valor__sum'] or 0
-            p.atualizar_xp_por_gasto(total_historico)
+            # Puxa o total de rateios no mes para a pessoa
+            rateios_mes = Rateio.objects.filter(pessoa=p, transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
+            
+            # Plus any direct transactions (though we are migrating everything to Rateio, just in case)
+            transacoes_diretas = Transacao.objects.filter(responsavel=p, mes_fatura=mes_atual, ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
+            
+            total_p = float(rateios_mes) + float(transacoes_diretas)
+            
+            gastos_party.append({
+                'pessoa': p,
+                'total': float(total_p)
+            })
 
-    total_sem_dono = todos_gastos_mes.filter(responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
+            # Atualiza XP da Party baseado nos gastos HISTÓRICOS (acumulado de todos os meses)
+            total_historico_rateios = Rateio.objects.filter(pessoa=p).aggregate(Sum('valor'))['valor__sum'] or 0
+            total_historico_direto = Transacao.objects.filter(responsavel=p).aggregate(Sum('valor'))['valor__sum'] or 0
+            
+            p.atualizar_xp_por_gasto(float(total_historico_rateios) + float(total_historico_direto))
+
+    # O dono arca com transações sem dono, MAS ele também recebe o desconto dos rateios
+    # Então o total de gastos "pessoais" do dono na verdade não muda (a lógica das categorias já lida com isso)
+    # Mas precisamos ajustar a soma geral
+    total_sem_dono = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual, responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
 
     # 10b. RANKING: Apenas quem gastou, ordenado do maior para o menor
     ranking_party = sorted([g for g in gastos_party if g['total'] > 0], key=lambda x: x['total'], reverse=True)
@@ -201,6 +201,15 @@ def dashboard(request):
     tem_recorrentes = DespesaRecorrente.objects.exists()
     recorrencia_mes_feita = RegistroRecorrencia.objects.filter(mes=mes_atual, ano=ano_atual).exists()
     tem_recorrentes_pendentes = tem_recorrentes and not recorrencia_mes_feita
+
+    # 13. GAMIFICAÇÃO: Atualizar status e carregar dados RPG
+    atualizar_status_quests(mes_atual, ano_atual)
+    atualizar_classes_dinamicas(mes_atual, ano_atual)
+    dados_hp = get_hp_party(mes_atual, ano_atual)
+    
+    # Busca as quests ativas do mês para a tela
+    from .models import Quest
+    quests_ativas = Quest.objects.filter(mes_vigencia=mes_atual, ano_vigencia=ano_atual)
 
     contexto = {
         'transacoes': ultimas_transacoes,
@@ -220,6 +229,10 @@ def dashboard(request):
         'ranking_party': ranking_party,
         'mostrar_tutorial': not dono.tutorial_visto if dono else False,
         'tem_recorrentes_pendentes': tem_recorrentes_pendentes,
+        
+        # Dados de Gamificação / RPG
+        'hp': dados_hp,
+        'quests': quests_ativas,
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={
@@ -279,7 +292,6 @@ def central_cadastros(request):
             if form.is_valid(): form.save(); messages.success(request, "Arma (Cartão) forjada com sucesso!")
         elif acao == 'pessoa':
             form = PessoaForm(request.POST, request.FILES)
-            form = PessoaForm(request.POST)
             if form.is_valid(): form.save(); messages.success(request, "Novo aliado recrutado para a Guilda!")
         elif acao == 'categoria':
             form = CategoriaForm(request.POST)
@@ -451,60 +463,21 @@ def ratear_transacao(request, transacao_id):
     # Puxa a transação original do banco
     transacao_original = get_object_or_404(Transacao, id=transacao_id)
 
-    # GUARD 1: Transação já rateada não pode ser rateada novamente
-    if '(Rateio:' in transacao_original.descricao:
-        messages.error(request, "Esta despesa já é resultado de um rateio e não pode ser dividida novamente!")
-        return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-
     # Puxa todas as pessoas cadastradas para você escolher com quem dividir
     pessoas = Pessoa.objects.filter(ativo=True)
     
     if request.method == 'POST':
-        # Vamos somar para garantir que você não dividiu errado (ex: dividiu 140 sendo que a conta era 130)
-        soma_rateio = Decimal('0.00')
-        novos_registros = []
+        from .services.rateio_service import fragmentar_transacao_existente
+        from decimal import Decimal
         
+        valores_rateio = {}
         for pessoa in pessoas:
-            # Pega o valor digitado para essa pessoa no formulário (se houver)
             valor_str = request.POST.get(f'valor_pessoa_{pessoa.id}')
-            
             if valor_str and float(valor_str) > 0:
-                valor_decimal = Decimal(valor_str.replace(',', '.'))
-                soma_rateio += valor_decimal
+                valores_rateio[pessoa.id] = Decimal(valor_str.replace(',', '.'))
                 
-                # Prepara a nova transação
-                descricao_rateio = f"{transacao_original.descricao} (Rateio: {pessoa.nome})"
-                
-                novos_registros.append(
-                    Transacao(
-                        descricao=descricao_rateio,
-                        valor=valor_decimal,
-                        data_compra=transacao_original.data_compra,
-                        responsavel=pessoa,
-                        cartao=transacao_original.cartao,
-                        categoria=transacao_original.categoria,
-                        status=transacao_original.status,
-                        mes_fatura=transacao_original.mes_fatura,
-                        ano_fatura=transacao_original.ano_fatura
-                    )
-                )
+        fragmentar_transacao_existente(transacao_original, valores_rateio, request)
 
-        # GUARD 2: Precisa de pelo menos 2 pessoas para um rateio fazer sentido
-        if len(novos_registros) < 2:
-            messages.error(request, "Para dividir uma despesa, selecione pelo menos 2 pessoas!")
-            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-        
-        # Regra de Ouro Financeira: O rateio TEM que bater com o valor original
-        if soma_rateio != transacao_original.valor:
-            messages.error(request, f"A soma da divisão (R$ {soma_rateio}) não bate com o valor original (R$ {transacao_original.valor}).")
-        else:
-            # Salva as novas transações no banco
-            Transacao.objects.bulk_create(novos_registros)
-            # Deleta a transação original para não duplicar sua fatura
-            transacao_original.delete()
-            
-            messages.success(request, "Despesa fragmentada com sucesso (Rateio aplicado)!")
-            
     # Redireciona de forma transparente para onde o usuário estava (Dashboard ou Extrato)
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
@@ -1376,4 +1349,58 @@ def api_trigger_update(request):
             return JsonResponse({'status': 'sucesso', 'mensagem': 'Sinal de sincronia enviado.'})
         return JsonResponse({'status': 'erro', 'mensagem': 'Falha.'}, status=500)
     return JsonResponse({'status': 'erro', 'mensagem': 'Metodo nao permitido'}, status=405)
+
+
+@login_required
+def enfrentar_boss_mes(request):
+    mes_atual = int(request.GET.get('mes', datetime.now().month))
+    ano_atual = int(request.GET.get('ano', datetime.now().year))
+    dono = Pessoa.objects.filter(is_owner=True).first()
+    
+    if request.method == 'POST':
+        # Cria ou atualiza a Quest (Apenas para o Owner)
+        if not dono:
+            messages.error(request, "Apenas o Mestre da Guilda pode invocar Chefões!")
+            return redirect(f"/?mes={mes_atual}&ano={ano_atual}")
+            
+        titulo = request.POST.get('titulo')
+        descricao = request.POST.get('descricao', '')
+        meta_valor = request.POST.get('meta_valor', '0').replace(',', '.')
+        categoria_id = request.POST.get('categoria')
+        recompensa_xp = request.POST.get('recompensa_xp', '500')
+        
+        from .models import Quest, QuestStatus
+        categoria_obj = None
+        if categoria_id:
+            categoria_obj = Categoria.objects.filter(id=categoria_id).first()
+            
+        nova_quest, created = Quest.objects.update_or_create(
+            mes_vigencia=mes_atual,
+            ano_vigencia=ano_atual,
+            defaults={
+                'titulo': titulo,
+                'descricao': descricao,
+                'meta_valor': Decimal(meta_valor),
+                'categoria_alvo': categoria_obj,
+                'recompensa_xp': int(recompensa_xp)
+            }
+        )
+        
+        # Garante que tenha status
+        QuestStatus.objects.get_or_create(quest=nova_quest)
+        
+        messages.success(request, "Boss invocado com sucesso! Prepare-se para a batalha.")
+        return redirect(f"/?mes={mes_atual}&ano={ano_atual}")
+
+    # GET: Mostra tela de Quests
+    from .models import Quest
+    quest_atual = Quest.objects.filter(mes_vigencia=mes_atual, ano_vigencia=ano_atual).first()
+    categorias = Categoria.objects.all()
+    
+    return render(request, 'quests.html', {
+        'quest': quest_atual,
+        'mes_atual': mes_atual,
+        'ano_atual': ano_atual,
+        'categorias': categorias
+    })
 

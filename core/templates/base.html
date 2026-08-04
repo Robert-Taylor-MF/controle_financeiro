@@ -348,10 +348,10 @@
     </div>
 
     <!-- INDICADOR FLUTUANTE DE ATUALIZAÇÃO PENDENTE -->
-    <div id="update-indicator-floating" class="fixed top-24 right-5 md:right-10 z-[45] hidden animate-bounce">
+    <div id="update-indicator-floating" class="fixed bottom-10 left-10 z-[45] hidden animate-bounce">
         <button onclick="showUpdateModal()" class="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2 border-slate-900 group relative">
             <i data-lucide="arrow-up-circle" class="text-slate-950 w-6 h-6"></i>
-            <span class="absolute right-14 top-1/2 -translate-y-1/2 bg-slate-900 text-amber-500 text-[10px] font-bold px-3 py-1 rounded-full border border-amber-500/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Sincronia Pendente</span>
+            <span class="absolute left-14 top-1/2 -translate-y-1/2 bg-slate-900 text-amber-500 text-[10px] font-bold px-3 py-1 rounded-full border border-amber-500/30 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Sincronia Pendente</span>
         </button>
     </div>
 
@@ -484,79 +484,9 @@
 
         // Inicia a busca logo ao entrar
         setTimeout(checkUpdate, 2000);
-    
-        // --- SISTEMA DE ATUALIZAÇÃO (SINCRONIA ARVANA) ---
-        async function checkUpdate() {
-            try {
-                const res = await fetch("{% url 'api_check_update' %}");
-                const data = await res.json();
-                
-                if (data.update_available) {
-                    document.getElementById('update-version-tag').innerText = 'v' + data.remote_version;
-                    
-                    if (sessionStorage.getItem('update_postponed') !== 'true') {
-                        showUpdateModal();
-                    } else {
-                        showUpdateIndicator();
-                    }
-                }
-            } catch (e) {
-                console.log("Falha ao consultar Oráculo de Versões.");
-            }
-        }
-
-        function showUpdateModal() {
-            const modal = document.getElementById('modal-update-arvana');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeUpdateModal() {
-            const modal = document.getElementById('modal-update-arvana');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function postponeUpdate() {
-            sessionStorage.setItem('update_postponed', 'true');
-            closeUpdateModal();
-            showUpdateIndicator();
-            mostrarAlertaFlutuante("A Sincronia foi adiada. O Guardião lembrará você.", "info");
-        }
-
-        function showUpdateIndicator() {
-            document.getElementById('update-indicator-floating').classList.remove('hidden');
-        }
-
-        async function startGreatSync() {
-            closeUpdateModal();
-            mostrarAlertaFlutuante("Iniciando Grande Sincronia... O Motor Temporal ira reiniciar.", "info");
-            
-            try {
-                const res = await fetch("{% url 'api_trigger_update' %}", {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-                });
-                const data = await res.json();
-                
-                if (data.status === 'sucesso') {
-                    // Espera o aviso sumir e tenta atualizar a pagina pra ver se o server caiu
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                }
-            } catch (e) {
-                mostrarAlertaFlutuante("Falha na Sincronia. Verifique sua conexao com o plano etereo (Internet).", "error");
-            }
-        }
-
-        // Inicia a busca logo ao entrar
-        setTimeout(checkUpdate, 2000);
-</script>
+    </script>
     {% endif %}
-
+    
     {% include 'tutorial_onboarding.html' %}
-</body>
-</html>
 </body>
 </html>

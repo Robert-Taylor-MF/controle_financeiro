@@ -38,6 +38,8 @@ def build():
         f"--add-data={os.path.join(BASE_DIR, 'core', 'static')}{sep}{os.path.join('core', 'static')}",
         f"--add-data={os.path.join(BASE_DIR, 'version.txt')}{sep}.",
         "--collect-all=core",
+        "--collect-all=charset_normalizer",
+        "--collect-all=pycparser",
         "--hidden-import=waitress",
         "--hidden-import=setup.wsgi",
         "--hidden-import=setup.urls",
@@ -57,8 +59,25 @@ def build():
         "--hidden-import=django.contrib.sessions",
         "--hidden-import=django.contrib.messages",
         "--hidden-import=django.contrib.staticfiles",
+        "--hidden-import=django.db.backends.sqlite3",
+        "--hidden-import=django.template.loaders.app_directories",
+        "--hidden-import=google.genai",
+        "--hidden-import=groq",
+        "--hidden-import=pdfminer",
+        "--hidden-import=pdfplumber",
+        "--hidden-import=webview",
         ENTRY_POINT
     ]
+
+    import glob
+    try:
+        import charset_normalizer
+        site_packages = os.path.dirname(os.path.dirname(os.path.abspath(charset_normalizer.__file__)))
+        for f in glob.glob(os.path.join(site_packages, "*__mypyc*.pyd")):
+            mod_name = os.path.basename(f).split('.')[0]
+            cmd.insert(-1, f"--hidden-import={mod_name}")
+    except Exception as e:
+        print("Aviso: Nao foi possivel detectar o modulo mypyc do charset_normalizer:", e)
 
 
     print("[INFO] Executando PyInstaller...")

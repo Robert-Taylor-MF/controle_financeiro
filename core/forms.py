@@ -15,7 +15,7 @@ class CartaoCreditoForm(forms.ModelForm):
 class PessoaForm(forms.ModelForm):
     class Meta:
         model = Pessoa
-        fields = ['nome', 'telefone', 'chave_pix', 'foto_perfil']
+        fields = ['nome', 'telefone', 'chave_pix', 'foto_perfil', 'orcamento_mensal']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'telefone': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
@@ -23,6 +23,7 @@ class PessoaForm(forms.ModelForm):
             'foto_perfil': forms.FileInput(attrs={
                 'class': 'w-full bg-slate-900 border border-slate-700 rounded text-slate-400 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-bold file:bg-emerald-900/50 file:text-emerald-400 hover:file:bg-emerald-800 transition-colors'
             }),
+            'orcamento_mensal': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'step': '0.01', 'placeholder': 'HP Base (Limite Mensal)'}),
         }
 
 class CategoriaForm(forms.ModelForm):
