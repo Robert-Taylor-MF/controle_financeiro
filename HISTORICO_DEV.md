@@ -1,6 +1,6 @@
 # 📜 Diário de Bordo (Mestre da Forja)
 **Projeto:** Controle Financeiro Gamificado
-**Status Atual:** Lançamento V1.0 Estável Concluído
+**Status Atual:** Lançamento V1.8 Estável Concluído
 
 Este documento serve como um cérebro persistente (Long-Term Context). Todo o progresso e estrutura estabelecida até aqui está resumido abaixo. Caso precise interromper o trabalho e voltar depois (ou continuar com outro assistente), basta referenciar este arquivo para que todos saibam o estado exato da sua aplicação.
 

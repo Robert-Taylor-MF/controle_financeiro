@@ -11,11 +11,10 @@ from django.contrib import messages
 from django.db.models import Sum, Q
 from decimal import Decimal
 from datetime import datetime, date
-from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal, Instituicao, Cofre, HistoricoCofre
+from .models import CartaoCredito, Transacao, Pessoa, Categoria, RendaMensal, Instituicao, Cofre, HistoricoCofre, DespesaRecorrente
 from .services import processar_fatura_pdf
-from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm, InstituicaoForm, CofreForm
+from .forms import CartaoCreditoForm, PessoaForm, CategoriaForm, RendaMensalForm, InstituicaoForm, CofreForm, DespesaRecorrenteForm
 from .forms import DespesaAvulsaForm
-from .utils_update import check_for_updates, trigger_update_signal
 
 @login_required
 def dashboard(request):
@@ -25,7 +24,52 @@ def dashboard(request):
     if request.method == 'POST' and request.POST.get('acao') == 'nova_despesa':
         form_despesa = DespesaAvulsaForm(request.POST)
         if form_despesa.is_valid():
-            form_despesa.save()
+            nova_transacao = form_despesa.save()
+            
+            # Verifica se houve rateio manual pelo form dinâmico
+            from decimal import Decimal
+            pessoas = Pessoa.objects.filter(ativo=True, is_owner=False)
+            valores_rateio = {}
+            for pessoa in pessoas:
+                val = request.POST.get(f'valor_pessoa_{pessoa.id}')
+                if val:
+                    valores_rateio[pessoa.id] = Decimal(val.replace(',', '.'))
+                    
+            if valores_rateio:
+                soma_party = sum(valores_rateio.values())
+                valor_total = nova_transacao.valor
+                
+                # Se a soma da party for menor ou igual ao valor total, podemos ratear
+                # (O que sobrar fica com o dono, ou 0 se ele pagou tudo pra eles e ele nao arca com nada)
+                if soma_party <= valor_total:
+                    valor_dono = valor_total - soma_party
+                    
+                    # Salva a original (agora ajustada pro Dono) se sobrou algo pra ele, senao deleta
+                    if valor_dono > 0:
+                        nova_transacao.valor = valor_dono
+                        nova_transacao.descricao = f"(Rateio: {nova_transacao.descricao})"
+                        nova_transacao.save()
+                    else:
+                        nova_transacao.delete()
+                        
+                    # Cria as fatias para a Party selecionada
+                    for pessoa_id, valor_fatia in valores_rateio.items():
+                        if valor_fatia > 0:
+                            aliado = pessoas.get(id=pessoa_id)
+                            desc_original = nova_transacao.descricao.replace('(Rateio: ', '').rstrip(')')
+                            Transacao.objects.create(
+                                descricao=f"{desc_original} (Rateio: {aliado.nome})",
+                                valor=valor_fatia,
+                                data_compra=nova_transacao.data_compra,
+                                cartao=nova_transacao.cartao,
+                                categoria=nova_transacao.categoria,
+                                responsavel=aliado,
+                                mes_fatura=nova_transacao.mes_fatura,
+                                ano_fatura=nova_transacao.ano_fatura
+                            )
+                    messages.success(request, f"Dano rateado dinamicamente com {len(valores_rateio)} membros da guilda!")
+                else:
+                    messages.error(request, "A soma do rateio excedeu o valor total. Rateio ignorado, gasto registrado integralmente para você.")
             
             # ==========================================
             # MISSÃO DIÁRIA: RECOMPENSA DE XP
@@ -44,6 +88,33 @@ def dashboard(request):
             m = request.POST.get('mes_fatura')
             a = request.POST.get('ano_fatura')
             return redirect(f"/?mes={m}&ano={a}")
+            
+    elif request.method == 'POST' and request.POST.get('acao') == 'injetar_recorrentes':
+        mes_inj = int(request.POST.get('mes_fatura'))
+        ano_inj = int(request.POST.get('ano_fatura'))
+        
+        from .models import RegistroRecorrencia, DespesaRecorrente
+        dono = Pessoa.objects.filter(is_owner=True).first()
+        
+        if dono and not RegistroRecorrencia.objects.filter(mes=mes_inj, ano=ano_inj).exists():
+            recorrentes = DespesaRecorrente.objects.all()
+            for rec in recorrentes:
+                data_compra = f"{ano_inj}-{mes_inj:02d}-{rec.dia_vencimento:02d}"
+                Transacao.objects.create(
+                    descricao=rec.descricao,
+                    valor=rec.valor_estimado,
+                    data_compra=data_compra,
+                    cartao=rec.cartao,
+                    categoria=rec.categoria,
+                    responsavel=dono,
+                    mes_fatura=mes_inj,
+                    ano_fatura=ano_inj
+                )
+            
+            RegistroRecorrencia.objects.create(mes=mes_inj, ano=ano_inj)
+            messages.success(request, f"Contas Fixas de {mes_inj}/{ano_inj} injetadas com sucesso!")
+            
+        return redirect(f"/?mes={mes_inj}&ano={ano_inj}")
             
     # ==========================================
     # LÓGICA DE EXIBIÇÃO NORMAL (GET)
@@ -125,6 +196,12 @@ def dashboard(request):
     total_gasto_pessoal = gasto_essencial + gasto_emocao + gasto_futuro + gasto_indefinido
     saldo_restante = renda - total_gasto_pessoal
 
+    # 12. VERIFICAÇÃO DE CONTAS FIXAS
+    from .models import RegistroRecorrencia, DespesaRecorrente
+    tem_recorrentes = DespesaRecorrente.objects.exists()
+    recorrencia_mes_feita = RegistroRecorrencia.objects.filter(mes=mes_atual, ano=ano_atual).exists()
+    tem_recorrentes_pendentes = tem_recorrentes and not recorrencia_mes_feita
+
     contexto = {
         'transacoes': ultimas_transacoes,
         'categorias': categorias,
@@ -142,6 +219,7 @@ def dashboard(request):
         'total_sem_dono': float(total_sem_dono),
         'ranking_party': ranking_party,
         'mostrar_tutorial': not dono.tutorial_visto if dono else False,
+        'tem_recorrentes_pendentes': tem_recorrentes_pendentes,
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={
@@ -166,7 +244,7 @@ def importar_fatura(request):
         ano_fatura = request.POST.get('ano_fatura')
         
         if arquivo_pdf and cartao_id and mes_fatura and ano_fatura:
-            sucesso, mensagem = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura)
+            sucesso, mensagem = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, request.user.id)
             if sucesso:
                 messages.success(request, f"O Oráculo completou a extração! Todos os loots foram armazenados. Detalhes: {mensagem}")
                 # Direciona para a página de Pergaminhos (Extrato) já com os filtros do mês, ano e cartão selecionados!
@@ -181,6 +259,15 @@ def importar_fatura(request):
             
     # Se alguém tentar acessar a URL diretamente por GET, joga de volta pro Dashboard
     return redirect('dashboard')
+
+@login_required
+@csrf_exempt
+def cancelar_oraculo(request):
+    if request.method == 'POST':
+        from django.core.cache import cache
+        cache.set(f'cancelar_oraculo_{request.user.id}', True, timeout=300)
+        return JsonResponse({'status': 'sucesso'})
+    return JsonResponse({'status': 'erro'}, status=400)
 
 @login_required
 def central_cadastros(request):
@@ -200,12 +287,21 @@ def central_cadastros(request):
         elif acao == 'renda':
             form = RendaMensalForm(request.POST)
             if form.is_valid(): form.save(); messages.success(request, "Mana (Renda Mensal) canalizada com sucesso!")
+        elif acao == 'recorrente':
+            from .forms import DespesaRecorrenteForm
+            form = DespesaRecorrenteForm(request.POST)
+            if form.is_valid(): form.save(); messages.success(request, "Nova Conta Fixa registrada no Grimório!")
         elif acao == 'oraculo':
             api_key = request.POST.get('api_key_gemini', '')
+            groq_key = request.POST.get('api_key_groq', '')
+            ai_default = request.POST.get('ai_default', 'GEMINI')
+            
             user = request.user
             from .models import MestreSeguranca
             m_seg, created = MestreSeguranca.objects.get_or_create(user=user, defaults={'pergunta_secreta': '-', 'resposta_secreta': '-'})
             m_seg.set_api_key(api_key)
+            m_seg.set_groq_key(groq_key)
+            m_seg.ai_default = ai_default
             m_seg.save()
             messages.success(request, "A essência do Oráculo foi renovada com sucesso!")
         elif acao == 'configurar_backup':
@@ -282,12 +378,38 @@ def central_cadastros(request):
                     if os.path.exists(tmp_dir):
                         shutil.rmtree(tmp_dir)
             
-        return redirect('central_cadastros')
+        elif acao == 'restauro_parcial':
+            if request.FILES.get('arquivo_zip'):
+                zip_file = request.FILES['arquivo_zip']
+                mes = int(request.POST.get('mes', 1))
+                ano = int(request.POST.get('ano', 2025))
+                
+                from .backup_service import restaurar_parcial_zip
+                try:
+                    importacoes = restaurar_parcial_zip(zip_file, mes, ano)
+                    messages.success(request, f"Feitiço concluído! {importacoes} despesas resgatadas do mês {mes}/{ano} com sucesso.")
+                except Exception as e:
+                    messages.error(request, f"Falha na ressurreição cirúrgica: {str(e)}")
+                    
+        # Mapeamento da ação para a aba correspondente
+        aba_dest = 'pessoas' # default
+        if acao == 'cartao': aba_dest = 'cartoes'
+        elif acao == 'pessoa': aba_dest = 'pessoas'
+        elif acao == 'categoria': aba_dest = 'categorias'
+        elif acao == 'renda': aba_dest = 'rendas'
+        elif acao == 'recorrente': aba_dest = 'recorrente'
+        elif acao == 'oraculo': aba_dest = 'oraculo'
+        elif acao in ['configurar_backup', 'backup_manual', 'restauro_critico', 'restauro_parcial']: aba_dest = 'backup'
+        
+        from django.urls import reverse
+        return redirect(f"{reverse('central_cadastros')}?aba={aba_dest}")
     
     # Se for GET (apenas a carregar a página), preparamos os 4 formulários e as listas
     import os
     ms = getattr(request.user, 'seguranca', None)
     oraculo_key = ms.get_api_key() if ms else None
+    groq_key = ms.get_groq_key() if ms else None
+    ai_default = ms.ai_default if ms else 'GEMINI'
     has_env_fallback = bool(not oraculo_key and os.getenv("GEMINI_API_KEY"))
     
     backup_config = {
@@ -301,16 +423,23 @@ def central_cadastros(request):
     from .backup_service import get_backup_history
     backup_history = get_backup_history()
 
+    from .models import DespesaRecorrente
+    from .forms import DespesaRecorrenteForm
+    
     contexto = {
         'form_cartao': CartaoCreditoForm(),
         'form_pessoa': PessoaForm(),
         'form_categoria': CategoriaForm(),
         'form_renda': RendaMensalForm(),
+        'form_recorrente': DespesaRecorrenteForm(),
         'cartoes': CartaoCredito.objects.all(),
         'pessoas': Pessoa.objects.all(),
         'categorias': Categoria.objects.all(),
         'rendas': RendaMensal.objects.all().order_by('-ano', '-mes'),
+        'recorrentes': DespesaRecorrente.objects.all().order_by('dia_vencimento'),
         'oraculo_key': oraculo_key,
+        'groq_key': groq_key,
+        'ai_default': ai_default,
         'has_env_fallback': has_env_fallback,
         'backup_config': backup_config,
         'backup_history': backup_history,
@@ -624,6 +753,7 @@ def editar_cadastro(request, tipo, id):
         'renda': (RendaMensal, RendaMensalForm, 'Mana (Renda)'),
         'cofre': (Cofre, CofreForm, 'Baú (Cofrinho)'),
         'instituicao': (Instituicao, InstituicaoForm, 'Banco (Instituição)'),
+        'recorrente': (DespesaRecorrente, DespesaRecorrenteForm, 'Conta Fixa (Recorrente)'),
     }
 
     # Se alguém tentar acessar uma URL que não existe, joga de volta pro QG
@@ -642,7 +772,15 @@ def editar_cadastro(request, tipo, id):
         form = Formulario(request.POST, request.FILES, instance=instancia)
         if form.is_valid():
             form.save()
-            return redirect('central_cadastros')
+            aba_dest = 'pessoas' # default
+            if tipo == 'cartao': aba_dest = 'cartoes'
+            elif tipo == 'pessoa': aba_dest = 'pessoas'
+            elif tipo == 'categoria': aba_dest = 'categorias'
+            elif tipo == 'renda': aba_dest = 'rendas'
+            elif tipo == 'recorrente': aba_dest = 'recorrente'
+            
+            from django.urls import reverse
+            return redirect(f"{reverse('central_cadastros')}?aba={aba_dest}")
     else:
         # Se for GET, apenas desenha o formulário já preenchido com os dados atuais
         form = Formulario(instance=instancia)
@@ -796,30 +934,6 @@ def deletar_cofre(request, cofre_id):
             return JsonResponse({'status': 'erro'}, status=400)
     return JsonResponse({'status': 'erro', 'mensagem': 'Método invalido'}, status=405)
         
-@login_required
-@csrf_exempt
-@login_required
-def api_check_update(request):
-    """API para consultar se existe uma nova versao no Grande Arquivo (GitHub)"""
-    update_available, local, remote, error = check_for_updates()
-    return JsonResponse({
-        'update_available': update_available,
-        'local_version': local,
-        'remote_version': remote,
-        'error': error
-    })
-
-@login_required
-@csrf_exempt
-def api_trigger_update(request):
-    """API para sinalizar que o usuário deseja sincronizar e reiniciar"""
-    if request.method == 'POST':
-        success = trigger_update_signal()
-        if success:
-            return JsonResponse({'status': 'sucesso', 'mensagem': 'Sinal de sincronia enviado. O Motor Temporal ira reiniciar em breve!'})
-        return JsonResponse({'status': 'erro', 'mensagem': 'Falha ao gravar sinalizador de update.'}, status=500)
-    return JsonResponse({'status': 'erro', 'mensagem': 'Metodo nao permitido'}, status=405)
-
 @login_required
 @csrf_exempt
 def deletar_instituicao(request, inst_id):
@@ -1143,6 +1257,11 @@ def deletar_cadastro(request, tipo, id):
                 obj = RendaMensal.objects.get(id=id)
                 obj.delete()
                 
+            elif tipo == 'recorrente':
+                from .models import DespesaRecorrente
+                obj = DespesaRecorrente.objects.get(id=id)
+                obj.delete()
+                
             else:
                 return JsonResponse({'status': 'erro', 'mensagem': 'Entidade de exclusão desconhecida.'})
                 
@@ -1231,3 +1350,30 @@ def api_selecionar_pasta(request):
         return JsonResponse({'status': 'cancelado', 'pasta': ''})
     except Exception as e:
         return JsonResponse({'status': 'erro', 'mensagem': str(e)})
+
+
+from .utils_update import check_for_updates, trigger_update_signal
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+def api_check_update(request):
+    update_available, local, remote, error = check_for_updates()
+    return JsonResponse({
+        'update_available': update_available,
+        'local_version': local,
+        'remote_version': remote,
+        'error': error
+    })
+
+@login_required
+@csrf_exempt
+def api_trigger_update(request):
+    if request.method == 'POST':
+        success = trigger_update_signal()
+        if success:
+            return JsonResponse({'status': 'sucesso', 'mensagem': 'Sinal de sincronia enviado.'})
+        return JsonResponse({'status': 'erro', 'mensagem': 'Falha.'}, status=500)
+    return JsonResponse({'status': 'erro', 'mensagem': 'Metodo nao permitido'}, status=405)
+

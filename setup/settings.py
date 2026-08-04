@@ -14,20 +14,26 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+import sys
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+if getattr(sys, 'frozen', False):
+    # Executável compilado pelo PyInstaller (pasta onde o .exe reside)
+    BASE_DIR = Path(sys.executable).resolve().parent
+    BUNDLE_DIR = Path(getattr(sys, '_MEIPASS', BASE_DIR))
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    BUNDLE_DIR = BASE_DIR
 
 # Carrega as chaves do cofre (.env)
 load_dotenv(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-do-not-use-in-production')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# No modo Desktop local, DEBUG é ativado por padrão para permitir arquivos estáticos e erros legíveis
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+
 
 # ==========================================
 # HEADER DE SEGURANÇA & XSS (BLUE TEAM)
@@ -75,8 +81,9 @@ ROOT_URLCONF = 'setup.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BUNDLE_DIR / 'core' / 'templates'],
         'APP_DIRS': True,
+
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',

@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import pdfplumber
 from google import genai
 from dotenv import load_dotenv
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta
 # Usamos `override=True` para garantir que ele Puxe do .env e ignore qualquer variável global do Windows presa na memória
 load_dotenv(override=True)
 
-def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
+def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, user_id=None):
     texto_fatura = ""
     try:
         with pdfplumber.open(arquivo_pdf) as pdf:
@@ -36,17 +37,36 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     print("\n[DEBUG] Categorias enviadas para a IA:", string_categorias)
 
     from .models import MestreSeguranca
-    ms = MestreSeguranca.objects.first()
-    chave_api = (ms.get_api_key() if ms and ms.get_api_key() else os.getenv("GEMINI_API_KEY"))
-    
-    if not chave_api:
-        return False, "O Oráculo está sem magia. Configure a Chave API do Gemini no QG (Central de Cadastros) ou no arquivo local."
+    from django.core.cache import cache
 
-    try:
-        client = genai.Client(api_key=chave_api)
-    except Exception as e:
-        return False, f"Falha ao evocar o Oráculo (Erro na Chave): {str(e)}"
+    ms = MestreSeguranca.objects.first()
+    ai_default = ms.ai_default if ms else 'GEMINI'
     
+    usar_groq = (ai_default == 'GROQ')
+    cliente = None
+
+    if usar_groq:
+        chave_api = ms.get_groq_key() if ms else None
+        if not chave_api:
+            return False, "O Oráculo está sem magia (Groq). Configure a Chave API do Groq no QG."
+        try:
+            from groq import Groq
+            cliente = Groq(api_key=chave_api)
+        except Exception as e:
+            return False, f"Falha ao evocar o Oráculo Groq: {str(e)}"
+    else:
+        chave_api = (ms.get_api_key() if ms and ms.get_api_key() else os.getenv("GEMINI_API_KEY"))
+        if not chave_api:
+            return False, "O Oráculo está sem magia (Gemini). Configure a Chave API do Gemini no QG ou .env."
+        try:
+            cliente = genai.Client(api_key=chave_api)
+        except Exception as e:
+            return False, f"Falha ao evocar o Oráculo Gemini: {str(e)}"
+
+    # Limpa a flag de cancelamento
+    if user_id:
+        cache.delete(f'cancelar_oraculo_{user_id}')
+
     # Prompt blindado
     prompt = f"""
     Você é um analista de dados financeiros.
@@ -68,11 +88,55 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
     """
     
     try:
-        resposta = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt + "\n\nTexto:\n" + texto_fatura
-        )
-        texto_ia = resposta.text.strip()
+        tentativa = 0
+        resposta_texto = None
+        
+        while True:
+            # Verifica se o usuário cancelou antes de tentar
+            if user_id and cache.get(f'cancelar_oraculo_{user_id}'):
+                return False, "Operação cancelada pelo usuário."
+
+            try:
+                if usar_groq:
+                    response = cliente.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": f"Texto da Fatura:\n{texto_fatura}"}
+                        ],
+                        model="llama-3.3-70b-versatile",
+                        temperature=0.1
+                    )
+                    resposta_texto = response.choices[0].message.content
+                else:
+                    resposta = cliente.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=prompt + "\n\nTexto:\n" + texto_fatura
+                    )
+                    resposta_texto = resposta.text
+                    
+                break # Se der certo, sai do loop
+            except Exception as e:
+                erro_str = str(e)
+                # Verifica se é erro de alta demanda ou indisponibilidade
+                if "503" in erro_str or "UNAVAILABLE" in erro_str or "high demand" in erro_str or "429" in erro_str or "rate limit" in erro_str.lower():
+                    tentativa += 1
+                    print(f"[DEBUG] Oráculo sobrecarregado. Aguardando 5 segundos... (Tentativa {tentativa})")
+                    
+                    # Aguarda 5 segundos, mas checa a cada 1 segundo se houve cancelamento
+                    cancelado = False
+                    for _ in range(5):
+                        if user_id and cache.get(f'cancelar_oraculo_{user_id}'):
+                            cancelado = True
+                            break
+                        time.sleep(1)
+                        
+                    if cancelado:
+                        return False, "Operação cancelada pelo usuário."
+                else:
+                    # Se for outro tipo de erro (ex: falha de API key), falha na hora
+                    raise e
+                    
+        texto_ia = resposta_texto.strip()
         
         # ==========================================
         # DEBUG 2: O que a IA respondeu?
@@ -117,11 +181,24 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura):
             # ==========================================
             # ALGORITMO DE CONCILIAÇÃO BANCÁRIA (O Feitiço de Fusão)
             # ==========================================
-            try:
-                # Converte a data_compra devolvida pela IA (YYYY-MM-DD) para um objeto date do Python
-                data_ia = datetime.strptime(item['data_compra'], '%Y-%m-%d').date()
-            except ValueError:
-                data_ia = None
+            data_ia_str = item.get('data_compra', '')
+            data_ia = None
+            
+            # Tenta converter a data da IA em vários formatos possíveis
+            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d/%m/%y', '%Y/%m/%d'):
+                try:
+                    data_ia = datetime.strptime(data_ia_str, fmt).date()
+                    break
+                except ValueError:
+                    pass
+                    
+            if data_ia:
+                # Garante que o item tenha o formato YYYY-MM-DD pro banco de dados não reclamar
+                item['data_compra'] = data_ia.strftime('%Y-%m-%d')
+            else:
+                # Se a IA alucinou totalmente na data, coloca o primeiro dia do mês da fatura pra não quebrar
+                data_ia = datetime(int(ano_fatura), int(mes_fatura), 1).date()
+                item['data_compra'] = data_ia.strftime('%Y-%m-%d')
                 
             transacao_existente = None
             

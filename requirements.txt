@@ -16,6 +16,7 @@ google-auth>=2.49.1
 google-auth-httplib2>=0.3.0
 google-genai>=1.68.0
 googleapis-common-protos>=1.73.0
+groq>=0.14.0
 grpcio>=1.78.0
 grpcio-status>=1.71.2
 h11>=0.16.0
@@ -48,3 +49,6 @@ uritemplate>=4.2.0
 urllib3>=2.6.3
 waitress>=3.0.2
 websockets>=16.0
+pywebview>=5.0
+pyinstaller>=6.0
+

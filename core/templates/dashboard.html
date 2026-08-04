@@ -68,6 +68,35 @@
     </div>
 </header>
 
+{% if tem_recorrentes_pendentes %}
+<div class="mb-6">
+    <div class="relative p-5 rounded-xl bg-gradient-to-r from-pink-950/40 via-slate-800 to-pink-950/40 border border-pink-700/50 shadow-[0_0_25px_rgba(236,72,153,0.15)] flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-pulse"></div>
+        
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-14 h-14 rounded-full bg-pink-900/50 border-2 border-pink-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+                <i data-lucide="calendar-clock" class="w-7 h-7 text-pink-400"></i>
+            </div>
+            
+            <div>
+                <h3 class="text-pink-400 font-black uppercase tracking-widest text-lg">Contas Fixas Pendentes!</h3>
+                <p class="text-slate-300 text-sm mt-1">Deseja injetar suas Despesas Recorrentes no mapa de {{ mes_atual }}/{{ ano_atual }}?</p>
+            </div>
+        </div>
+        
+        <form method="POST" class="relative z-10 shrink-0 w-full md:w-auto">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="injetar_recorrentes">
+            <input type="hidden" name="mes_fatura" value="{{ mes_atual }}">
+            <input type="hidden" name="ano_fatura" value="{{ ano_atual }}">
+            <button type="submit" class="w-full md:w-auto px-6 py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded shadow-[0_0_15px_rgba(236,72,153,0.5)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                <i data-lucide="zap" class="w-4 h-4"></i> Injetar Contas
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <!-- TABS DE NAVEGAÇÃO DO DASHBOARD -->
 <div class="border-b border-slate-700 mb-6 flex gap-4 overflow-x-auto">
     <button onclick="mudarAbaDashboard('pessoal')" id="btn-dashboard-pessoal" class="aba-btn-dash px-4 py-2 text-slate-100 font-bold border-b-2 border-slate-300 transition-colors whitespace-nowrap flex items-center gap-2">
@@ -425,6 +454,35 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="mt-4 p-5 bg-slate-800 rounded border border-slate-700 hover:border-red-500/50 transition-colors">
+                    <p class="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2"><i data-lucide="split-square-horizontal" class="w-4 h-4"></i> Rateio Rápido: Dividir este dano</p>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <select id="seletor-pessoas-manual" class="flex-1 bg-slate-950 text-slate-300 border border-slate-700 rounded p-2 focus:border-red-500 outline-none transition-colors text-sm font-bold">
+                            <option value="" disabled selected>Escolha um aliado para dividir...</option>
+                            {% for p in pessoas %}
+                                {% if not p.is_owner %}
+                                <option value="{{ p.id }}" data-nome="{{ p.nome }}">{{ p.nome }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <button type="button" onclick="adicionarPessoaManual()" class="px-4 py-2 bg-slate-900 hover:bg-slate-950 text-slate-100 font-bold rounded border border-slate-700 transition-colors flex items-center gap-2 uppercase text-xs tracking-wider">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Aliado
+                        </button>
+                    </div>
+
+                    <div id="container-rateio-manual" class="space-y-2 mb-4 max-h-[20vh] overflow-y-auto pr-1">
+                        <!-- Inputs added dynamically here -->
+                    </div>
+
+                    <div class="flex items-end justify-between border-t border-slate-700 pt-3">
+                        <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                            Soma: <span id="soma-atual-manual" class="font-black text-lg text-slate-200">R$ 0,00</span>
+                        </div>
+                        <div id="alerta-soma-manual" class="text-[10px] text-red-400 font-bold hidden bg-red-900/20 px-2 py-1 rounded border border-red-900/50 uppercase flex items-center gap-1">A soma não bate!</div>
+                    </div>
+                </div>
 
                 <div class="mt-8 flex justify-end gap-4">
                     <button type="button" onclick="fecharModalDespesa()" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded">Cancelar</button>
@@ -578,14 +636,14 @@
 
     <!-- Main Trigger Button -->
     <button id="tour-fab-trigger" class="bg-slate-950 hover:bg-slate-900 border border-red-900/50 hover:border-red-500 text-red-500 p-4 md:p-5 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all focus:outline-none hover:scale-105">
-        <i data-lucide="shield" class="w-7 h-7 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300"></i>
+        <i data-lucide="circle-dollar-sign" class="w-7 h-7 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300"></i>
     </button>
 </div>
 
 <div id="modal-oraculo" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
     <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(147,51,234,0.3)] w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-            <h3 class="text-2xl font-black text-purple-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="eye" class="w-6 h-6"></i> Forja de Dados</h3>
+            <h3 class="text-2xl font-black text-purple-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="eye" class="w-6 h-6"></i> Baú de Dados</h3>
             <button onclick="fecharModalOraculo()" class="text-slate-500 hover:text-red-500"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
         </div>
         
@@ -675,6 +733,22 @@
 
         return true; // Permite o submit do form
     }
+
+    function cancelarInvocacao() {
+        const btn = document.getElementById('btn-cancelar-oraculo');
+        if (btn) {
+            btn.innerHTML = 'Cancelando...';
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.disabled = true;
+        }
+        
+        fetch('/api/cancelar-oraculo/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        }).catch(err => console.error(err));
+    }
 </script>
 
 <!-- LOADING SCREEN ORÁCULO (ESTILO GAME) -->
@@ -710,9 +784,15 @@
             </div>
         </div>
 
-        <div class="mt-12 flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-widest">
-            <div class="w-2 h-2 bg-purple-500 rounded-full animate-ping"></div>
-            Processando Dados Arcanos...
+        <div class="mt-12 flex flex-col items-center gap-4">
+            <div class="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-widest">
+                <div class="w-2 h-2 bg-purple-500 rounded-full animate-ping"></div>
+                Processando Dados Arcanos...
+            </div>
+            
+            <button type="button" onclick="cancelarInvocacao()" id="btn-cancelar-oraculo" class="px-6 py-2 bg-red-900/40 hover:bg-red-700 text-red-400 hover:text-white rounded-full border border-red-900/50 hover:border-red-500 transition-all text-xs font-bold uppercase tracking-widest shadow-lg flex items-center gap-2 mt-2">
+                <i data-lucide="x-circle" class="w-4 h-4"></i> Cancelar Invocação
+            </button>
         </div>
     </div>
 </div>
@@ -786,6 +866,115 @@
         </form>
     </div>
 </div>
+
+<script>
+    function adicionarPessoaManual() {
+        const seletor = document.getElementById('seletor-pessoas-manual');
+        const opcao = seletor.options[seletor.selectedIndex];
+        if (!opcao.value) return;
+
+        const id = opcao.value;
+        const nome = opcao.getAttribute('data-nome');
+        
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between bg-slate-900 p-2 rounded-lg border border-slate-700 linha-rateio-manual hover:border-red-900 transition-colors";
+        div.id = `linha-rateio-manual-${id}`;
+        
+        div.innerHTML = `
+            <label class="font-bold text-slate-200 flex-1 truncate pr-4 text-xs"><i data-lucide="user" class="w-3 h-3 inline text-slate-500 mr-1"></i> ${nome}</label>
+            <div class="flex items-center gap-2">
+                <span class="text-slate-500 font-bold text-[10px] uppercase">R$</span>
+                <input type="number" step="0.01" min="0" name="valor_pessoa_${id}" class="input-valor-rateio-manual w-20 bg-slate-800 text-slate-100 font-mono font-bold border border-slate-600 rounded p-1 text-right focus:outline-none focus:border-red-500 transition-colors text-xs" oninput="validarSomaRateioManual()">
+                <button type="button" onclick="removerPessoaManual('${id}')" class="text-slate-600 hover:text-red-500 p-1 border border-transparent hover:border-red-900/50 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+        `;
+        document.getElementById('container-rateio-manual').appendChild(div);
+        
+        opcao.style.display = 'none';
+        seletor.value = "";
+        
+        recalcularValoresIguaisManual();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function removerPessoaManual(id) {
+        document.getElementById(`linha-rateio-manual-${id}`).remove();
+        const seletor = document.getElementById('seletor-pessoas-manual');
+        const opcao = Array.from(seletor.options).find(opt => opt.value === id);
+        if (opcao) opcao.style.display = 'block';
+        recalcularValoresIguaisManual();
+    }
+
+    function recalcularValoresIguaisManual() {
+        const inputs = document.querySelectorAll('.input-valor-rateio-manual');
+        if (inputs.length === 0) {
+            validarSomaRateioManual();
+            return;
+        }
+
+        const formValorInput = document.getElementById('id_valor');
+        if (!formValorInput) return;
+        
+        const valorTotal = parseFloat(formValorInput.value || 0);
+        
+        // Count total participants: selected people + 1 (Owner)
+        const numPessoas = inputs.length + 1;
+        const valorPorPessoa = valorTotal / numPessoas;
+        
+        // Note: we only fill the inputs for the party. The owner's share is implicit.
+        for (let i = 0; i < inputs.length; i++) {
+            let val = Math.round(valorPorPessoa * 100) / 100;
+            inputs[i].value = val.toFixed(2);
+        }
+        validarSomaRateioManual();
+    }
+
+    function validarSomaRateioManual() {
+        let soma = 0;
+        const inputs = document.querySelectorAll('.input-valor-rateio-manual');
+        inputs.forEach(input => {
+            soma += parseFloat(input.value || 0);
+        });
+        
+        const formValorInput = document.getElementById('id_valor');
+        const valorTotal = formValorInput ? parseFloat(formValorInput.value || 0) : 0;
+        
+        const elSoma = document.getElementById('soma-atual-manual');
+        const alerta = document.getElementById('alerta-soma-manual');
+        const btnSubmit = document.querySelector('#modal-despesa button[type="submit"]');
+        
+        elSoma.innerText = `R$ ${soma.toFixed(2).replace('.', ',')}`;
+        
+        // For rateio in creation, the sum of party inputs MUST BE STRICTLY LESS THAN valorTotal. 
+        // Because the owner must pay something too! Or at least <= valorTotal.
+        if (soma <= valorTotal && (valorTotal > 0 || inputs.length === 0)) {
+            elSoma.className = 'font-black text-lg text-emerald-400';
+            if(btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            alerta.classList.add('hidden');
+        } else {
+            elSoma.className = 'font-black text-lg text-red-500';
+            if(btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            alerta.classList.remove('hidden');
+            alerta.innerText = 'Soma maior que o total!';
+        }
+    }
+    
+    // Listen for changes in the main valor input to recalculate
+    document.addEventListener('DOMContentLoaded', () => {
+        const valorInput = document.getElementById('id_valor');
+        if(valorInput) {
+            valorInput.addEventListener('input', () => {
+                recalcularValoresIguaisManual();
+            });
+        }
+    });
+</script>
 
 {% include 'modal_rateio.html' %}
 

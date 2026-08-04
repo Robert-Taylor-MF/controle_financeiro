@@ -53,7 +53,7 @@ def add_backup_history(zip_path: str, destino_extra: str | None = None):
         with open(history_path, "w", encoding="utf-8") as f:
             json.dump(history, f, ensure_ascii=False, indent=2)
     except Exception as ex:
-        print(f"[ForjaDev] Erro ao gravar histórico de backup: {ex}")
+        print(f"[MoneyQuest] Erro ao gravar histórico de backup: {ex}")
 
 
 def get_backup_history() -> list:
@@ -125,7 +125,7 @@ def gerar_zip_backup() -> str:
                     shutil.copy2(zip_path, target_dir)
                     destino_extra = target_dir
         except Exception as e:
-            print(f"[ForjaDev] Erro ao copiar para diretório customizado: {e}")
+            print(f"[MoneyQuest] Erro ao copiar para diretório customizado: {e}")
 
         # Grava histórico E status de conclusão
         add_backup_history(zip_path, destino_extra)
@@ -133,12 +133,12 @@ def gerar_zip_backup() -> str:
             "finished",
             f"Backup concluído! {zip_filename} ({round(os.path.getsize(zip_path)/1024, 1)} KB)"
         )
-        print(f"[ForjaDev] Backup concluído → {zip_path}")
+        print(f"[MoneyQuest] Backup concluído → {zip_path}")
         return zip_path
 
     except Exception as e:
         set_backup_status("error", f"Falha ao forjar o backup: {e}")
-        print(f"[ForjaDev] ERRO no backup: {e}")
+        print(f"[MoneyQuest] ERRO no backup: {e}")
         raise
 
 
@@ -162,7 +162,7 @@ def verificar_rotina_backup():
             horas_sem_backup = (time.time() - ultimo) / 3600
             if horas_sem_backup > 24:
                 print(
-                    f"[ForjaDev] ALERTA: {horas_sem_backup:.1f}h sem backup! "
+                    f"[MoneyQuest] ALERTA: {horas_sem_backup:.1f}h sem backup! "
                     "Disparando backup automático de emergência..."
                 )
                 gerar_zip_backup()
@@ -186,11 +186,11 @@ def verificar_rotina_backup():
                     pode_rodar = True
 
             if pode_rodar:
-                print(f"[ForjaDev] Iniciando rotina de Backup Automático ({agora.strftime('%H:%M')})...")
+                print(f"[MoneyQuest] Iniciando rotina de Backup Automático ({agora.strftime('%H:%M')})...")
                 gerar_zip_backup()
 
     except Exception as e:
-        print(f"[ForjaDev] Falha na verificação de backup: {e}")
+        print(f"[MoneyQuest] Falha na verificação de backup: {e}")
 
 
 def verificar_gap_na_inicializacao():
@@ -201,16 +201,16 @@ def verificar_gap_na_inicializacao():
     try:
         ultimo = get_last_backup_time()
         if ultimo is None:
-            print("[ForjaDev] Nenhum backup prévio encontrado. Disparando backup inicial...")
+            print("[MoneyQuest] Nenhum backup prévio encontrado. Disparando backup inicial...")
             gerar_zip_backup()
             return
 
         horas = (time.time() - ultimo) / 3600
         if horas > 24:
-            print(f"[ForjaDev] Último backup há {horas:.1f}h. Disparando backup automático...")
+            print(f"[MoneyQuest] Último backup há {horas:.1f}h. Disparando backup automático...")
             gerar_zip_backup()
     except Exception as e:
-        print(f"[ForjaDev] Erro na verificação de gap inicial: {e}")
+        print(f"[MoneyQuest] Erro na verificação de gap inicial: {e}")
 
 
 # ─────────────────────────────────────────────────────────
@@ -235,4 +235,72 @@ def iniciar_agendador_backup():
         scheduler.add_job(verificar_rotina_backup, "cron", minute="*")
         scheduler.start()
         _scheduler_started = True
-        print("[ForjaDev] Motor Temporal do Backup engajado.")
+        print("[MoneyQuest] Motor Temporal do Backup engajado.")
+
+# ─────────────────────────────────────────────────────────
+#  RESTAURO PARCIAL
+# ─────────────────────────────────────────────────────────
+
+def restaurar_parcial_zip(zip_file, mes: int, ano: int) -> int:
+    import tempfile
+    import sqlite3
+    
+    # Cria uma pasta temporária isolada para extrair o ZIP
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            zip_ref.extractall(tmp_dir)
+            
+        db_extracted = os.path.join(tmp_dir, 'db.sqlite3')
+        if not os.path.exists(db_extracted):
+            raise FileNotFoundError("O arquivo ZIP não contém o banco de dados (db.sqlite3).")
+            
+        # Conecta ao banco de dados extraído no passado
+        conn = sqlite3.connect(db_extracted)
+        cursor = conn.cursor()
+        
+        # Puxa apenas as transações do mês e ano selecionados
+        cursor.execute('''
+            SELECT descricao, valor, data_compra, mes_fatura, ano_fatura, responsavel_id, cartao_id, categoria_id, status, parcela_atual, total_parcelas
+            FROM core_transacao
+            WHERE mes_fatura = ? AND ano_fatura = ?
+        ''', (mes, ano))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        # Agora importa as linhas para o banco principal usando o Django ORM
+        from core.models import Transacao
+        
+        importacoes_sucesso = 0
+        
+        for row in rows:
+            desc, val, dt, m, a, resp_id, cart_id, cat_id, status, parc_atual, tot_parc = row
+            
+            # Valida duplicidade exata para evitar recriar a mesma transação repetidas vezes
+            # (Checa descricao, valor, data_compra e cartao para ser seguro)
+            duplicada = Transacao.objects.filter(
+                descricao=desc,
+                valor=val,
+                data_compra=dt,
+                cartao_id=cart_id,
+                mes_fatura=m,
+                ano_fatura=a
+            ).exists()
+            
+            if not duplicada:
+                Transacao.objects.create(
+                    descricao=desc,
+                    valor=val,
+                    data_compra=dt,
+                    mes_fatura=m,
+                    ano_fatura=a,
+                    responsavel_id=resp_id,
+                    cartao_id=cart_id,
+                    categoria_id=cat_id,
+                    status=status,
+                    parcela_atual=parc_atual,
+                    total_parcelas=tot_parc
+                )
+                importacoes_sucesso += 1
+                
+        return importacoes_sucesso

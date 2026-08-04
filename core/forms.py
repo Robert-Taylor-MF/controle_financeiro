@@ -1,5 +1,5 @@
 from django import forms
-from .models import CartaoCredito, Pessoa, Categoria, RendaMensal, Transacao, Instituicao, Cofre
+from .models import CartaoCredito, Pessoa, Categoria, RendaMensal, Transacao, Instituicao, Cofre, DespesaRecorrente
         
 class CartaoCreditoForm(forms.ModelForm):
     class Meta:
@@ -77,4 +77,16 @@ class CofreForm(forms.ModelForm):
             'meta_valor': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'step': '0.01'}),
             'saldo_atual': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'step': '0.01'}),
             'instituicao': forms.Select(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
+        }
+
+class DespesaRecorrenteForm(forms.ModelForm):
+    class Meta:
+        model = DespesaRecorrente
+        fields = ['descricao', 'valor_estimado', 'dia_vencimento', 'categoria', 'cartao']
+        widgets = {
+            'descricao': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'placeholder': 'Ex: Energia, Internet...'}),
+            'valor_estimado': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'step': '0.01'}),
+            'dia_vencimento': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'min': 1, 'max': 31}),
+            'categoria': forms.Select(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
+            'cartao': forms.Select(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
         }

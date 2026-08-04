@@ -143,6 +143,30 @@ class Categoria(models.Model):
     def __str__(self):
         return f"{self.nome} - {self.get_tipo_regra_display()}"
 
+class DespesaRecorrente(models.Model):
+    """
+    Contas fixas mensais (Luz, Água, Internet) que são injetadas automaticamente no mês.
+    """
+    descricao = models.CharField(max_length=255, help_text="Ex: Conta de Luz")
+    valor_estimado = models.DecimalField(max_digits=10, decimal_places=2, help_text="Valor aproximado ou fixo da conta")
+    dia_vencimento = models.IntegerField(help_text="Dia de vencimento (1 a 31)", default=10)
+    categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True)
+    cartao = models.ForeignKey(CartaoCredito, on_delete=models.SET_NULL, null=True, blank=True, help_text="Opcional. Deixe em branco se for Pix/Boleto.")
+    
+    def __str__(self):
+        return f"{self.descricao} (Dia {self.dia_vencimento})"
+
+class RegistroRecorrencia(models.Model):
+    """
+    Controla se as contas fixas de um determinado mês já foram injetadas para evitar duplicidade.
+    """
+    mes = models.IntegerField()
+    ano = models.IntegerField()
+    data_geracao = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('mes', 'ano')
+
 class Transacao(models.Model):
     """
     Onde a mágica acontece e o volume de dados se concentra.
@@ -265,7 +289,11 @@ class MestreSeguranca(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='seguranca')
     pergunta_secreta = models.CharField(max_length=200)
     resposta_secreta = models.CharField(max_length=500) 
+    
+    # Configurações de IA
     gemini_api_key = models.CharField(max_length=500, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
+    groq_api_key = models.CharField(max_length=500, blank=True, null=True, help_text="Chave da IA Groq (Llama)")
+    ai_default = models.CharField(max_length=20, default='GEMINI', choices=[('GEMINI', 'Gemini (Google)'), ('GROQ', 'Groq (Llama)')])
     
     def set_api_key(self, raw_key):
         if raw_key: self.gemini_api_key = get_fernet().encrypt(raw_key.encode('utf-8')).decode('utf-8')
@@ -275,6 +303,16 @@ class MestreSeguranca(models.Model):
         if self.gemini_api_key:
             try: return get_fernet().decrypt(self.gemini_api_key.encode('utf-8')).decode('utf-8')
             except: return self.gemini_api_key # Fallback for old unencrypted
+        return None
+
+    def set_groq_key(self, raw_key):
+        if raw_key: self.groq_api_key = get_fernet().encrypt(raw_key.encode('utf-8')).decode('utf-8')
+        else: self.groq_api_key = None
+
+    def get_groq_key(self):
+        if self.groq_api_key:
+            try: return get_fernet().decrypt(self.groq_api_key.encode('utf-8')).decode('utf-8')
+            except: return self.groq_api_key
         return None
 
     def set_resposta(self, resp):

@@ -37,5 +37,12 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
-# Local Python Installation
+# Local Python Installation & Build Artifacts
 python_dist/
+python_version/
+*.exe
+*.spec
+portatil/dist/
+portatil/build/
+
+

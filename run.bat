@@ -35,7 +35,7 @@ if not defined PYTHON_EXE (
         echo [AVISO] Instalacao sera realizada em: !CD!\python_dist
         echo [AVISO] Por favor, aguarde a conclusao silenciosa...
         
-        start /wait "" "!INSTALLER!" /passive InstallAllUsers=0 PrependPath=0 TargetDir="%CD%\python_dist" Include_test=0 Include_doc=0
+        start /wait "" "!INSTALLER!" /passive InstallAllUsers=0 PrependPath=0 TargetDi~~r="%CD%\python_dist" Include_test=0 Include_doc=0
         
         if exist "%CD%\python_dist\python.exe" (
             set "PYTHON_EXE=%CD%\python_dist\python.exe"
@@ -72,10 +72,9 @@ if not exist venv\Scripts\activate.bat (
     call venv\Scripts\activate.bat
 )
 
-:SERVER_LOOP
 REM --- ETAPA 3: VALIDACAO DO ESCUDO (VIRTUAL ENV CHECK) ---
 python -c "import sys, os; sys.exit(0 if os.path.normpath(sys.prefix).lower().startswith(os.path.normpath(r'%CD%\venv').lower()) else 1)" >nul 2>&1
-if !errorlevel! neq 0 (
+if %errorlevel% neq 0 (
     color 0C
     echo [ERRO] O Escudo de Protecao [venv] nao esta ativo corretamente!
     echo        O script esta tentando usar o Python global. Abortando.
@@ -105,32 +104,4 @@ echo ==============================================================
 echo [OPEN] Abrindo Motor de Forja no navegador padrao...
 start http://localhost:8000
 
-REM Inicia o Servidor e aguarda finalizacao
 python -m waitress --port=8000 setup.wsgi:application
-
-REM --- ETAPA FINAL: VERIFICAR SINAL DE SINCRONIA ---
-if exist .update_pending (
-    color 0E
-    echo.
-    echo ==============================================================
-    echo [SINCRONIA] Iniciando a Grande Sincronia Arvana...
-    echo ==============================================================
-    
-    timeout /t 2 >nul
-    git pull origin main
-    
-    if !errorlevel! equ 0 (
-        echo [OK] Fragmentos recuperados. Atualizando bibliotecas e runas...
-        pip install -r requirements.txt
-        python manage.py migrate
-        del .update_pending
-        echo [OK] Sincronia Completa! Reiniciando o Motor...
-        timeout /t 2 >nul
-        goto SERVER_LOOP
-    ) else (
-        color 0C
-        echo [ERRO] Falha na Sincronia! Verifique sua conexao ou conflitos locais.
-        del .update_pending
-        pause
-    )
-)

@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/atualizar-responsavel/<int:transacao_id>/', views.atualizar_responsavel, name='atualizar_responsavel'),
     path('api/atualizar-categoria/<int:transacao_id>/', views.atualizar_categoria, name='atualizar_categoria'),
     path('sala-de-guerra/', views.sala_de_guerra, name='sala_de_guerra'),
+    path('api/cancelar-oraculo/', views.cancelar_oraculo, name='cancelar_oraculo'),
     path('api/deletar-transacao/<int:transacao_id>/', views.deletar_transacao, name='deletar_transacao'),
     path('api/deletar-cadastro/<str:tipo>/<int:id>/', views.deletar_cadastro, name='deletar_cadastro'),
     path('api/deletar-fatura/<int:mes>/<int:ano>/<int:cartao_id>/', views.deletar_fatura, name='deletar_fatura'),
@@ -31,6 +32,7 @@ urlpatterns = [
     path('api/deletar-instituicao/<int:inst_id>/', views.deletar_instituicao, name='deletar_instituicao'),
     path('boss-do-mes/', views.enfrentar_boss_mes, name='enfrentar_boss_mes'),
     path('api/marcar-tutorial-visto/', views.marcar_tutorial_visto, name='marcar_tutorial_visto'),
+
     path('api/check-update/', views.api_check_update, name='api_check_update'),
     path('api/trigger-update/', views.api_trigger_update, name='api_trigger_update'),
 ]

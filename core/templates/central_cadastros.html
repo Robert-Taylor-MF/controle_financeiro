@@ -8,7 +8,7 @@
 
     <div class="border-b border-slate-700 mb-8 flex gap-4 overflow-x-auto">
         <button onclick="mudarAba('renda')" id="btn-renda" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-purple-400 transition-colors whitespace-nowrap flex items-center gap-2">
-            <i data-lucide="coins" class="w-4 h-4"></i> Tesouraria (Renda)
+            <i data-lucide="circle-dollar-sign" class="w-4 h-4"></i> Tesouraria (Renda)
         </button>
         <button onclick="mudarAba('pessoas')" id="btn-pessoas" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-red-400 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="users" class="w-4 h-4"></i> Guilda (Pessoas)
@@ -24,6 +24,9 @@
         </button>
         <button onclick="mudarAba('backup')" id="btn-backup" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-emerald-500 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="archive-restore" class="w-4 h-4"></i> Guardião do Tempo (Backup)
+        </button>
+        <button onclick="mudarAba('recorrente')" id="btn-recorrente" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-pink-400 transition-colors whitespace-nowrap flex items-center gap-2">
+            <i data-lucide="calendar-clock" class="w-4 h-4"></i> Contas Fixas (Recorrentes)
         </button>
     </div>
 
@@ -112,7 +115,7 @@
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
             <h3 class="text-xl font-bold text-slate-200">Armamento Disponível</h3>
             <button onclick="abrirModalCadastro('cartoes')" class="px-5 py-2.5 bg-blue-900/40 hover:bg-blue-600 border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest w-full sm:w-auto">
-                <i data-lucide="credit-card" class="w-4 h-4"></i> Forjar Cartão
+                <i data-lucide="credit-card" class="w-4 h-4"></i> Registrar Cartão
             </button>
         </div>
         
@@ -199,17 +202,37 @@
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="oraculo">
                 
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Google Gemini API Key</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="key" class="text-blue-500 w-4 h-4"></i>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Google Gemini API Key</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="key" class="text-blue-500 w-4 h-4"></i>
+                            </div>
+                            <input type="password" name="api_key_gemini" value="{{ oraculo_key|default_if_none:'' }}" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono">
                         </div>
-                        <input type="password" name="api_key_gemini" value="{{ oraculo_key|default_if_none:'' }}" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono">
+                        {% if has_env_fallback %}
+                            <p class="text-xs text-yellow-500 mt-2 font-bold"><i data-lucide="alert-circle" class="w-3 h-3 inline"></i> Nota: Nenhuma chave foi achada neste banco de dados, mas o Oráculo tem energia pelo arquivo .env local oculto.</p>
+                        {% endif %}
                     </div>
-                    {% if has_env_fallback %}
-                        <p class="text-xs text-yellow-500 mt-2 font-bold"><i data-lucide="alert-circle" class="w-3 h-3 inline"></i> Nota: Nenhuma chave foi achada neste banco de dados, mas o Oráculo tem energia pelo arquivo .env local oculto.</p>
-                    {% endif %}
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Groq API Key (Llama 3)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="key" class="text-orange-500 w-4 h-4"></i>
+                            </div>
+                            <input type="password" name="api_key_groq" value="{{ groq_key|default_if_none:'' }}" placeholder="gsk_..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-mono">
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-slate-800">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Motor Principal (Qual IA usar?)</label>
+                        <select name="ai_default" class="w-full bg-slate-950 border border-slate-700 rounded py-3 px-3 text-sm text-slate-200 outline-none focus:border-blue-500 uppercase tracking-wider font-bold">
+                            <option value="GEMINI" {% if ai_default == 'GEMINI' %}selected{% endif %}>Gemini (Flash)</option>
+                            <option value="GROQ" {% if ai_default == 'GROQ' %}selected{% endif %}>Groq (Llama 3)</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <button type="submit" class="w-full py-3 mt-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
@@ -233,6 +256,9 @@
                 </form>
                 <button type="button" onclick="abrirModalCadastro('restore')" class="w-full sm:w-auto px-5 py-2.5 bg-red-900/40 hover:bg-red-800 border border-red-500/50 hover:border-red-400 text-red-500 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest">
                     <i data-lucide="flame" class="w-4 h-4"></i> Importar (Perigo)
+                </button>
+                <button type="button" onclick="abrirModalCadastro('restore-partial')" class="w-full sm:w-auto px-5 py-2.5 bg-yellow-900/40 hover:bg-yellow-600 border border-yellow-500/50 hover:border-yellow-400 text-yellow-500 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest">
+                    <i data-lucide="history" class="w-4 h-4"></i> Restauro Parcial
                 </button>
             </div>
         </div>
@@ -341,6 +367,52 @@
         </div>
     </div>
 
+    <!-- ABA RECORRENTE -->
+    <div id="aba-recorrente" class="aba-conteudo hidden relative">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Contas Fixas Mensais</h3>
+            <button onclick="abrirModalCadastro('recorrente')" class="px-5 py-2.5 bg-pink-900/40 hover:bg-pink-600 border border-pink-500/50 hover:border-pink-400 text-pink-400 hover:text-white font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest w-full sm:w-auto">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Nova Conta Fixa
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for rec in recorrentes %}
+                <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-xl transition-all hover:border-pink-500 hover:shadow-[0_0_20px_rgba(236,72,153,0.15)] group">
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-5 h-full flex flex-col justify-between relative z-10">
+                        <i data-lucide="calendar-clock" class="absolute -right-4 -bottom-4 w-32 h-32 text-slate-800/50 z-[-1] group-hover:text-pink-900/10 transition-colors"></i>
+                        
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h4 class="font-black text-slate-100 text-lg tracking-wider">{{ rec.descricao }}</h4>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Dia Venc.: {{ rec.dia_vencimento }}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="abrirModalEditarRecorrente({{ rec.id }}, '{{ rec.descricao|escapejs }}', '{{ rec.valor_estimado }}', '{{ rec.dia_vencimento }}', '{% if rec.categoria %}{{ rec.categoria.id }}{% endif %}')" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-blue-400 transition-colors border border-slate-800 hover:border-blue-500/50" title="Editar Registro">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deletarCadastro('recorrente', {{ rec.id }})" class="bg-slate-950 p-2 rounded text-slate-500 hover:text-red-400 transition-colors border border-slate-800 hover:border-red-500/50" title="Excluir Conta">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-slate-700/50 pt-3">
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Valor Estimado</p>
+                            <span class="font-black text-pink-400 text-lg">R$ {{ rec.valor_estimado }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-1 md:col-span-2 lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-10 text-center flex flex-col items-center justify-center min-h-[300px]">
+                    <i data-lucide="ghost" class="w-16 h-16 text-slate-700 mb-4"></i>
+                    <p class="text-slate-500 font-bold text-lg">O Grimório de Contas Fixas está vazio.</p>
+                    <p class="text-slate-600 text-sm mt-2">Cadastre água, luz e internet para que o sistema gere-os automaticamente no mês.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- ========================================================================= -->
     <!-- MODAIS ESCONDIDOS (Flutuantes) -->
     <!-- ========================================================================= -->
@@ -349,7 +421,7 @@
     <div id="modal-renda" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
         <div class="bg-slate-900 border border-purple-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(168,85,247,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-renda-content">
             <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="coins" class="w-6 h-6 text-purple-400"></i> Canalizar Mana</h3>
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="circle-dollar-sign" class="w-6 h-6 text-purple-400"></i> Canalizar Mana</h3>
                 <button onclick="fecharModalCadastro('renda')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
             </div>
             <form method="POST">
@@ -387,7 +459,7 @@
     <div id="modal-cartoes" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
         <div class="bg-slate-900 border border-blue-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-cartoes-content">
             <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="credit-card" class="w-6 h-6 text-blue-400"></i> Forjar Cartão</h3>
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="credit-card" class="w-6 h-6 text-blue-400"></i> Registrar Cartão</h3>
                 <button onclick="fecharModalCadastro('cartoes')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
             </div>
             <form method="POST">
@@ -416,6 +488,65 @@
                 <div class="mt-8 flex gap-3">
                     <button type="button" onclick="fecharModalCadastro('categorias')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
                     <button type="submit" class="flex-1 py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Registrar Categoria</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Recorrente -->
+    <div id="modal-recorrente" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-pink-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(236,72,153,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-recorrente-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="calendar-clock" class="w-6 h-6 text-pink-400"></i> Conta Fixa</h3>
+                <button onclick="fecharModalCadastro('recorrente')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="recorrente">
+                <div class="space-y-4">{{ form_recorrente.as_p }}</div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('recorrente')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-pink-700 hover:bg-pink-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Salvar Conta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Recorrente -->
+    <div id="modal-editar-recorrente" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-pink-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(236,72,153,0.3)] w-full max-w-md transform scale-95 transition-transform duration-200 max-h-[90vh] overflow-y-auto" id="modal-editar-recorrente-content">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-2xl font-black text-slate-100 uppercase tracking-widest flex items-center gap-2"><i data-lucide="calendar-clock" class="w-6 h-6 text-pink-400"></i> Editar Conta Fixa</h3>
+                <button onclick="fecharModalCadastro('editar-recorrente')" class="text-slate-500 hover:text-red-500 transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+            </div>
+            <form id="form-editar-recorrente" method="POST" action="">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <p>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Descrição</label>
+                        <input type="text" name="descricao" id="edit-recorrente-desc" required class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-2 focus:border-pink-500 outline-none">
+                    </p>
+                    <p>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Valor Estimado</label>
+                        <input type="number" step="0.01" name="valor_estimado" id="edit-recorrente-valor" required class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-2 focus:border-pink-500 outline-none">
+                    </p>
+                    <p>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Dia Vencimento</label>
+                        <input type="number" name="dia_vencimento" id="edit-recorrente-dia" required min="1" max="31" class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-2 focus:border-pink-500 outline-none">
+                    </p>
+                    <p>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Categoria</label>
+                        <select name="categoria" id="edit-recorrente-cat" class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-2 focus:border-pink-500 outline-none">
+                            <option value="">---------</option>
+                            {% for c in categorias %}
+                                <option value="{{ c.id }}">{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </p>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('editar-recorrente')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-pink-700 hover:bg-pink-600 text-white font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Atualizar Conta</button>
                 </div>
             </form>
         </div>
@@ -450,6 +581,53 @@
                 <div class="mt-8 flex gap-3">
                     <button type="button" onclick="fecharModalCadastro('restore')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Abortar</button>
                     <button type="submit" class="flex-1 py-3 bg-red-700 hover:bg-red-600 text-white font-black rounded shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all text-sm uppercase tracking-widest">Sobrepor Tudo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal RESTAURAÇÃO PARCIAL -->
+    <div id="modal-restore-partial" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[110] backdrop-blur-md p-4">
+        <div class="bg-slate-950 border-2 border-yellow-900 p-8 rounded-xl shadow-[0_0_70px_rgba(234,179,8,0.2)] w-full max-w-md transform scale-95 transition-transform duration-200" id="modal-restore-partial-content">
+            
+            <div class="flex flex-col items-center mb-6 border-b border-yellow-900/50 pb-6">
+                <i data-lucide="history" class="w-16 h-16 text-yellow-500 mb-3 animate-bounce"></i>
+                <h3 class="text-2xl font-black text-white uppercase tracking-widest text-center">Restauro Parcial</h3>
+                <p class="text-xs text-yellow-400 text-center font-bold mt-2 uppercase">Recupere transações perdidas de um Mês/Ano específico a partir de um backup. NADA do banco de dados atual será apagado.</p>
+            </div>
+            
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="restauro_parcial">
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2 text-center select-none">Mundo Anterior (.zip)</label>
+                        <input type="file" name="arquivo_zip" accept=".zip" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-yellow-900/30 file:text-yellow-400 hover:file:bg-yellow-900/50 border border-slate-800 rounded p-1 bg-slate-900">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 text-center">Mês</label>
+                            <select name="mes" required class="w-full bg-slate-900 border border-yellow-900/40 rounded py-3 px-3 text-sm text-slate-200 outline-none focus:border-yellow-500 uppercase tracking-wider font-bold">
+                                <option value="1">1 - Jan</option><option value="2">2 - Fev</option>
+                                <option value="3">3 - Mar</option><option value="4">4 - Abr</option>
+                                <option value="5">5 - Mai</option><option value="6">6 - Jun</option>
+                                <option value="7">7 - Jul</option><option value="8">8 - Ago</option>
+                                <option value="9">9 - Set</option><option value="10">10 - Out</option>
+                                <option value="11">11 - Nov</option><option value="12">12 - Dez</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 text-center">Ano</label>
+                            <input type="number" name="ano" value="2025" required class="w-full bg-slate-900 border border-yellow-900/40 rounded py-3 px-3 text-sm text-slate-200 outline-none focus:border-yellow-500 text-center font-bold">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="fecharModalCadastro('restore-partial')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded shadow transition-colors text-sm uppercase tracking-widest">Abortar</button>
+                    <button type="submit" class="flex-1 py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-black rounded shadow-[0_0_15px_rgba(202,138,4,0.5)] transition-all text-sm uppercase tracking-widest">Resgatar Mês</button>
                 </div>
             </form>
         </div>
@@ -512,9 +690,29 @@
             setTimeout(() => { m.classList.add('hidden'); m.classList.remove('flex'); }, 150);
         }
 
-        // Inicia na aba de Renda ao carregar a página
+        // Inicia na aba correspondente ao carregar a página
         document.addEventListener("DOMContentLoaded", function() {
-            mudarAba('renda');
+            const urlParams = new URLSearchParams(window.location.search);
+            const aba = urlParams.get('aba');
+            if (aba) {
+                mudarAba(aba);
+            } else {
+                mudarAba('renda');
+            }
         });
+
+        function abrirModalEditarRecorrente(id, desc, valor, dia, cat_id) {
+            // Set form action
+            document.getElementById('form-editar-recorrente').action = `/editar/recorrente/${id}/`;
+            
+            // Populate fields
+            document.getElementById('edit-recorrente-desc').value = desc;
+            document.getElementById('edit-recorrente-valor').value = parseFloat(valor.replace(',', '.')).toFixed(2);
+            document.getElementById('edit-recorrente-dia').value = dia;
+            document.getElementById('edit-recorrente-cat').value = cat_id || "";
+            
+            // Open modal
+            abrirModalCadastro('editar-recorrente');
+        }
     </script>
 {% endblock %}
