@@ -1,0 +1,35 @@
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from . import views
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('importar/', views.importar_fatura, name='importar_fatura'),
+    path('cadastros/', views.central_cadastros, name='central_cadastros'),
+    path('dividir/<int:transacao_id>/', views.ratear_transacao, name='ratear_transacao'),
+    path('extrato/', views.extrato_faturas, name='extrato_faturas'),
+    path('api/atualizar-responsavel/<int:transacao_id>/', views.atualizar_responsavel, name='atualizar_responsavel'),
+    path('api/atualizar-categoria/<int:transacao_id>/', views.atualizar_categoria, name='atualizar_categoria'),
+    path('sala-de-guerra/', views.sala_de_guerra, name='sala_de_guerra'),
+    path('api/cancelar-oraculo/', views.cancelar_oraculo, name='cancelar_oraculo'),
+    path('api/deletar-transacao/<int:transacao_id>/', views.deletar_transacao, name='deletar_transacao'),
+    path('api/deletar-cadastro/<str:tipo>/<int:id>/', views.deletar_cadastro, name='deletar_cadastro'),
+    path('api/deletar-fatura/<int:mes>/<int:ano>/<int:cartao_id>/', views.deletar_fatura, name='deletar_fatura'),
+    path('fatura/', views.fatura_pdf, name='fatura_pdf'),
+    path('editar/<str:tipo>/<int:id>/', views.editar_cadastro, name='editar_cadastro'),
+    path('login/', views.custom_login_view, name='login'),
+    path('inicio/', views.inicio, name='inicio'),
+    path('setup-admin/', views.setup_admin, name='setup_admin'),
+    path('setup-owner/', views.setup_owner, name='setup_owner'),
+    path('recuperar-acesso/', views.recuperar_acesso, name='recuperar_acesso'),
+    path('api/selecionar-pasta/', views.api_selecionar_pasta, name='api_selecionar_pasta'),
+    path('api/status-backup/', views.api_status_backup, name='api_status_backup'),
+    path('mudar-senha/', views.mudar_senha_interna, name='mudar_senha_interna'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('banco/', views.banco_guilda, name='banco_guilda'),
+    path('api/atualizar-cofre/<int:cofre_id>/', views.atualizar_cofre, name='atualizar_cofre'),
+    path('api/deletar-cofre/<int:cofre_id>/', views.deletar_cofre, name='deletar_cofre'),
+    path('api/deletar-instituicao/<int:inst_id>/', views.deletar_instituicao, name='deletar_instituicao'),
+    path('boss-do-mes/', views.enfrentar_boss_mes, name='enfrentar_boss_mes'),
+    path('api/marcar-tutorial-visto/', views.marcar_tutorial_visto, name='marcar_tutorial_visto'),
+]

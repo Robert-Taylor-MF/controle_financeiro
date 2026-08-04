@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+    <header class="mb-8">
+        <h2 class="text-3xl font-bold text-slate-100">Pergaminhos (Extrato Completo)</h2>
+        <p class="text-slate-400">Navegue por todo o seu histórico financeiro e gerencie o loot.</p>
+    </header>
+
+    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 mb-6 shadow-lg">
+        <form method="GET" action="{% url 'extrato_faturas' %}" class="flex flex-wrap gap-4 items-end">
+            <div>
+                <label class="block text-xs text-slate-400 uppercase font-bold mb-1">Mês</label>
+                <select name="mes" class="bg-slate-900 text-slate-200 border border-slate-700 rounded p-2 focus:border-red-500 outline-none">
+                    <option value="" {% if not mes_atual %}selected{% endif %}>Todos</option>
+                    <option value="1" {% if mes_atual == '1' %}selected{% endif %}>Janeiro</option>
+                    <option value="2" {% if mes_atual == '2' %}selected{% endif %}>Fevereiro</option>
+                    <option value="3" {% if mes_atual == '3' %}selected{% endif %}>Março</option>
+                    <option value="4" {% if mes_atual == '4' %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if mes_atual == '5' %}selected{% endif %}>Maio</option>
+                    <option value="6" {% if mes_atual == '6' %}selected{% endif %}>Junho</option>
+                    <option value="7" {% if mes_atual == '7' %}selected{% endif %}>Julho</option>
+                    <option value="8" {% if mes_atual == '8' %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if mes_atual == '9' %}selected{% endif %}>Setembro</option>
+                    <option value="10" {% if mes_atual == '10' %}selected{% endif %}>Outubro</option>
+                    <option value="11" {% if mes_atual == '11' %}selected{% endif %}>Novembro</option>
+                    <option value="12" {% if mes_atual == '12' %}selected{% endif %}>Dezembro</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs text-slate-400 uppercase font-bold mb-1">Ano</label>
+                <input type="number" name="ano" value="{{ ano_atual }}" class="w-24 bg-slate-900 text-slate-200 border border-slate-700 rounded p-2 focus:border-red-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs text-slate-400 uppercase font-bold mb-1">Arma (Cartão)</label>
+                <select name="cartao_id" class="bg-slate-900 text-slate-200 border border-slate-700 rounded p-2 focus:border-red-500 outline-none">
+                    <option value="">Todos os Cartões</option>
+                    {% for cartao in cartoes %}
+                        <option value="{{ cartao.id }}" {% if cartao_selecionado == cartao.id|stringformat:"s" %}selected{% endif %}>{{ cartao.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded border border-slate-600 transition-all shadow">
+                Filtrar Registros
+            </button>
+            
+            {% if request.GET.mes and request.GET.ano and request.GET.cartao_id %}
+                <button type="button" onclick="confirmarDelecaoFatura('{{ request.GET.mes }}', '{{ request.GET.ano }}', '{{ request.GET.cartao_id }}')" class="px-6 py-2 bg-red-900/30 hover:bg-red-600 text-red-500 hover:text-white font-bold rounded border border-red-900/50 hover:border-red-500 transition-all shadow flex items-center gap-2 lg:ml-auto">
+                    <i data-lucide="bomb" class="w-4 h-4"></i> Obliterar Fatura
+                </button>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- TOTALIZADOR -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-slate-800 p-5 rounded-lg border border-slate-700 shadow-xl flex items-center gap-4 relative overflow-hidden group">
+            <div class="w-12 h-12 rounded-full bg-red-900/30 border-2 border-red-700 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(220,38,38,0.2)]">
+                <i data-lucide="circle-dollar-sign" class="w-6 h-6 text-red-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Total Filtrado</p>
+                <p class="text-2xl font-black text-red-400"><span class="text-sm text-slate-500">R$</span> {{ total_filtrado|floatformat:2 }}</p>
+            </div>
+            <i data-lucide="receipt" class="absolute -bottom-3 -right-3 w-20 h-20 text-slate-700/10 rotate-12"></i>
+        </div>
+        <div class="bg-slate-800 p-5 rounded-lg border border-slate-700 shadow-xl flex items-center gap-4 relative overflow-hidden">
+            <div class="w-12 h-12 rounded-full bg-purple-900/30 border-2 border-purple-700 flex items-center justify-center shrink-0">
+                <i data-lucide="scroll-text" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Registros</p>
+                <p class="text-2xl font-black text-purple-400">{{ qtd_transacoes }} <span class="text-sm text-slate-500">itens</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
+        <table id="tabelaLoot" class="w-full text-left border-collapse">
+            <thead>
+                <tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                    <th class="py-2 px-4 align-top">
+                        Data
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Filtrar..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top">
+                        Estabelecimento
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Buscar nome..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top text-center">
+                        Classificação
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Ex: Lazer..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top">
+                        Responsável
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Dono..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top text-right">
+                        Valor
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="R$..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top text-center">
+                        Ações
+                        </th>
+                </tr>
+            </thead>
+            <tbody class="text-sm">
+                {% for t in transacoes %}
+                <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                    <td class="py-3 px-4 text-slate-400 whitespace-nowrap">{{ t.data_compra|date:"d/m/Y" }}</td>
+                    
+                    <td class="py-3 px-4 font-medium text-slate-200 min-w-[200px]">
+                        {{ t.descricao }} 
+                        <span class="text-[10px] font-mono text-purple-400 ml-2 block lg:inline">(Ref: {{ t.mes_fatura }}/{{ t.ano_fatura }})</span>
+                    </td>
+                    
+                    <td class="py-3 px-4 text-center">
+                        <select onchange="salvarCategoria('{{ t.id }}', this.value)" class="w-36 bg-slate-900 text-slate-300 border border-slate-600 rounded p-1 text-xs focus:border-red-500 transition-all outline-none cursor-pointer">
+                            <option value="">- Indefinido -</option>
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}" {% if t.categoria_id == cat.id %}selected{% endif %}>
+                                    {{ cat.nome }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    
+                    <td class="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <select onchange="salvarResponsavel('{{ t.id }}', this.value)" class="w-32 bg-slate-900 text-slate-300 border border-slate-600 rounded p-1 text-xs focus:border-purple-500 transition-all outline-none cursor-pointer">
+                            <option value="" class="text-slate-500">- Sem Dono -</option>
+                            {% for p in pessoas %}
+                                <option value="{{ p.id }}" {% if t.responsavel_id == p.id %}selected{% endif %}>
+                                    {{ p.nome }} {% if p.is_owner %}(Eu){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    
+                    <td class="py-3 px-4 text-right font-bold text-slate-100 whitespace-nowrap">R$ {{ t.valor }}</td>
+                    
+                    <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-2">
+                        {% if '(Rateio:' not in t.descricao %}
+                        <button type="button" onclick="abrirModalRateio('{{ t.id }}', '{{ t.descricao|escapejs }}', '{{ t.valor }}')" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
+                            <i data-lucide="split-square-horizontal" class="w-4 h-4 inline-block"></i>
+                        </button>
+                        {% endif %}
+                        <button onclick="deletarTransacao('{{ t.id }}')" class="inline-block bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-red-900/50 hover:border-red-500" title="Excluir Registro">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline-block"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-slate-500 italic">
+                        Nenhum registro encontrado para a conjuração destes filtros.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MODAL DE DELEÇÃO EM MASSA (OBLITERAÇÃO) -->
+    <div id="modal-obliterar-fatura" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-red-900/50 p-8 rounded-xl shadow-[0_0_50px_rgba(220,38,38,0.3)] w-full max-w-md text-center relative border-t-4 border-t-red-600">
+            <button onclick="fecharModalObliterar()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="bg-red-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-900">
+                <i data-lucide="bomb" class="w-8 h-8 text-red-500 animate-pulse"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-100 mb-2">Obliterar Fatura Inteira?</h3>
+            <p class="text-sm text-slate-400 mb-8">Esta magia é cataclísmica. TODOS os registros do cartão selecionado neste mês e ano serão BANIDOS para o vazio (excluídos). Nenhuma volta no tempo poderá recuperá-los. Tem certeza absoluta?</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-3">
+                <button onclick="fecharModalObliterar()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg border border-slate-700 transition-colors w-full sm:w-auto">Cancelar Magia</button>
+                <button onclick="executarObliteracao()" class="px-6 py-2.5 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center justify-center gap-2 w-full sm:w-auto"><i data-lucide="flame" class="w-4 h-4"></i> Sim, Destruir Tudo!</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        let obliterarDados = null;
+
+        function confirmarDelecaoFatura(mes, ano, cartao) {
+            obliterarDados = { mes, ano, cartao };
+            document.getElementById('modal-obliterar-fatura').classList.remove('hidden');
+            document.getElementById('modal-obliterar-fatura').classList.add('flex');
+        }
+
+        function fecharModalObliterar() {
+            obliterarDados = null;
+            document.getElementById('modal-obliterar-fatura').classList.add('hidden');
+            document.getElementById('modal-obliterar-fatura').classList.remove('flex');
+        }
+
+        function executarObliteracao() {
+            if (!obliterarDados) return;
+            
+            fetch(`/api/deletar-fatura/${obliterarDados.mes}/${obliterarDados.ano}/${obliterarDados.cartao}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': obterTokenCSRF()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao obliterar: ' + data.mensagem);
+                }
+            })
+            .catch(error => {
+                alert('Falha crítica na magia de obliteração!');
+            });
+        }
+
+        function aplicarFiltros(idTabela) {
+            const tabela = document.getElementById(idTabela);
+            const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            const inputsFiltro = tabela.querySelectorAll('.filtro-coluna');
+
+            // Percorre todas as linhas da tabela (o seu Loot)
+            Array.from(linhas).forEach(linha => {
+                // Ignora a linha de "Nenhum registro encontrado"
+                if (linha.cells.length === 1) return;
+
+                let mostrarLinha = true;
+
+                // Cruza o texto digitado em cada coluna com o conteúdo da célula
+                inputsFiltro.forEach((input, index) => {
+                    const textoFiltro = input.value.toLowerCase().trim();
+                    
+                    if (textoFiltro !== "") {
+                        const celula = linha.getElementsByTagName('td')[index];
+                        if (celula) {
+                            let textoCelula = celula.textContent || celula.innerText;
+                            
+                            // Truque ninja: Se a célula for um <select> (como Categoria ou Pessoa), 
+                            // pega o texto da opção que está selecionada!
+                            const select = celula.querySelector('select');
+                            if (select) {
+                                textoCelula = select.options[select.selectedIndex].text;
+                            }
+
+                            // Se a célula NÃO contiver o que foi digitado, marcamos para esconder a linha
+                            if (!textoCelula.toLowerCase().includes(textoFiltro)) {
+                                mostrarLinha = false;
+                            }
+                        }
+                    }
+                });
+
+                // Aplica a invisibilidade ou visibilidade instantânea
+                linha.style.display = mostrarLinha ? "" : "none";
+            });
+        }
+    </script>
+    
+    {% include 'modal_rateio.html' %}
+    
+{% endblock %}

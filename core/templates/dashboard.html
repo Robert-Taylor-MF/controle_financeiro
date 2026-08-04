@@ -1,0 +1,981 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+    <div class="flex-1">
+        <h2 class="text-3xl font-bold text-slate-100">Visão do Tesouro</h2>
+        
+        <div class="mt-3 text-center md:text-left">
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-full py-1.5 px-4 shadow-lg hover:border-purple-500/50 transition-all w-fit mx-auto md:mx-0">
+                <button type="button" onclick="mudarMes(-1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Mês Anterior">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                
+                <div class="flex flex-col items-center justify-center min-w-[100px]">
+                    <h3 class="text-sm font-black text-slate-100 uppercase tracking-widest flex items-center select-none">
+                        {% if mes_atual == '1' %}JAN
+                        {% elif mes_atual == '2' %}FEV
+                        {% elif mes_atual == '3' %}MAR
+                        {% elif mes_atual == '4' %}ABR
+                        {% elif mes_atual == '5' %}MAI
+                        {% elif mes_atual == '6' %}JUN
+                        {% elif mes_atual == '7' %}JUL
+                        {% elif mes_atual == '8' %}AGO
+                        {% elif mes_atual == '9' %}SET
+                        {% elif mes_atual == '10' %}OUT
+                        {% elif mes_atual == '11' %}NOV
+                        {% elif mes_atual == '12' %}DEZ
+                        {% endif %}
+                        <span class="text-purple-500 ml-1 cursor-pointer hover:underline hover:text-purple-300 transition-colors" onclick="mudarAno()" title="Saltar para outro Ano">/ {{ ano_atual }}</span>
+                    </h3>
+                    
+                    <div class="flex items-center gap-1 mt-1">
+                        {% for i in '123456789'|make_list %}{% with mes_loop=forloop.counter|stringformat:"s" %}
+                        <button type="button" onclick="irParaMes('{{ mes_loop }}')" title="Mês {{ mes_loop }}" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == mes_loop %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        {% endwith %}{% endfor %}
+                        <button type="button" onclick="irParaMes('10')" title="Outubro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '10' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        <button type="button" onclick="irParaMes('11')" title="Novembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '11' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                        <button type="button" onclick="irParaMes('12')" title="Dezembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '12' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                    </div>
+                </div>
+
+                <button type="button" onclick="mudarMes(1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Próximo Mês">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
+                <input type="hidden" name="mes" id="input-timeline-mes" value="{{ mes_atual }}">
+                <input type="number" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
+            </form>
+        </div>
+    </div>
+    
+    <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0 text-right shrink-0">
+        <!-- Mana Recebida -->
+        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border border-slate-700 md:border-none">
+            <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
+            <p class="text-xl md:text-2xl font-bold text-purple-400 whitespace-nowrap">R$ {{ renda|floatformat:2 }}</p>
+        </div>
+        
+        <!-- Saldo Restante -->
+        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none">
+            <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
+            <p class="text-xl md:text-2xl font-bold whitespace-nowrap {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
+                R$ {{ saldo_restante|floatformat:2 }}
+            </p>
+        </div>
+    </div>
+</header>
+
+{% if tem_recorrentes_pendentes %}
+<div class="mb-6">
+    <div class="relative p-5 rounded-xl bg-gradient-to-r from-pink-950/40 via-slate-800 to-pink-950/40 border border-pink-700/50 shadow-[0_0_25px_rgba(236,72,153,0.15)] flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-pulse"></div>
+        
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-14 h-14 rounded-full bg-pink-900/50 border-2 border-pink-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+                <i data-lucide="calendar-clock" class="w-7 h-7 text-pink-400"></i>
+            </div>
+            
+            <div>
+                <h3 class="text-pink-400 font-black uppercase tracking-widest text-lg">Contas Fixas Pendentes!</h3>
+                <p class="text-slate-300 text-sm mt-1">Deseja injetar suas Despesas Recorrentes no mapa de {{ mes_atual }}/{{ ano_atual }}?</p>
+            </div>
+        </div>
+        
+        <form method="POST" class="relative z-10 shrink-0 w-full md:w-auto">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="injetar_recorrentes">
+            <input type="hidden" name="mes_fatura" value="{{ mes_atual }}">
+            <input type="hidden" name="ano_fatura" value="{{ ano_atual }}">
+            <button type="submit" class="w-full md:w-auto px-6 py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded shadow-[0_0_15px_rgba(236,72,153,0.5)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                <i data-lucide="zap" class="w-4 h-4"></i> Injetar Contas
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- TABS DE NAVEGAÇÃO DO DASHBOARD -->
+<div class="border-b border-slate-700 mb-6 flex gap-4 overflow-x-auto">
+    <button onclick="mudarAbaDashboard('pessoal')" id="btn-dashboard-pessoal" class="aba-btn-dash px-4 py-2 text-slate-100 font-bold border-b-2 border-slate-300 transition-colors whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="user" class="w-4 h-4"></i> Visão Pessoal
+    </button>
+    <button onclick="mudarAbaDashboard('party')" id="btn-dashboard-party" class="aba-btn-dash px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-red-400 transition-colors whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="users" class="w-4 h-4"></i> Visão da Party
+    </button>
+    <button onclick="mudarAbaDashboard('ranking')" id="btn-dashboard-ranking" class="aba-btn-dash px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-amber-400 transition-colors whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="trophy" class="w-4 h-4"></i> Ranking
+    </button>
+</div>
+
+<!-- CONTAINER DA VISÃO PESSOAL (Conteúdo anterior) -->
+<div id="aba-dashboard-pessoal" class="aba-conteudo-dash block">
+
+    {% if gastos.indefinido > 0 %}
+        <a href="/extrato/?mes={{ mes_atual }}&ano={{ ano_atual }}&sem_categoria=1" class="block mb-6 group cursor-pointer">
+            <div class="relative p-5 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-800 to-amber-950/40 border border-amber-700/50 shadow-[0_0_25px_rgba(217,119,6,0.15)] hover:shadow-[0_0_35px_rgba(217,119,6,0.3)] transition-all overflow-hidden">
+                
+                <!-- Glow pulsante de fundo -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-pulse"></div>
+                
+                <div class="flex items-center gap-4 relative z-10">
+                    <!-- Ícone estilo quest -->
+                    <div class="w-14 h-14 rounded-full bg-amber-900/50 border-2 border-amber-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(217,119,6,0.3)] group-hover:scale-110 transition-transform">
+                        <i data-lucide="alert-triangle" class="w-7 h-7 text-amber-400"></i>
+                    </div>
+                    
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="text-amber-400 font-black uppercase tracking-widest text-xs">⚔️ Quest Ativa</h4>
+                            <span class="text-[10px] bg-amber-900/50 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700/50 font-mono">SIDE QUEST</span>
+                        </div>
+                        <p class="text-slate-200 text-sm font-bold">Classificar <span class="text-amber-300">R$ {{ gastos.indefinido|floatformat:2 }}</span> em loots sem encantamento (categoria)</p>
+                        <p class="text-slate-500 text-xs mt-1">Esses itens não estão impactando as suas barras de vida. Toque aqui para resolver →</p>
+                    </div>
+                </div>
+            </div>
+        </a>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        
+        <div id="tour-vitalidade" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
+                    🛡️ Vitalidade (50%)
+                </h3>
+                <span class="text-xs font-bold {% if pcts.essencial >= 90 %}text-red-500{% else %}text-green-500{% endif %}">
+                    {{ pcts.essencial }}%
+                </span>
+            </div>
+            <p class="text-2xl font-bold text-slate-100 mb-1">R$ {{ gastos.essencial|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mb-4">de R$ {{ metas.essencial|floatformat:2 }} permitidos</p>
+            
+            <div class="w-full bg-slate-900 rounded-full h-2.5">
+                <div class="h-2.5 rounded-full {% if pcts.essencial >= 90 %}bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]{% else %}bg-green-500{% endif %} transition-all duration-1000" style="width: {{ pcts.essencial }}%"></div>
+            </div>
+        </div>
+
+        <div id="tour-stamina" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
+                    ⚡ Stamina (30%)
+                </h3>
+                <span class="text-xs font-bold {% if pcts.emocao >= 90 %}text-red-500{% elif pcts.emocao >= 70 %}text-yellow-500{% else %}text-blue-400{% endif %}">
+                    {{ pcts.emocao }}%
+                </span>
+            </div>
+            <p class="text-2xl font-bold text-slate-100 mb-1">R$ {{ gastos.emocao|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mb-4">de R$ {{ metas.emocao|floatformat:2 }} permitidos</p>
+            
+            <div class="w-full bg-slate-900 rounded-full h-2.5">
+                <div class="h-2.5 rounded-full {% if pcts.emocao >= 90 %}bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]{% elif pcts.emocao >= 70 %}bg-yellow-500{% else %}bg-blue-500{% endif %} transition-all duration-1000" style="width: {{ pcts.emocao }}%"></div>
+            </div>
+        </div>
+
+        <div id="tour-tesouro" class="bg-slate-800 p-6 rounded-lg border-l-4 border-emerald-500 shadow-lg relative overflow-hidden group">
+            <i data-lucide="gem" class="absolute -right-4 -bottom-4 w-24 h-24 text-emerald-500/10 group-hover:scale-110 transition-transform"></i>
+            <h3 class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                <i data-lucide="landmark" class="w-4 h-4 text-emerald-500"></i> Tesouro da Guilda
+            </h3>
+            <p class="text-3xl font-black text-slate-100">R$ {{ tesouro_total|floatformat:2 }}</p>
+        </div>
+        <div id="tour-boss" class="bg-slate-900 rounded-lg border border-red-900/50 shadow-[0_0_15px_rgba(220,38,38,0.2)] flex flex-col justify-center items-center text-center group hover:border-red-500 transition-colors relative overflow-hidden p-6">
+            <i data-lucide="skull" class="absolute -right-4 -bottom-4 w-28 h-28 text-red-500/10 group-hover:scale-110 transition-transform"></i>
+            <h3 class="text-red-500 font-black uppercase tracking-widest text-sm mb-1 z-10 flex items-center gap-2">
+                <i data-lucide="swords" class="w-4 h-4"></i> Boss do Mês
+            </h3>
+            <p class="text-xs text-slate-400 mb-4 z-10">Desafie o lorde por XP massivo!</p>
+            <a href="{% url 'enfrentar_boss_mes' %}?mes={{ mes_atual }}&ano={{ ano_atual }}" class="px-5 py-2.5 bg-red-700 hover:bg-red-600 text-white text-xs font-bold rounded shadow-[0_0_10px_rgba(220,38,38,0.4)] transition-all z-10 flex items-center gap-2 uppercase tracking-widest">
+                Combater
+            </a>
+        </div>
+    </div>
+
+    <div id="tour-loot" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
+        <h3 class="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700 pb-2">Últimos Registros (Loot)</h3>
+        
+        <table id="tabelaLoot" class="w-full text-left border-collapse">
+            <thead>
+                <tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                    <th class="py-2 px-4 align-top">
+                        Data
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Filtrar..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top">
+                        Estabelecimento
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Buscar nome..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top text-center">
+                        Classificação
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Ex: Lazer..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top">
+                        Responsável
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="Dono..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top text-right">
+                        Valor
+                        <input type="text" class="filtro-coluna w-full mt-2 bg-slate-900 border border-slate-700 rounded p-1 text-[10px] text-slate-300 focus:border-red-500 outline-none placeholder-slate-600" placeholder="R$..." onkeyup="aplicarFiltros('tabelaLoot')">
+                    </th>
+                    <th class="py-2 px-4 align-top text-center">
+                        Ações
+                        </th>
+                </tr>
+            </thead>
+            <tbody class="text-sm">
+                {% for t in transacoes %}
+                <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                    <td class="py-3 px-4 text-slate-400 whitespace-nowrap">{{ t.data_compra|date:"d/m/Y" }}</td>
+                    
+                    <td class="py-3 px-4 font-medium text-slate-200 min-w-[200px]">
+                        {{ t.descricao }}
+                    </td>
+                    
+                    <td class="py-3 px-4 text-center">
+                        <select onchange="salvarCategoria('{{ t.id }}', this.value)" class="w-36 bg-slate-900 text-slate-300 border border-slate-600 rounded p-1 text-xs focus:border-red-500 transition-all outline-none cursor-pointer">
+                            <option value="">- Indefinido -</option>
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}" {% if t.categoria_id == cat.id %}selected{% endif %}>
+                                    {{ cat.nome }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    
+                    <td class="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <select onchange="salvarResponsavel('{{ t.id }}', this.value)" class="w-32 bg-slate-900 text-slate-300 border border-slate-600 rounded p-1 text-xs focus:border-purple-500 transition-all outline-none cursor-pointer">
+                            <option value="" class="text-slate-500">- Sem Dono -</option>
+                            {% for p in pessoas %}
+                                <option value="{{ p.id }}" {% if t.responsavel_id == p.id %}selected{% endif %}>
+                                    {{ p.nome }} {% if p.is_owner %}(Eu){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    
+                    <td class="py-3 px-4 text-right font-bold text-slate-100 whitespace-nowrap">R$ {{ t.valor }}</td>
+                    
+                    <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-2">
+                        {% if '(Rateio:' not in t.descricao %}
+                        <button type="button" onclick="abrirModalRateio('{{ t.id }}', '{{ t.descricao|escapejs }}', '{{ t.valor }}')" class="inline-block bg-slate-700 hover:bg-slate-600 text-slate-200 py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-slate-600" title="Dividir Despesa">
+                            <i data-lucide="split-square-horizontal" class="w-4 h-4 inline-block"></i>
+                        </button>
+                        {% endif %}
+                        
+                        <button onclick="deletarTransacao('{{ t.id }}')" class="inline-block bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white py-1 px-3 rounded transition-colors text-xs font-bold shadow border border-red-900/50 hover:border-red-500" title="Excluir Registro">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline-block"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-slate-500 italic">
+                        Nenhum registro encontrado. Vá até o Oráculo e importe sua fatura!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div> <!-- FIM DA ABA PESSOAL -->
+
+<!-- CONTAINER DA VISÃO DA PARTY -->
+<div id="aba-dashboard-party" class="aba-conteudo-dash hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    {% for info in gastos_party %}
+        <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl relative overflow-hidden group hover:border-slate-500 transition-colors">
+            <div class="flex items-center gap-4 relative z-10">
+                {% if info.pessoa.foto_perfil %}
+                    <img src="{{ info.pessoa.foto_perfil.url }}" class="w-16 h-16 rounded-full border-2 border-slate-600 object-cover">
+                {% else %}
+                    <div class="w-16 h-16 rounded-full bg-slate-900 border-2 border-slate-600 flex items-center justify-center text-slate-400 text-2xl font-bold">
+                        {{ info.pessoa.nome|make_list|first|upper }}
+                    </div>
+                {% endif %}
+                
+                <div>
+                    <h3 class="text-xl font-black text-slate-100">{{ info.pessoa.nome }}</h3>
+                    <p class="text-xs text-slate-400 font-mono tracking-widest uppercase mb-2">{{ info.pessoa.get_titulo }} <span class="text-emerald-500 font-bold uppercase ml-1">Lv.{{ info.pessoa.level }}</span></p>
+                    <p class="text-2xl font-black {% if info.total > 0 %}text-red-400{% else %}text-slate-500{% endif %}">
+                        <span class="text-sm">R$</span> {{ info.total|floatformat:2 }}
+                    </p>
+                    {% if not info.pessoa.is_owner %}
+                    <div class="mt-2">
+                        <div class="flex justify-between text-[10px] text-slate-500 mb-0.5">
+                            <span>XP: {{ info.pessoa.xp_atual }}/{{ info.pessoa.xp_para_proximo_level }}</span>
+                            <span>Lv.{{ info.pessoa.level }}</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5">
+                            <div class="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ info.pessoa.progresso_xp }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <i data-lucide="swords" class="absolute -bottom-4 -right-4 w-32 h-32 text-slate-700/10 group-hover:text-red-900/20 transition-colors rotate-12"></i>
+        </div>
+    {% endfor %}
+
+    {% if total_sem_dono > 0 %}
+    <div class="bg-slate-900 p-6 rounded-lg border border-slate-700 shadow-xl overflow-hidden relative border-dashed">
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-16 h-16 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-slate-500 text-2xl font-bold">
+                <i data-lucide="ghost" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-black text-slate-400 uppercase">Loot Sem Dono</h3>
+                <p class="text-xs text-slate-500 font-mono tracking-widest ml-1 mb-2">Despesas soltas</p>
+                <p class="text-2xl font-black text-slate-300">
+                    <span class="text-sm">R$</span> {{ total_sem_dono|floatformat:2 }}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<!-- FIM DA ABA PARTY -->
+
+<!-- CONTAINER DA ABA RANKING -->
+<div id="aba-dashboard-ranking" class="aba-conteudo-dash hidden mb-8">
+    {% if ranking_party %}
+    <div class="space-y-3">
+        {% for info in ranking_party %}
+        <div class="bg-slate-800 p-4 md:p-5 rounded-lg border {% if forloop.counter == 1 %}border-amber-600/50 shadow-[0_0_15px_rgba(217,119,6,0.15)]{% elif forloop.counter == 2 %}border-slate-400/40{% elif forloop.counter == 3 %}border-orange-800/40{% else %}border-slate-700{% endif %} flex items-center gap-4 hover:bg-slate-750 transition-colors group">
+            
+            <!-- Posição -->
+            <div class="text-center w-10 shrink-0">
+                {% if forloop.counter == 1 %}
+                    <span class="text-3xl">🥇</span>
+                {% elif forloop.counter == 2 %}
+                    <span class="text-3xl">🥈</span>
+                {% elif forloop.counter == 3 %}
+                    <span class="text-3xl">🥉</span>
+                {% else %}
+                    <span class="text-xl font-black text-slate-500">#{{ forloop.counter }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Foto -->
+            {% if info.pessoa.foto_perfil %}
+                <img src="{{ info.pessoa.foto_perfil.url }}" class="w-14 h-14 rounded-full border-2 {% if forloop.counter == 1 %}border-amber-500{% else %}border-slate-600{% endif %} object-cover shrink-0">
+            {% else %}
+                <div class="w-14 h-14 rounded-full bg-slate-900 border-2 {% if forloop.counter == 1 %}border-amber-500{% else %}border-slate-600{% endif %} flex items-center justify-center text-slate-400 text-xl font-bold shrink-0">
+                    {{ info.pessoa.nome|make_list|first|upper }}
+                </div>
+            {% endif %}
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-black text-slate-100 truncate">{{ info.pessoa.nome }} {% if info.pessoa.is_owner %}<span class="text-xs text-purple-400 font-mono">(Eu)</span>{% endif %}</h3>
+                <p class="text-xs text-slate-500 uppercase tracking-widest">{{ info.pessoa.get_titulo }} · Lv.{{ info.pessoa.level }}</p>
+                {% if not info.pessoa.is_owner %}
+                <div class="mt-1 max-w-[180px]">
+                    <div class="w-full bg-slate-900 rounded-full h-1">
+                        <div class="h-1 rounded-full bg-emerald-500 transition-all" style="width: {{ info.pessoa.progresso_xp }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Valor -->
+            <div class="text-right shrink-0">
+                <p class="text-xl md:text-2xl font-black {% if forloop.counter == 1 %}text-amber-400{% else %}text-red-400{% endif %}">
+                    <span class="text-xs text-slate-500">R$</span> {{ info.total|floatformat:2 }}
+                </p>
+            </div>
+
+            <!-- Botão Fatura -->
+            {% if not info.pessoa.is_owner %}
+            <a href="{% url 'fatura_pdf' %}?pessoa_id={{ info.pessoa.id }}&mes={{ mes_atual }}&ano={{ ano_atual }}" target="_blank" class="shrink-0 bg-green-900/30 hover:bg-green-700 text-green-400 hover:text-white py-2 px-3 rounded-lg transition-all text-xs font-bold border border-green-900/50 hover:border-green-500 flex items-center gap-1.5 shadow-lg opacity-70 group-hover:opacity-100" title="Gerar Fatura de {{ info.pessoa.nome }}">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                <span class="hidden md:inline">Fatura</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <i data-lucide="trophy" class="w-16 h-16 text-slate-700 mx-auto mb-4"></i>
+        <p class="text-slate-500 text-lg font-bold">Nenhum guerreiro gastou neste mês.</p>
+        <p class="text-slate-600 text-sm">Importe uma fatura para ver o ranking de gastos.</p>
+    </div>
+    {% endif %}
+</div>
+<!-- FIM DA ABA RANKING -->
+    <div id="modal-despesa" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-900 p-8 rounded-xl border border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.3)] w-full max-w-2xl relative">
+            
+            <button onclick="fecharModalDespesa()" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 text-xl font-bold">X</button>
+            
+            <h3 class="text-2xl font-bold text-slate-100 mb-2 border-b border-slate-700 pb-2">Conjurar Despesa Manual</h3>
+            <p class="text-sm text-slate-400 mb-6">Contas fixas, boletos ou dinheiro físico.</p>
+
+            <form method="POST" action="{% url 'dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="nova_despesa">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">O que foi?</label>
+                        {{ form_despesa.descricao }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Valor (R$)</label>
+                        {{ form_despesa.valor }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Data da Ocorrência</label>
+                        {{ form_despesa.data_compra }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Categoria (Grimório)</label>
+                        {{ form_despesa.categoria }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Responsável</label>
+                        {{ form_despesa.responsavel }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Arma (Cartão - Opcional)</label>
+                        {{ form_despesa.cartao }}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Mês (Fatura)</label>
+                            {{ form_despesa.mes_fatura }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Ano</label>
+                            {{ form_despesa.ano_fatura }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-5 bg-slate-800 rounded border border-slate-700 hover:border-red-500/50 transition-colors">
+                    <p class="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2"><i data-lucide="split-square-horizontal" class="w-4 h-4"></i> Rateio Rápido: Dividir este dano</p>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <select id="seletor-pessoas-manual" class="flex-1 bg-slate-950 text-slate-300 border border-slate-700 rounded p-2 focus:border-red-500 outline-none transition-colors text-sm font-bold">
+                            <option value="" disabled selected>Escolha um aliado para dividir...</option>
+                            {% for p in pessoas %}
+                                {% if not p.is_owner %}
+                                <option value="{{ p.id }}" data-nome="{{ p.nome }}">{{ p.nome }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <button type="button" onclick="adicionarPessoaManual()" class="px-4 py-2 bg-slate-900 hover:bg-slate-950 text-slate-100 font-bold rounded border border-slate-700 transition-colors flex items-center gap-2 uppercase text-xs tracking-wider">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Aliado
+                        </button>
+                    </div>
+
+                    <div id="container-rateio-manual" class="space-y-2 mb-4 max-h-[20vh] overflow-y-auto pr-1">
+                        <!-- Inputs added dynamically here -->
+                    </div>
+
+                    <div class="flex items-end justify-between border-t border-slate-700 pt-3">
+                        <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                            Soma: <span id="soma-atual-manual" class="font-black text-lg text-slate-200">R$ 0,00</span>
+                        </div>
+                        <div id="alerta-soma-manual" class="text-[10px] text-red-400 font-bold hidden bg-red-900/20 px-2 py-1 rounded border border-red-900/50 uppercase flex items-center gap-1">A soma não bate!</div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-4">
+                    <button type="button" onclick="fecharModalDespesa()" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-lg">Adicionar ao Loot</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function mudarAbaDashboard(abaId) {
+            // Esconde todas as abas de dashboard
+            document.querySelectorAll('.aba-conteudo-dash').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.aba-btn-dash').forEach(el => {
+                el.classList.remove('border-slate-300', 'text-slate-100');
+                el.classList.add('border-transparent');
+            });
+            
+            // Exibe a aba correta
+            document.getElementById('aba-dashboard-' + abaId).classList.remove('hidden');
+            const btn = document.getElementById('btn-dashboard-' + abaId);
+            btn.classList.remove('border-transparent');
+            btn.classList.add('border-slate-300', 'text-slate-100');
+        }
+
+        function abrirModalDespesa() {
+            document.getElementById('modal-despesa').classList.remove('hidden');
+        }
+        function fecharModalDespesa() {
+            document.getElementById('modal-despesa').classList.add('hidden');
+        }
+    </script>
+
+<script>
+    function aplicarFiltros(idTabela) {
+        const tabela = document.getElementById(idTabela);
+        const linhas = tabela.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        const inputsFiltro = tabela.querySelectorAll('.filtro-coluna');
+
+        // Percorre todas as linhas da tabela (o seu Loot)
+        Array.from(linhas).forEach(linha => {
+            // Ignora a linha de "Nenhum registro encontrado"
+            if (linha.cells.length === 1) return;
+
+            let mostrarLinha = true;
+
+            // Cruza o texto digitado em cada coluna com o conteúdo da célula
+            inputsFiltro.forEach((input, index) => {
+                const textoFiltro = input.value.toLowerCase().trim();
+                
+                if (textoFiltro !== "") {
+                    const celula = linha.getElementsByTagName('td')[index];
+                    if (celula) {
+                        let textoCelula = celula.textContent || celula.innerText;
+                        
+                        // Truque ninja: Se a célula for um <select> (como Categoria ou Pessoa), 
+                        // pega o texto da opção que está selecionada!
+                        const select = celula.querySelector('select');
+                        if (select) {
+                            textoCelula = select.options[select.selectedIndex].text;
+                        }
+
+                        // Se a célula NÃO contiver o que foi digitado, marcamos para esconder a linha
+                        if (!textoCelula.toLowerCase().includes(textoFiltro)) {
+                            mostrarLinha = false;
+                        }
+                    }
+                }
+            });
+
+            // Aplica a invisibilidade ou visibilidade instantânea
+            linha.style.display = mostrarLinha ? "" : "none";
+        });
+    }
+
+    function filtrarSemCategoria() {
+        // Scroll até a tabela
+        const tabela = document.getElementById('tabelaLoot');
+        tabela.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Preenche o filtro da coluna "Classificação" (3ª coluna, index 2)
+        const filtros = tabela.querySelectorAll('.filtro-coluna');
+        if (filtros.length > 2) {
+            filtros[2].value = 'Indefinido';
+            aplicarFiltros('tabelaLoot');
+        }
+    }
+
+    // Timeline JS
+    function mudarMes(delta) {
+        let mesAtual = parseInt(document.getElementById('input-timeline-mes').value);
+        let anoAtual = parseInt(document.getElementById('input-timeline-ano').value);
+
+        let novoMes = mesAtual + delta;
+        if (novoMes > 12) {
+            novoMes = 1;
+            anoAtual += 1;
+        } else if (novoMes < 1) {
+            novoMes = 12;
+            anoAtual -= 1;
+        }
+
+        document.getElementById('input-timeline-mes').value = novoMes;
+        document.getElementById('input-timeline-ano').value = anoAtual;
+        document.getElementById('form-timeline').submit();
+    }
+
+    function irParaMes(mesStr) {
+        document.getElementById('input-timeline-mes').value = mesStr;
+        document.getElementById('form-timeline').submit();
+    }
+
+    function mudarAno() {
+        let anoAtual = document.getElementById('input-timeline-ano').value;
+        let novoAno = prompt("Mestre Temporal, para qual Ano deseja viajar?", anoAtual);
+        if (novoAno && !isNaN(novoAno) && novoAno.length === 4) {
+            document.getElementById('input-timeline-ano').value = novoAno;
+            document.getElementById('form-timeline').submit();
+        }
+    }
+</script>
+
+<!-- FAB MENU CENTRAL -->
+<div id="tour-fab" class="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3 group">
+    
+    <!-- Sub-buttons -->
+    <div id="tour-fab-menu" class="flex flex-col items-end gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto mb-2">
+        
+        <button onclick="abrirModalFatura()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
+            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Emitir Fatura</span>
+            <div class="bg-green-700 text-green-100 p-3 rounded-full shadow-[0_0_15px_rgba(21,128,61,0.5)] border border-green-500">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+        </button>
+
+        <button onclick="abrirModalOraculo()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
+            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Invocar Oráculo</span>
+            <div class="bg-purple-700 text-purple-100 p-3 rounded-full shadow-[0_0_15px_rgba(147,51,234,0.5)] border border-purple-500">
+                <i data-lucide="eye" class="w-5 h-5"></i>
+            </div>
+        </button>
+
+        <button onclick="abrirModalDespesa()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
+            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Registrar Dano</span>
+            <div class="bg-red-700 text-red-100 p-3 rounded-full shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500">
+                <i data-lucide="swords" class="w-5 h-5"></i>
+            </div>
+        </button>
+        
+    </div>
+
+    <!-- Main Trigger Button -->
+    <button id="tour-fab-trigger" class="bg-slate-950 hover:bg-slate-900 border border-red-900/50 hover:border-red-500 text-red-500 p-4 md:p-5 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all focus:outline-none hover:scale-105">
+        <i data-lucide="circle-dollar-sign" class="w-7 h-7 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300"></i>
+    </button>
+</div>
+
+<div id="modal-oraculo" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(147,51,234,0.3)] w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <h3 class="text-2xl font-black text-purple-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="eye" class="w-6 h-6"></i> Baú de Dados</h3>
+            <button onclick="fecharModalOraculo()" class="text-slate-500 hover:text-red-500"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+        </div>
+        
+        <form id="form-oraculo" method="POST" action="{% url 'importar_fatura' %}" enctype="multipart/form-data" class="space-y-6" onsubmit="return ativarLoadingOraculo()">
+            {% csrf_token %}
+            <select name="cartao_id" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-3">
+                <option value="" disabled selected>Selecione o Cartão...</option>
+                {% for cartao in cartoes %}
+                    <option value="{{ cartao.id }}">{{ cartao.nome }}</option>
+                {% endfor %}
+            </select>
+            <div class="grid grid-cols-2 gap-4">
+                <select name="mes_fatura" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-3">
+                    <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+                <input type="number" name="ano_fatura" value="2026" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-3">
+            </div>
+            <input type="file" name="fatura_pdf" accept="application/pdf" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-2">
+            <button type="submit" class="w-full mt-2 px-6 py-4 bg-purple-700 hover:bg-purple-600 text-white font-black uppercase rounded shadow-[0_0_15px_rgba(147,51,234,0.4)]">Extrair Transações</button>
+        </form>
+    </div>
+</div>
+<script>
+    function abrirModalOraculo() { document.getElementById('modal-oraculo').classList.remove('hidden'); document.getElementById('modal-oraculo').classList.add('flex'); }
+    function fecharModalOraculo() {
+        document.getElementById('modal-oraculo').classList.add('hidden');
+        document.getElementById('modal-oraculo').classList.remove('flex');
+    }
+    
+    function abrirModalFatura() {
+        document.getElementById('modal-fatura').classList.remove('hidden');
+        document.getElementById('modal-fatura').classList.add('flex');
+    }
+
+    function fecharModalFatura() {
+        document.getElementById('modal-fatura').classList.add('hidden');
+        document.getElementById('modal-fatura').classList.remove('flex');
+    }
+
+    const dicasOraculo = [
+        "Mantenha sua Vitalidade acima de 50% para evitar o status de Falência.",
+        "Categorizar seus gastos garante bônus de XP ao final do mês.",
+        "O Boss do Mês fica mais fraco quanto menos despesas essenciais você tiver.",
+        "Importar faturas PDF é 10x mais rápido do que registro manual.",
+        "O Tesouro da Guilda cresce 5% mais rápido quando você bate suas metas.",
+        "A Stamina representa seus desejos. Use-a com sabedoria, mestre.",
+        "Aliados de nível alto na Party recebem títulos exclusivos.",
+        "Faturas pendentes são como monstros rondando seu castelo. Elimine-as!"
+    ];
+
+    function ativarLoadingOraculo() {
+        fecharModalOraculo();
+        const loading = document.getElementById('loading-oraculo');
+        loading.classList.remove('hidden');
+        loading.classList.add('flex');
+        
+        let progress = 0;
+        const bar = document.getElementById('loading-bar-fill');
+        const textArea = document.getElementById('loading-percent');
+        const tipText = document.getElementById('loading-tip-text');
+        
+        // Simular progresso enquanto a IA trabalha no backend
+        const interval = setInterval(() => {
+            if (progress < 95) {
+                progress += Math.random() * 2;
+                if (progress > 95) progress = 95;
+                if (bar) bar.style.width = progress + '%';
+                if (textArea) textArea.innerText = Math.floor(progress);
+            } else {
+                clearInterval(interval);
+            }
+        }, 300);
+
+        // Rotacionar Dicas
+        let tipIndex = 0;
+        setInterval(() => {
+            tipIndex = (tipIndex + 1) % dicasOraculo.length;
+            const container = document.getElementById('loading-tip-container');
+            if (container) {
+                container.style.opacity = 0;
+                setTimeout(() => {
+                    if (tipText) tipText.innerText = `"${dicasOraculo[tipIndex]}"`;
+                    container.style.opacity = 1;
+                }, 500);
+            }
+        }, 4500);
+
+        return true; // Permite o submit do form
+    }
+
+    function cancelarInvocacao() {
+        const btn = document.getElementById('btn-cancelar-oraculo');
+        if (btn) {
+            btn.innerHTML = 'Cancelando...';
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.disabled = true;
+        }
+        
+        fetch('/api/cancelar-oraculo/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        }).catch(err => console.error(err));
+    }
+</script>
+
+<!-- LOADING SCREEN ORÁCULO (ESTILO GAME) -->
+<div id="loading-oraculo" class="fixed inset-0 bg-slate-950/95 z-[200] hidden flex-col items-center justify-center backdrop-blur-xl transition-all duration-500">
+    <div class="relative w-full max-w-2xl px-8 flex flex-col items-center">
+        
+        <!-- Icone Central Pulsante -->
+        <div class="mb-12 relative">
+            <div class="absolute inset-0 bg-purple-500/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
+            <div class="bg-slate-900 border-2 border-purple-500/50 p-8 rounded-full shadow-[0_0_50px_rgba(147,51,234,0.4)] relative">
+                <i data-lucide="eye" class="w-16 h-16 text-purple-400 animate-spin-slow"></i>
+            </div>
+        </div>
+
+        <!-- Título e Progresso -->
+        <div class="text-center mb-10">
+            <h2 class="text-4xl font-black text-white uppercase tracking-[0.2em] mb-2 drop-shadow-lg">Invocando o Oráculo</h2>
+            <p class="text-purple-400 font-bold uppercase tracking-widest animate-pulse">Descriptografando Pergaminhos de Loot...</p>
+        </div>
+
+        <!-- Barra de Progresso Game Style -->
+        <div class="w-full bg-slate-900 border border-slate-700 h-6 rounded-full overflow-hidden mb-8 shadow-inner relative p-1">
+            <div id="loading-bar-fill" class="h-full bg-gradient-to-r from-purple-900 via-purple-600 to-purple-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(147,51,234,0.8)]" style="width: 0%"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white uppercase tracking-tighter mix-blend-overlay">Sincronizando com a IA... <span id="loading-percent">0</span>%</div>
+        </div>
+
+        <!-- Card de Dicas de Jogo -->
+        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl w-full text-center relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-1 h-full bg-purple-600"></div>
+            <div id="loading-tip-container" class="transition-opacity duration-500 opacity-100">
+                <span class="text-xs font-black text-purple-500 uppercase tracking-widest block mb-1">Dica de Sobrevivência</span>
+                <p id="loading-tip-text" class="text-slate-300 font-medium italic">"Mantenha sua Vitalidade acima de 50% para evitar o status de Falência."</p>
+            </div>
+        </div>
+
+        <div class="mt-12 flex flex-col items-center gap-4">
+            <div class="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-widest">
+                <div class="w-2 h-2 bg-purple-500 rounded-full animate-ping"></div>
+                Processando Dados Arcanos...
+            </div>
+            
+            <button type="button" onclick="cancelarInvocacao()" id="btn-cancelar-oraculo" class="px-6 py-2 bg-red-900/40 hover:bg-red-700 text-red-400 hover:text-white rounded-full border border-red-900/50 hover:border-red-500 transition-all text-xs font-bold uppercase tracking-widest shadow-lg flex items-center gap-2 mt-2">
+                <i data-lucide="x-circle" class="w-4 h-4"></i> Cancelar Invocação
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+        animation: spin-slow 8s linear infinite;
+    }
+    
+    /* Força expansao do FAB durante o tour e garante visibilidade acima do overlay */
+    .tour-expanding #tour-fab-menu {
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        z-index: 10010 !important;
+        position: relative;
+    }
+</style>
+
+<!-- MODAL GERAR FATURA (Substitui a página Mural) -->
+<div id="modal-fatura" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-green-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(21,128,61,0.3)] w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <div>
+                <h3 class="text-2xl font-black text-green-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="file-text" class="w-6 h-6"></i> Mural de Recompensas</h3>
+                <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Emita o Decreto (Fatura) em PDF</p>
+            </div>
+            <button onclick="fecharModalFatura()" class="text-slate-500 hover:text-red-500"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+        </div>
+        
+        <form method="GET" action="{% url 'fatura_pdf' %}" target="_blank" class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Selecione o Aliado (Devedor)</label>
+                <select name="pessoa_id" required class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-3 focus:border-green-500 outline-none transition-colors shadow-inner">
+                    <option value="">-- Selecione o membro --</option>
+                    {% for p in pessoas %}
+                        <option value="{{ p.id }}">{{ p.nome }} {% if p.telefone %}({{ p.telefone }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Competência (Mês)</label>
+                    <select name="mes" class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-3 focus:border-green-500 outline-none transition-colors shadow-inner">
+                        <option value="1" {% if mes_atual == '1' %}selected{% endif %}>Janeiro</option>
+                        <option value="2" {% if mes_atual == '2' %}selected{% endif %}>Fevereiro</option>
+                        <option value="3" {% if mes_atual == '3' %}selected{% endif %}>Março</option>
+                        <option value="4" {% if mes_atual == '4' %}selected{% endif %}>Abril</option>
+                        <option value="5" {% if mes_atual == '5' %}selected{% endif %}>Maio</option>
+                        <option value="6" {% if mes_atual == '6' %}selected{% endif %}>Junho</option>
+                        <option value="7" {% if mes_atual == '7' %}selected{% endif %}>Julho</option>
+                        <option value="8" {% if mes_atual == '8' %}selected{% endif %}>Agosto</option>
+                        <option value="9" {% if mes_atual == '9' %}selected{% endif %}>Setembro</option>
+                        <option value="10" {% if mes_atual == '10' %}selected{% endif %}>Outubro</option>
+                        <option value="11" {% if mes_atual == '11' %}selected{% endif %}>Novembro</option>
+                        <option value="12" {% if mes_atual == '12' %}selected{% endif %}>Dezembro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Ano</label>
+                    <input type="number" name="ano" value="{{ ano_atual }}" class="w-full bg-slate-950 text-slate-300 border border-slate-700 rounded p-3 focus:border-green-500 outline-none transition-colors shadow-inner">
+                </div>
+            </div>
+
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function adicionarPessoaManual() {
+        const seletor = document.getElementById('seletor-pessoas-manual');
+        const opcao = seletor.options[seletor.selectedIndex];
+        if (!opcao.value) return;
+
+        const id = opcao.value;
+        const nome = opcao.getAttribute('data-nome');
+        
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between bg-slate-900 p-2 rounded-lg border border-slate-700 linha-rateio-manual hover:border-red-900 transition-colors";
+        div.id = `linha-rateio-manual-${id}`;
+        
+        div.innerHTML = `
+            <label class="font-bold text-slate-200 flex-1 truncate pr-4 text-xs"><i data-lucide="user" class="w-3 h-3 inline text-slate-500 mr-1"></i> ${nome}</label>
+            <div class="flex items-center gap-2">
+                <span class="text-slate-500 font-bold text-[10px] uppercase">R$</span>
+                <input type="number" step="0.01" min="0" name="valor_pessoa_${id}" class="input-valor-rateio-manual w-20 bg-slate-800 text-slate-100 font-mono font-bold border border-slate-600 rounded p-1 text-right focus:outline-none focus:border-red-500 transition-colors text-xs" oninput="validarSomaRateioManual()">
+                <button type="button" onclick="removerPessoaManual('${id}')" class="text-slate-600 hover:text-red-500 p-1 border border-transparent hover:border-red-900/50 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+        `;
+        document.getElementById('container-rateio-manual').appendChild(div);
+        
+        opcao.style.display = 'none';
+        seletor.value = "";
+        
+        recalcularValoresIguaisManual();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function removerPessoaManual(id) {
+        document.getElementById(`linha-rateio-manual-${id}`).remove();
+        const seletor = document.getElementById('seletor-pessoas-manual');
+        const opcao = Array.from(seletor.options).find(opt => opt.value === id);
+        if (opcao) opcao.style.display = 'block';
+        recalcularValoresIguaisManual();
+    }
+
+    function recalcularValoresIguaisManual() {
+        const inputs = document.querySelectorAll('.input-valor-rateio-manual');
+        if (inputs.length === 0) {
+            validarSomaRateioManual();
+            return;
+        }
+
+        const formValorInput = document.getElementById('id_valor');
+        if (!formValorInput) return;
+        
+        const valorTotal = parseFloat(formValorInput.value || 0);
+        
+        // Count total participants: selected people + 1 (Owner)
+        const numPessoas = inputs.length + 1;
+        const valorPorPessoa = valorTotal / numPessoas;
+        
+        // Note: we only fill the inputs for the party. The owner's share is implicit.
+        for (let i = 0; i < inputs.length; i++) {
+            let val = Math.round(valorPorPessoa * 100) / 100;
+            inputs[i].value = val.toFixed(2);
+        }
+        validarSomaRateioManual();
+    }
+
+    function validarSomaRateioManual() {
+        let soma = 0;
+        const inputs = document.querySelectorAll('.input-valor-rateio-manual');
+        inputs.forEach(input => {
+            soma += parseFloat(input.value || 0);
+        });
+        
+        const formValorInput = document.getElementById('id_valor');
+        const valorTotal = formValorInput ? parseFloat(formValorInput.value || 0) : 0;
+        
+        const elSoma = document.getElementById('soma-atual-manual');
+        const alerta = document.getElementById('alerta-soma-manual');
+        const btnSubmit = document.querySelector('#modal-despesa button[type="submit"]');
+        
+        elSoma.innerText = `R$ ${soma.toFixed(2).replace('.', ',')}`;
+        
+        // For rateio in creation, the sum of party inputs MUST BE STRICTLY LESS THAN valorTotal. 
+        // Because the owner must pay something too! Or at least <= valorTotal.
+        if (soma <= valorTotal && (valorTotal > 0 || inputs.length === 0)) {
+            elSoma.className = 'font-black text-lg text-emerald-400';
+            if(btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            alerta.classList.add('hidden');
+        } else {
+            elSoma.className = 'font-black text-lg text-red-500';
+            if(btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            alerta.classList.remove('hidden');
+            alerta.innerText = 'Soma maior que o total!';
+        }
+    }
+    
+    // Listen for changes in the main valor input to recalculate
+    document.addEventListener('DOMContentLoaded', () => {
+        const valorInput = document.getElementById('id_valor');
+        if(valorInput) {
+            valorInput.addEventListener('input', () => {
+                recalcularValoresIguaisManual();
+            });
+        }
+    });
+</script>
+
+{% include 'modal_rateio.html' %}
+
+{% endblock %}

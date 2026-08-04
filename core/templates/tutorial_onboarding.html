@@ -1,0 +1,308 @@
+<!-- MODAL DE BOAS-VINDAS (CONVITE) -->
+<div id="modal-tutorial-welcome" class="fixed inset-0 bg-black/90 {% if not mostrar_tutorial %}hidden{% endif %} flex items-center justify-center z-[100] backdrop-blur-md p-4">
+    <div id="welcome-card" class="bg-slate-900 border border-slate-700 p-8 rounded-2xl shadow-[0_0_50px_rgba(30,41,59,0.5)] w-full max-w-lg text-center relative border-t-4 border-t-emerald-500">
+        <div class="bg-emerald-900/30 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-800 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <i data-lucide="sparkles" class="w-10 h-10 text-emerald-400"></i>
+        </div>
+        <h3 class="text-3xl font-black text-slate-100 mb-4">Bem-vindo, Mestre!</h3>
+        <p class="text-slate-400 mb-8 leading-relaxed">
+            Sua jornada financeira começa aqui. Deseja um tour interativo pelas câmaras da Forja ou prefere explorar por conta própria?
+        </p>
+        <div class="flex flex-col gap-3">
+            <button onclick="iniciarTour()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-5 h-5"></i> Sim, iniciar tour!
+            </button>
+            <button onclick="recusarTour()" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-xl border border-slate-700 transition-colors">
+                Agora não, mestre.
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE AJUDA PERMANENTE (GRIMÓRIO) -->
+<div id="modal-ajuda" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[90] backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 p-6 md:p-10 rounded-2xl shadow-2xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto">
+        <button onclick="fecharAjuda()" class="absolute top-6 right-6 text-slate-500 hover:text-slate-300 transition-colors">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+
+        <div class="flex items-center gap-4 mb-8">
+            <div class="bg-red-900/20 p-3 rounded-xl border border-red-900/30">
+                <i data-lucide="help-circle" class="w-8 h-8 text-red-500"></i>
+            </div>
+            <div>
+                <h2 class="text-3xl font-black text-slate-100 uppercase tracking-tighter">Grimório de Ajuda</h2>
+                <p class="text-slate-500 font-medium">Instruções para governar seu reino financeiro</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                <h4 class="text-emerald-400 font-bold flex items-center gap-2 mb-2"><i data-lucide="zap" class="w-4 h-4"></i> As Barras de Vida</h4>
+                <p class="text-sm text-slate-400">Sua Mana é sua Renda Mensal. Cada gasto consome uma parte dessa Mana. Se a barra ficar vermelha, você está perdendo HP!</p>
+            </div>
+            <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                <h4 class="text-blue-400 font-bold flex items-center gap-2 mb-2"><i data-lucide="divide" class="w-4 h-4"></i> Rateio de Despesas</h4>
+                <p class="text-sm text-slate-400">Emprestou o cartão? Use o botão "Dividir" no extrato para fragmentar um gasto entre vários aliados de forma justa.</p>
+            </div>
+            <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                <h4 class="text-purple-400 font-bold flex items-center gap-2 mb-2"><i data-lucide="trending-up" class="w-4 h-4"></i> Sistema de XP</h4>
+                <p class="text-sm text-slate-400">Titular ganha XP fechando o mês no azul. Aliados da Party ganham XP conforme gastam. Suba de nível para novos títulos!</p>
+            </div>
+            <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 hover:border-slate-600 transition-colors">
+                <h4 class="text-amber-400 font-bold flex items-center gap-2 mb-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Conciliação</h4>
+                <p class="text-sm text-slate-400">Itens sem categoria aparecem como quests urgentes. Classifique-os para manter seus gráficos e relatórios precisos.</p>
+            </div>
+        </div>
+
+        <div class="mt-10 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <p class="text-slate-500 text-sm font-medium italic">"A economia é a base de qualquer império duradouro."</p>
+            <button onclick="reiniciarTour()" class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all font-bold">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Rever Tour Interativo
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilização Customizada para o Driver.js (RPG Theme) */
+    .driver-popover.driverjs-theme {
+        background-color: #0f172a; /* slate-900 */
+        color: #f1f5f9; /* slate-100 */
+        border: 2px solid #334155; /* slate-700 */
+        border-radius: 16px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        padding: 20px;
+    }
+    .driver-popover.driverjs-theme .driver-popover-title {
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: #ef4444; /* red-500 */
+        text-transform: uppercase;
+        letter-spacing: -0.025em;
+        margin-bottom: 8px;
+    }
+    .driver-popover.driverjs-theme .driver-popover-description {
+        font-size: 0.875rem;
+        color: #94a3b8; /* slate-400 */
+        line-height: 1.6;
+    }
+    .driver-popover.driverjs-theme .driver-popover-btn {
+        background-color: #1e293b; /* slate-800 */
+        color: #f1f5f9;
+        font-weight: 700;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        text-shadow: none;
+        transition: all 0.2s;
+    }
+    .driver-popover.driverjs-theme .driver-popover-btn:hover {
+        background-color: #334155;
+        border-color: #475569;
+    }
+    .driver-popover.driverjs-theme .driver-popover-next-btn {
+        background-color: #dc2626; /* red-600 */
+        border-color: #ef4444;
+    }
+    .driver-popover.driverjs-theme .driver-popover-next-btn:hover {
+        background-color: #b91c1c;
+    }
+    .driver-popover.driverjs-theme .driver-popover-close-btn {
+        color: #64748b;
+    }
+    .driver-popover.driverjs-theme .driver-popover-progress-text {
+        color: #64748b;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    .driver-popover-arrow-side-top { border-top-color: #334155 !important; }
+    .driver-popover-arrow-side-bottom { border-bottom-color: #334155 !important; }
+    .driver-popover-arrow-side-left { border-left-color: #334155 !important; }
+    .driver-popover-arrow-side-right { border-right-color: #334155 !important; }
+</style>
+
+<script>
+    let driverObj = null;
+
+    function initDriver() {
+        if (typeof window.driver === 'undefined') return;
+        
+        driverObj = window.driver.js.driver({
+            showProgress: true,
+            animate: true,
+            popoverClass: 'driverjs-theme',
+            nextBtnText: 'Próximo →',
+            prevBtnText: '← Anterior',
+            doneBtnText: 'Concluir!',
+            progressText: 'Passo {{current}} de {{total}}',
+            onDeselected: (element, step, { config, state }) => {
+                // Se o usuário fechou o tour clicando fora ou no 'X', marcamos como visto
+                if (state.activeStep === 11) { // Último step (12 passos total)
+                   concluirTutorialBD();
+                }
+            },
+            onCloseClick: () => {
+                concluirTutorialBD();
+                driverObj.destroy();
+            },
+            onDestroyed: () => {
+                // Sempre tentar marcar como visto ao destruir se não for skip explícito que já marca
+                concluirTutorialBD();
+            },
+            steps: [
+                { 
+                    element: '#tour-vitalidade', 
+                    popover: { 
+                        title: '🛡️ Vitalidade', 
+                        description: 'Suas despesas essenciais (50%). Se esta barra subir muito ou ficar vermelha, sua economia está em perigo!',
+                        side: "bottom", align: 'start'
+                    } 
+                },
+                { 
+                    element: '#tour-stamina', 
+                    popover: { 
+                        title: '⚡ Stamina', 
+                        description: 'Gastos com estilo de vida e lazer (30%). Mantenha-os sob controle para acumular ouro e XP.',
+                        side: "bottom", align: 'start'
+                    } 
+                },
+                { 
+                    element: '#tour-tesouro', 
+                    popover: { 
+                        title: '💎 Tesouro da Guilda', 
+                        description: 'Todo o ouro guardado no Banco da Guilda. Quanto maior o saldo, mais poderoso seu reino se torna!',
+                        side: "bottom", align: 'start'
+                    } 
+                },
+                { 
+                    element: '#tour-boss', 
+                    popover: { 
+                        title: '⚔️ Boss do Mês', 
+                        description: 'Enfrente o Lorde das Dívidas no fim do mês. Se sobrar Mana (Renda), você vence e ganha XP massivo!',
+                        side: "left", align: 'start'
+                    } 
+                },
+                { 
+                    element: '#tour-loot', 
+                    popover: { 
+                        title: '📜 Pergaminhos de Loot', 
+                        description: 'Onde cada transação é registrada. Classifique os itens sem categoria para manter o mapa do tesouro limpo.',
+                        side: "top", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-fab-trigger', 
+                    popover: { 
+                        title: '🛡️ Central de Ações', 
+                        description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
+                        side: "left", align: 'center',
+                        offset: 20
+                    },
+                    onHighlightStarted: (element) => {
+                        const container = document.getElementById('tour-fab');
+                        if (container) container.classList.add('tour-expanding');
+                    },
+                    onDeselected: (element) => {
+                        const container = document.getElementById('tour-fab');
+                        if (container) container.classList.remove('tour-expanding');
+                    }
+                },
+                { 
+                    element: '#tour-nav-banco', 
+                    popover: { 
+                        title: '🏦 Banco da Guilda', 
+                        description: 'Nesta câmara você gerencia seus cofres, metas de economia e instituições financeiras.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-qg', 
+                    popover: { 
+                        title: '🏰 QG de Operações', 
+                        description: 'O quartel-general onde você cadastra seus Aliados (Pessoas), Armas (Cartões) e Categorias.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-admin', 
+                    popover: { 
+                        title: '🔮 Painel Arcano', 
+                        description: 'Acesso direto ao núcleo do sistema para manutenções avançadas e ajustes finos.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-key', 
+                    popover: { 
+                        title: '🔑 Chave do Cofre', 
+                        description: 'Altere sua senha secreta para garantir que ninguém mais acesse seu tesouro.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-help', 
+                    popover: { 
+                        title: '📖 Grimório de Ajuda', 
+                        description: 'Sempre que tiver dúvidas ou quiser rever este tour, consulte o Grimório Arcano.',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+                { 
+                    element: '#tour-nav-logout', 
+                    popover: { 
+                        title: '🚪 Sair do Castelo', 
+                        description: 'Encerra sua jornada por hoje. Lembre-se: um bom mestre nunca abandona suas contas!',
+                        side: "bottom", align: 'center'
+                    } 
+                },
+            ]
+        });
+    }
+
+    function iniciarTour() {
+        document.getElementById('modal-tutorial-welcome').classList.add('hidden');
+        if (!driverObj) initDriver();
+        if (driverObj) driverObj.drive();
+    }
+
+    function recusarTour() {
+        if(confirm("Tem certeza? Depois não reclama se ficar perdido e for devorado pelos dragões das dívidas!")) {
+            document.getElementById('modal-tutorial-welcome').classList.add('hidden');
+            concluirTutorialBD();
+        }
+    }
+
+    function concluirTutorialBD() {
+        // Envia para o servidor que o tutorial foi visto (evita reaparecer no dashboard)
+        fetch('/api/marcar-tutorial-visto/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        }).then(() => {
+            console.log("Tour marcado como concluído no banco.");
+        });
+    }
+
+    function abrirAjuda() {
+        document.getElementById('modal-ajuda').classList.remove('hidden');
+        document.getElementById('modal-ajuda').classList.add('flex');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function fecharAjuda() {
+        document.getElementById('modal-ajuda').classList.add('hidden');
+        document.getElementById('modal-ajuda').classList.remove('flex');
+    }
+
+    function reiniciarTour() {
+        fecharAjuda();
+        if (!driverObj) initDriver();
+        if (driverObj) driverObj.drive();
+    }
+
+    // Inicializa o motor no carregamento
+    window.addEventListener('load', () => {
+        setTimeout(initDriver, 500); // Pequeno delay para garantir que libs carregaram
+    });
+</script>

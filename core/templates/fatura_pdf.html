@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Fatura - {{ aliado.nome }} ({{ mes }}/{{ ano }})</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Força os navegadores a imprimirem as cores de fundo (Dark Mode) */
+        @media print {
+            body { -webkit-print-color-adjust: exact; color-adjust: exact; }
+            @page { margin: 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen p-8 flex justify-center">
+
+    <div class="w-full max-w-3xl bg-slate-800 shadow-2xl rounded-lg overflow-hidden border border-slate-700 flex flex-col relative print:shadow-none print:border-none">
+        
+        <div class="bg-slate-950 p-8 border-b border-slate-700 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-slate-100 uppercase tracking-tighter">Money<span class="text-red-600">Quest</span></h1>
+                <p class="text-slate-500 text-sm mt-1">Fatura de Consolidada de Recursos</p>
+            </div>
+            <div class="text-right">
+                <h2 class="text-2xl font-bold text-green-400">R$ {{ total|floatformat:2 }}</h2>
+                <p class="text-slate-400 text-xs font-mono mt-1">Ref: {{ mes }}/{{ ano }} | Emissão: {{ data_emissao }}</p>
+            </div>
+        </div>
+
+        <div class="p-8 grid grid-cols-2 gap-8 border-b border-slate-700 bg-slate-800">
+            <div>
+                <p class="text-xs font-bold uppercase text-slate-500 mb-1">Cobrança destinada a:</p>
+                <p class="text-lg font-bold text-slate-200">{{ aliado.nome }}</p>
+                <p class="text-sm text-slate-400">Tel: {{ aliado.telefone|default:"Não cadastrado" }}</p>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                <p class="text-xs font-bold uppercase text-green-500 mb-2 flex items-center gap-2">
+                    <i data-lucide="banknote" class="w-4 h-4"></i> Dados para Pagamento (PIX)
+                </p>
+                <p class="text-sm text-slate-300">Chave PIX: <span class="font-mono text-white font-bold block mt-1">{{ dono.chave_pix|default:"PIX não cadastrado no QG" }}</span></p>
+                <p class="text-xs text-slate-500 mt-2">Titular: {{ dono.nome|default:"Seu Nome Aqui" }}</p>
+            </div>
+        </div>
+
+        <div class="p-8 flex-1">
+            <h3 class="text-lg font-bold text-slate-200 mb-4 border-b border-slate-700 pb-2">Detalhamento das Missões (Despesas)</h3>
+            
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                        <th class="py-2">Data</th>
+                        <th class="py-2">Descrição</th>
+                        <th class="py-2 text-right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    {% for t in transacoes %}
+                    <tr class="border-b border-slate-700/50">
+                        <td class="py-3 text-slate-400">{{ t.data_compra|date:"d/m/Y" }}</td>
+                        <td class="py-3 font-medium text-slate-200">{{ t.descricao }} <span class="text-[10px] text-slate-500 block">Cat: {{ t.categoria.nome|default:"Indefinida" }}</span></td>
+                        <td class="py-3 text-right font-bold text-slate-100">R$ {{ t.valor }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="py-6 text-center text-slate-500 italic">Nenhum gasto registrado para este aliado neste mês.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-6 bg-slate-900 border-t border-slate-700 flex justify-end gap-4 print:hidden">
+            {% if link_zap %}
+            <a href="{{ link_zap }}" target="_blank" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold shadow-lg flex items-center gap-2 transition-all">
+                <i data-lucide="message-circle" class="w-4 h-4"></i> Enviar Whatsapp
+            </a>
+            {% endif %}
+            <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold shadow-lg flex items-center gap-2 transition-all">
+                <i data-lucide="printer" class="w-4 h-4"></i> Salvar PDF / Imprimir
+            </button>
+        </div>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>
