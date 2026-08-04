@@ -49,3 +49,6 @@ uritemplate>=4.2.0
 urllib3>=2.6.3
 waitress>=3.0.2
 websockets>=16.0
+pywebview>=5.0
+pyinstaller>=6.0
+
