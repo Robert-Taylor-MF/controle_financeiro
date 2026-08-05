@@ -483,7 +483,7 @@ def ratear_transacao(request, transacao_id):
 
 @login_required    
 def extrato_faturas(request):
-    transacoes = Transacao.objects.all().order_by('-data_compra')
+    transacoes = Transacao.objects.prefetch_related('rateios', 'rateios__pessoa').order_by('-data_compra')
     cartoes = CartaoCredito.objects.all()
     categorias = Categoria.objects.all()
 

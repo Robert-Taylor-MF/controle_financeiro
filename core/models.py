@@ -206,6 +206,12 @@ class Transacao(models.Model):
 
     def __str__(self):
         return f"{self.data_compra} - {self.descricao} - R$ {self.valor}"
+        
+    @property
+    def valor_real_owner(self):
+        # Calcula quanto sobrou para o dono principal pagar aps os rateios
+        total_rateio = sum(r.valor for r in self.rateios.all())
+        return self.valor - total_rateio
     
 class RendaMensal(models.Model):
     """
