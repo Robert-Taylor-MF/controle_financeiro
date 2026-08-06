@@ -945,21 +945,25 @@ def enfrentar_boss_mes(request):
         messages.info(request, f"O Boss de {mes_ano_atual} já foi derrotado! Não é possível combater novamente. (Anti-Farm ativado)")
         return redirect(f"/?mes={mes}&ano={ano}")
 
-    # 1. DANO (Apenas despesas do TITULAR no mês selecionado)
-    transacoes_mes = Transacao.objects.filter(responsavel=titular, mes_fatura=mes, ano_fatura=ano)
+    # 1. DANO (Calculado pela regra de Rateio e Orçamento do Mês)
+    from .services.rpg_service import get_hp_party
+    hp_data = get_hp_party(mes, ano)
+    dano_total = float(hp_data['gasto_total'])
     
-    if not transacoes_mes.exists():
-        messages.warning(request, f"O Mapa de {mes_ano_atual} está vazio! Não existem inimigos (gastos) no seu nome para enfrentar o Boss.")
+    if dano_total <= 0:
+        messages.warning(request, f"O Mapa de {mes_ano_atual} est vazio ou todo loteado! No existem inimigos no seu nome para enfrentar o Boss.")
         return redirect(f"/?mes={mes}&ano={ano}")
-        
-    dano_total = sum(t.valor for t in transacoes_mes)
 
-    # 2. MANA (Renda Mensal do mês selecionado)
+    # 2. MANA (Renda Mensal do ms selecionado)
     rendas_mes = RendaMensal.objects.filter(pessoa=titular, mes=mes, ano=ano)
-    mana_total = sum(r.valor_liquido for r in rendas_mes)
+    mana_total = float(sum(r.valor_liquido for r in rendas_mes))
+    
+    # Se a pessoa no lanou Renda, tentamos usar o Oramento
+    if mana_total <= 0:
+        mana_total = float(titular.orcamento_mensal or 0)
 
     # 3. O Julgamento do Combate
-    if mana_total > float(dano_total):
+    if mana_total > dano_total:
         # Vitória!
         titular.ganhar_xp(200)
         
