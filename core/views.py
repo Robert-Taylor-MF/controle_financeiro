@@ -110,10 +110,7 @@ def dashboard(request):
     else:
         renda = 0.0
         
-    # 3. Calcula as fatias ideais com base no salário daquele mês
-    meta_essencial = renda * 0.50
-    meta_emocao = renda * 0.30
-    meta_futuro = renda * 0.20
+    # 3. As fatias ideais foram removidas da regra 50/30/20
     
     # 4. TRUQUE MESTRE: Filtra os gastos apenas da competência selecionada!
     meus_gastos = Transacao.objects.filter(
@@ -142,10 +139,7 @@ def dashboard(request):
     gasto_futuro -= rateio_fut
     gasto_indefinido -= rateio_ind
 
-    # 6. Calcula a percentagem consumida
-    pct_essencial = min(int((gasto_essencial / meta_essencial) * 100) if meta_essencial > 0 else 0, 100)
-    pct_emocao = min(int((gasto_emocao / meta_emocao) * 100) if meta_emocao > 0 else 0, 100)
-    pct_futuro = min(int((gasto_futuro / meta_futuro) * 100) if meta_futuro > 0 else 0, 100)
+    # 6. As percentagens foram removidas pois dependiam das fatias 50/30/20
 
     # 7. A lista de Loot também só mostra as coisas daquele mês
     ultimas_transacoes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual).order_by('-data_compra')[:15]
@@ -218,8 +212,6 @@ def dashboard(request):
         'renda': renda,
         'saldo_restante': saldo_restante,
         'gastos': {'essencial': gasto_essencial, 'emocao': gasto_emocao, 'futuro': gasto_futuro, 'indefinido': gasto_indefinido},
-        'metas': {'essencial': meta_essencial, 'emocao': meta_emocao, 'futuro': meta_futuro},
-        'pcts': {'essencial': pct_essencial, 'emocao': pct_emocao, 'futuro': pct_futuro},
         'mes_atual': str(mes_atual), # Passado para o HTML saber quem está selecionado
         'ano_atual': str(ano_atual),
         'tesouro_total': float(tesouro_total),

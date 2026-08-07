@@ -1,67 +1,149 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-<header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-    <div class="flex-1">
-        <h2 class="text-3xl font-bold text-slate-100">Visão do Tesouro</h2>
+
+<!-- SIDE HUD -->
+<div class="fixed right-0 top-1/4 z-[60] flex flex-col items-end pointer-events-none">
+    <!-- Trigger Area -->
+    <div class="group relative flex flex-col items-end pointer-events-auto bg-slate-900/50 backdrop-blur-sm border-y border-l border-slate-700/50 rounded-l-2xl hover:bg-slate-900/95 hover:border-slate-500 transition-all duration-300 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] max-w-[320px] w-auto">
         
-        <div class="mt-3 text-center md:text-left">
-            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-full py-1.5 px-4 shadow-lg hover:border-purple-500/50 transition-all w-fit mx-auto md:mx-0">
-                <button type="button" onclick="mudarMes(-1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Mês Anterior">
-                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                </button>
-                
-                <div class="flex flex-col items-center justify-center min-w-[100px]">
-                    <h3 class="text-sm font-black text-slate-100 uppercase tracking-widest flex items-center select-none">
-                        {% if mes_atual == '1' %}JAN
-                        {% elif mes_atual == '2' %}FEV
-                        {% elif mes_atual == '3' %}MAR
-                        {% elif mes_atual == '4' %}ABR
-                        {% elif mes_atual == '5' %}MAI
-                        {% elif mes_atual == '6' %}JUN
-                        {% elif mes_atual == '7' %}JUL
-                        {% elif mes_atual == '8' %}AGO
-                        {% elif mes_atual == '9' %}SET
-                        {% elif mes_atual == '10' %}OUT
-                        {% elif mes_atual == '11' %}NOV
-                        {% elif mes_atual == '12' %}DEZ
-                        {% endif %}
-                        <span class="text-purple-500 ml-1 cursor-pointer hover:underline hover:text-purple-300 transition-colors" onclick="mudarAno()" title="Saltar para outro Ano">/ {{ ano_atual }}</span>
-                    </h3>
-                    
-                    <div class="flex items-center gap-1 mt-1">
-                        {% for i in '123456789'|make_list %}{% with mes_loop=forloop.counter|stringformat:"s" %}
-                        <button type="button" onclick="irParaMes('{{ mes_loop }}')" title="Mês {{ mes_loop }}" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == mes_loop %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                        {% endwith %}{% endfor %}
-                        <button type="button" onclick="irParaMes('10')" title="Outubro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '10' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                        <button type="button" onclick="irParaMes('11')" title="Novembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '11' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                        <button type="button" onclick="irParaMes('12')" title="Dezembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '12' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+        <!-- Collapsed Icons Strip -->
+        <div class="flex flex-col gap-6 p-4 group-hover:hidden">
+            {% if tem_recorrentes_pendentes %}
+            <div class="relative"><div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full animate-ping"></div><i data-lucide="calendar-clock" class="w-6 h-6 text-pink-400"></i></div>
+            {% endif %}
+            {% if gastos.indefinido > 0 %}
+            <div class="relative"><div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></div><i data-lucide="alert-triangle" class="w-6 h-6 text-amber-400"></i></div>
+            {% endif %}
+            <i data-lucide="gem" class="w-6 h-6 text-emerald-400"></i>
+            <i data-lucide="skull" class="w-6 h-6 text-red-500"></i>
+        </div>
+
+        <!-- Expanded Content -->
+        <div class="hidden group-hover:flex flex-col gap-4 p-4 max-h-[70vh] overflow-y-auto custom-scrollbar w-[280px]">
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right border-b border-slate-800 pb-2 mb-1">Painel de Ações</h3>
+            
+            {% if tem_recorrentes_pendentes %}
+            <div class="relative p-3 rounded-xl bg-gradient-to-r from-pink-950/40 via-slate-800 to-pink-950/40 border border-pink-700/50 shadow-[0_0_15px_rgba(236,72,153,0.15)] overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-pulse"></div>
+                <div class="flex items-center gap-3 relative z-10 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-pink-900/50 border-2 border-pink-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="calendar-clock" class="w-5 h-5 text-pink-400"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-pink-400 font-black uppercase tracking-widest text-xs">Contas Pendentes</h3>
                     </div>
                 </div>
+                <form method="POST" class="relative z-10">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="injetar_recorrentes">
+                    <input type="hidden" name="mes_fatura" value="{{ mes_atual }}">
+                    <input type="hidden" name="ano_fatura" value="{{ ano_atual }}">
+                    <button type="submit" class="w-full py-1.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded text-xs transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                        <i data-lucide="zap" class="w-3 h-3"></i> Injetar
+                    </button>
+                </form>
+            </div>
+            {% endif %}
 
-                <button type="button" onclick="mudarMes(1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Próximo Mês">
-                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                </button>
+            {% if gastos.indefinido > 0 %}
+            <a href="/extrato/?mes={{ mes_atual }}&ano={{ ano_atual }}&sem_categoria=1" class="block group/quest">
+                <div class="relative p-3 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-800 to-amber-950/40 border border-amber-700/50 hover:border-amber-500 transition-all overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-pulse"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-amber-900/50 border-2 border-amber-600 flex items-center justify-center shrink-0 group-hover/quest:scale-110 transition-transform">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-amber-400 font-black uppercase tracking-widest text-xs">Quest Ativa</h4>
+                            <p class="text-slate-300 text-[10px] font-bold leading-tight mt-1">Classificar R$ {{ gastos.indefinido|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endif %}
+
+            <div class="bg-slate-800 p-4 rounded-lg border-l-4 border-emerald-500 relative overflow-hidden group/gem">
+                <i data-lucide="gem" class="absolute -right-2 -bottom-2 w-16 h-16 text-emerald-500/10 group-hover/gem:scale-110 transition-transform"></i>
+                <h3 class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <i data-lucide="landmark" class="w-3 h-3 text-emerald-500"></i> Tesouro Guilda
+                </h3>
+                <p class="text-xl font-black text-slate-100">R$ {{ tesouro_total|floatformat:2 }}</p>
             </div>
 
-            <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
-                <input type="hidden" name="mes" id="input-timeline-mes" value="{{ mes_atual }}">
-                <input type="number" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
-            </form>
+            <div class="bg-slate-900 rounded-lg border border-red-900/50 flex flex-col justify-center items-center text-center group/boss hover:border-red-500 transition-colors relative overflow-hidden p-4">
+                <i data-lucide="skull" class="absolute -right-2 -bottom-2 w-16 h-16 text-red-500/10 group-hover/boss:scale-110 transition-transform"></i>
+                <h3 class="text-red-500 font-black uppercase tracking-widest text-[10px] mb-1 z-10 flex items-center gap-1">
+                    <i data-lucide="swords" class="w-3 h-3"></i> Boss do Mês
+                </h3>
+                <a href="{% url 'enfrentar_boss_mes' %}?mes={{ mes_atual }}&ano={{ ano_atual }}" class="mt-2 w-full py-1.5 bg-red-700 hover:bg-red-600 text-white text-[10px] font-bold rounded transition-all z-10 flex items-center justify-center uppercase tracking-widest">
+                    Combater
+                </a>
+            </div>
+            
         </div>
     </div>
+</div>
+
+<header class="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+    <div class="flex items-center gap-4 flex-wrap">
+        <h2 class="text-2xl font-bold text-slate-100 hidden sm:block">Visão do Tesouro</h2>
+        
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-full py-1 px-3 shadow-lg hover:border-purple-500/50 transition-all">
+            <button type="button" onclick="mudarMes(-1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Mês Anterior">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="flex flex-col items-center justify-center min-w-[100px]">
+                <h3 class="text-sm font-black text-slate-100 uppercase tracking-widest flex items-center select-none">
+                    {% if mes_atual == '1' %}JAN
+                    {% elif mes_atual == '2' %}FEV
+                    {% elif mes_atual == '3' %}MAR
+                    {% elif mes_atual == '4' %}ABR
+                    {% elif mes_atual == '5' %}MAI
+                    {% elif mes_atual == '6' %}JUN
+                    {% elif mes_atual == '7' %}JUL
+                    {% elif mes_atual == '8' %}AGO
+                    {% elif mes_atual == '9' %}SET
+                    {% elif mes_atual == '10' %}OUT
+                    {% elif mes_atual == '11' %}NOV
+                    {% elif mes_atual == '12' %}DEZ
+                    {% endif %}
+                    <span class="text-purple-500 ml-1 cursor-pointer hover:underline hover:text-purple-300 transition-colors" onclick="mudarAno()" title="Saltar para outro Ano">/ {{ ano_atual }}</span>
+                </h3>
+                
+                <div class="flex items-center gap-1 mt-1">
+                    {% for i in '123456789'|make_list %}{% with mes_loop=forloop.counter|stringformat:"s" %}
+                    <button type="button" onclick="irParaMes('{{ mes_loop }}')" title="Mês {{ mes_loop }}" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == mes_loop %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                    {% endwith %}{% endfor %}
+                    <button type="button" onclick="irParaMes('10')" title="Outubro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '10' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                    <button type="button" onclick="irParaMes('11')" title="Novembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '11' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                    <button type="button" onclick="irParaMes('12')" title="Dezembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '12' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
+                </div>
+            </div>
+
+            <button type="button" onclick="mudarMes(1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Próximo Mês">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
+            <input type="hidden" name="mes" id="input-timeline-mes" value="{{ mes_atual }}">
+            <input type="number" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
+        </form>
+    </div>
     
-    <div class="flex flex-col md:flex-row gap-4 mt-4 md:mt-0 text-right shrink-0">
+    <div class="flex gap-4 text-right shrink-0">
         <!-- Mana Recebida -->
-        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border border-slate-700 md:border-none">
-            <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
-            <p class="text-xl md:text-2xl font-bold text-purple-400 whitespace-nowrap">R$ {{ renda|floatformat:2 }}</p>
+        <div class="bg-slate-800 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg border border-slate-700 md:border-none flex flex-col justify-center">
+            <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
+            <p class="text-lg font-bold text-purple-400 whitespace-nowrap leading-none">R$ {{ renda|floatformat:2 }}</p>
         </div>
         
         <!-- Saldo Restante -->
-        <div class="bg-slate-800 md:bg-transparent p-4 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none">
-            <p class="text-xs text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
-            <p class="text-xl md:text-2xl font-bold whitespace-nowrap {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
+        <div class="bg-slate-800 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none flex flex-col justify-center">
+            <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
+            <p class="text-lg font-bold whitespace-nowrap leading-none {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
                 R$ {{ saldo_restante|floatformat:2 }}
             </p>
         </div>
@@ -69,62 +151,38 @@
 </header>
 
 {% if hp.hp_maximo > 0 %}
-<div class="mb-6 bg-slate-900 border border-slate-700 rounded-lg p-5 shadow-xl relative overflow-hidden">
-    <div class="flex flex-col md:flex-row justify-between items-center mb-3 relative z-10">
-        <div>
-            <h3 class="text-slate-100 font-black uppercase tracking-widest text-lg flex items-center gap-2">
-                <i data-lucide="heart" class="w-5 h-5 {% if hp.status == 'PERIGO' %}text-red-500 animate-pulse{% elif hp.status == 'ALERTA' %}text-yellow-500{% else %}text-emerald-500{% endif %}"></i> 
-                Minha Vitalidade (HP)
-            </h3>
-            <p class="text-xs text-slate-400 font-mono">Dano sofrido: R$ {{ hp.gasto_total|floatformat:2 }}</p>
+<div class="mb-6 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-center gap-4">
+    {% if hp.status == 'PERIGO' %}
+        <div class="absolute inset-0 bg-red-900/10 animate-pulse pointer-events-none"></div>
+    {% endif %}
+    
+    <div class="flex items-center gap-2 shrink-0 z-10 w-full sm:w-auto justify-between sm:justify-start">
+        <div class="flex items-center gap-2">
+            <i data-lucide="heart" class="w-5 h-5 {% if hp.status == 'PERIGO' %}text-red-500 animate-pulse{% elif hp.status == 'ALERTA' %}text-yellow-500{% else %}text-emerald-500{% endif %}"></i> 
+            <h3 class="text-slate-100 font-black uppercase tracking-widest text-sm">Minha Vitalidade</h3>
         </div>
-        <div class="text-right mt-2 md:mt-0">
-            <p class="text-2xl font-black {% if hp.status == 'PERIGO' %}text-red-500{% elif hp.status == 'ALERTA' %}text-yellow-500{% else %}text-emerald-500{% endif %}">
+        <!-- Mobile stats inline -->
+        <div class="sm:hidden text-right">
+            <p class="text-sm font-black leading-none {% if hp.status == 'PERIGO' %}text-red-500{% elif hp.status == 'ALERTA' %}text-yellow-500{% else %}text-emerald-500{% endif %}">
                 {{ hp.hp_atual|floatformat:2 }} / {{ hp.hp_maximo|floatformat:2 }}
             </p>
         </div>
     </div>
     
-    <div class="w-full bg-slate-950 rounded-full h-4 relative z-10 shadow-inner">
-        <div class="h-4 rounded-full transition-all duration-1000 {% if hp.status == 'PERIGO' %}bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]{% elif hp.status == 'ALERTA' %}bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.6)]{% else %}bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]{% endif %}" style="width: {{ hp.hp_pct }}%"></div>
+    <div class="w-full bg-slate-950 rounded-full h-2.5 relative z-10 shadow-inner overflow-hidden flex-1">
+        <div class="h-2.5 rounded-full transition-all duration-1000 {% if hp.status == 'PERIGO' %}bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]{% elif hp.status == 'ALERTA' %}bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.6)]{% else %}bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]{% endif %}" style="width: {{ hp.hp_pct }}%"></div>
     </div>
     
-    <!-- Efeitos de fundo dependendo do status -->
-    {% if hp.status == 'PERIGO' %}
-        <div class="absolute inset-0 bg-red-900/10 animate-pulse pointer-events-none"></div>
-    {% endif %}
-</div>
-{% endif %}
-
-
-{% if tem_recorrentes_pendentes %}
-<div class="mb-6">
-    <div class="relative p-5 rounded-xl bg-gradient-to-r from-pink-950/40 via-slate-800 to-pink-950/40 border border-pink-700/50 shadow-[0_0_25px_rgba(236,72,153,0.15)] flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-pulse"></div>
-        
-        <div class="flex items-center gap-4 relative z-10">
-            <div class="w-14 h-14 rounded-full bg-pink-900/50 border-2 border-pink-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
-                <i data-lucide="calendar-clock" class="w-7 h-7 text-pink-400"></i>
-            </div>
-            
-            <div>
-                <h3 class="text-pink-400 font-black uppercase tracking-widest text-lg">Contas Fixas Pendentes!</h3>
-                <p class="text-slate-300 text-sm mt-1">Deseja injetar suas Despesas Recorrentes no mapa de {{ mes_atual }}/{{ ano_atual }}?</p>
-            </div>
-        </div>
-        
-        <form method="POST" class="relative z-10 shrink-0 w-full md:w-auto">
-            {% csrf_token %}
-            <input type="hidden" name="acao" value="injetar_recorrentes">
-            <input type="hidden" name="mes_fatura" value="{{ mes_atual }}">
-            <input type="hidden" name="ano_fatura" value="{{ ano_atual }}">
-            <button type="submit" class="w-full md:w-auto px-6 py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded shadow-[0_0_15px_rgba(236,72,153,0.5)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
-                <i data-lucide="zap" class="w-4 h-4"></i> Injetar Contas
-            </button>
-        </form>
+    <div class="hidden sm:flex text-right shrink-0 z-10 flex-col items-end">
+        <p class="text-sm font-black leading-none {% if hp.status == 'PERIGO' %}text-red-500{% elif hp.status == 'ALERTA' %}text-yellow-500{% else %}text-emerald-500{% endif %}">
+            {{ hp.hp_atual|floatformat:2 }} / {{ hp.hp_maximo|floatformat:2 }}
+        </p>
+        <p class="text-[10px] text-slate-400 font-mono mt-1 leading-none">Dano: R$ {{ hp.gasto_total|floatformat:2 }}</p>
     </div>
 </div>
 {% endif %}
+
+
 
 <!-- TABS DE NAVEGAÇÃO DO DASHBOARD -->
 <div class="border-b border-slate-700 mb-6 flex gap-4 overflow-x-auto">
@@ -142,86 +200,7 @@
 <!-- CONTAINER DA VISÃO PESSOAL (Conteúdo anterior) -->
 <div id="aba-dashboard-pessoal" class="aba-conteudo-dash block">
 
-    {% if gastos.indefinido > 0 %}
-        <a href="/extrato/?mes={{ mes_atual }}&ano={{ ano_atual }}&sem_categoria=1" class="block mb-6 group cursor-pointer">
-            <div class="relative p-5 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-800 to-amber-950/40 border border-amber-700/50 shadow-[0_0_25px_rgba(217,119,6,0.15)] hover:shadow-[0_0_35px_rgba(217,119,6,0.3)] transition-all overflow-hidden">
-                
-                <!-- Glow pulsante de fundo -->
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-pulse"></div>
-                
-                <div class="flex items-center gap-4 relative z-10">
-                    <!-- Ícone estilo quest -->
-                    <div class="w-14 h-14 rounded-full bg-amber-900/50 border-2 border-amber-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(217,119,6,0.3)] group-hover:scale-110 transition-transform">
-                        <i data-lucide="alert-triangle" class="w-7 h-7 text-amber-400"></i>
-                    </div>
-                    
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h4 class="text-amber-400 font-black uppercase tracking-widest text-xs">⚔️ Quest Ativa</h4>
-                            <span class="text-[10px] bg-amber-900/50 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700/50 font-mono">SIDE QUEST</span>
-                        </div>
-                        <p class="text-slate-200 text-sm font-bold">Classificar <span class="text-amber-300">R$ {{ gastos.indefinido|floatformat:2 }}</span> em loots sem encantamento (categoria)</p>
-                        <p class="text-slate-500 text-xs mt-1">Esses itens não estão impactando as suas barras de vida. Toque aqui para resolver →</p>
-                    </div>
-                </div>
-            </div>
-        </a>
-    {% endif %}
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        
-        <div id="tour-vitalidade" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    🛡️ Vitalidade (50%)
-                </h3>
-                <span class="text-xs font-bold {% if pcts.essencial >= 90 %}text-red-500{% else %}text-green-500{% endif %}">
-                    {{ pcts.essencial }}%
-                </span>
-            </div>
-            <p class="text-2xl font-bold text-slate-100 mb-1">R$ {{ gastos.essencial|floatformat:2 }}</p>
-            <p class="text-xs text-slate-500 mb-4">de R$ {{ metas.essencial|floatformat:2 }} permitidos</p>
-            
-            <div class="w-full bg-slate-900 rounded-full h-2.5">
-                <div class="h-2.5 rounded-full {% if pcts.essencial >= 90 %}bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]{% else %}bg-green-500{% endif %} transition-all duration-1000" style="width: {{ pcts.essencial }}%"></div>
-            </div>
-        </div>
-
-        <div id="tour-stamina" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg relative overflow-hidden">
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-slate-300 font-bold uppercase text-xs tracking-wider flex items-center gap-2">
-                    ⚡ Stamina (30%)
-                </h3>
-                <span class="text-xs font-bold {% if pcts.emocao >= 90 %}text-red-500{% elif pcts.emocao >= 70 %}text-yellow-500{% else %}text-blue-400{% endif %}">
-                    {{ pcts.emocao }}%
-                </span>
-            </div>
-            <p class="text-2xl font-bold text-slate-100 mb-1">R$ {{ gastos.emocao|floatformat:2 }}</p>
-            <p class="text-xs text-slate-500 mb-4">de R$ {{ metas.emocao|floatformat:2 }} permitidos</p>
-            
-            <div class="w-full bg-slate-900 rounded-full h-2.5">
-                <div class="h-2.5 rounded-full {% if pcts.emocao >= 90 %}bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]{% elif pcts.emocao >= 70 %}bg-yellow-500{% else %}bg-blue-500{% endif %} transition-all duration-1000" style="width: {{ pcts.emocao }}%"></div>
-            </div>
-        </div>
-
-        <div id="tour-tesouro" class="bg-slate-800 p-6 rounded-lg border-l-4 border-emerald-500 shadow-lg relative overflow-hidden group">
-            <i data-lucide="gem" class="absolute -right-4 -bottom-4 w-24 h-24 text-emerald-500/10 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
-                <i data-lucide="landmark" class="w-4 h-4 text-emerald-500"></i> Tesouro da Guilda
-            </h3>
-            <p class="text-3xl font-black text-slate-100">R$ {{ tesouro_total|floatformat:2 }}</p>
-        </div>
-        <div id="tour-boss" class="bg-slate-900 rounded-lg border border-red-900/50 shadow-[0_0_15px_rgba(220,38,38,0.2)] flex flex-col justify-center items-center text-center group hover:border-red-500 transition-colors relative overflow-hidden p-6">
-            <i data-lucide="skull" class="absolute -right-4 -bottom-4 w-28 h-28 text-red-500/10 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-red-500 font-black uppercase tracking-widest text-sm mb-1 z-10 flex items-center gap-2">
-                <i data-lucide="swords" class="w-4 h-4"></i> Boss do Mês
-            </h3>
-            <p class="text-xs text-slate-400 mb-4 z-10">Desafie o lorde por XP massivo!</p>
-            <a href="{% url 'enfrentar_boss_mes' %}?mes={{ mes_atual }}&ano={{ ano_atual }}" class="px-5 py-2.5 bg-red-700 hover:bg-red-600 text-white text-xs font-bold rounded shadow-[0_0_10px_rgba(220,38,38,0.4)] transition-all z-10 flex items-center gap-2 uppercase tracking-widest">
-                Combater
-            </a>
-        </div>
-    </div>
 
     <div id="tour-loot" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
         <h3 class="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700 pb-2">Últimos Registros (Loot)</h3>
