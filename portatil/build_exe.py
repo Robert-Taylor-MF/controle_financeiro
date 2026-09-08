@@ -85,6 +85,16 @@ def build():
 
     if result.returncode == 0:
         exe_path = os.path.join(DIST_DIR, 'MoneyQuest', 'MoneyQuest.exe')
+        
+        # Copia o banco de dados ativo para dentro do pacote portátil
+        src_db = os.path.join(BASE_DIR, 'dados', 'db.sqlite3')
+        if os.path.exists(src_db):
+            dst_dados = os.path.join(DIST_DIR, 'MoneyQuest', 'dados')
+            os.makedirs(dst_dados, exist_ok=True)
+            shutil.copy2(src_db, os.path.join(dst_dados, 'db.sqlite3'))
+            shutil.copy2(src_db, os.path.join(DIST_DIR, 'MoneyQuest', 'db.sqlite3'))
+            print("[OK] Banco de dados sincronizado na pasta do executável.")
+
         print()
         print("==========================================================")
         print(" [OK] EXECUTÁVEL PORTÁTIL GERADO COM SUCESSO!")

@@ -12,6 +12,8 @@
     <!-- Driver.js (Product Tour) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-200 h-screen flex flex-col font-sans overflow-hidden">
 
@@ -33,7 +35,9 @@
                 <a id="tour-nav-extrato" href="{% url 'extrato_faturas' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-slate-300 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="scroll" class="w-4 h-4 mr-2"></i> Pergaminhos</a>
                 <a id="tour-nav-banco" href="{% url 'banco_guilda' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-emerald-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="landmark" class="w-4 h-4 mr-2"></i> Banco</a>
                 <a id="tour-nav-qg" href="{% url 'central_cadastros' %}" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-blue-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="settings" class="w-4 h-4 mr-2"></i> QG</a>
+                {% if not is_portable %}
                 <a id="tour-nav-admin" href="/admin/" target="_blank" class="h-full flex items-center px-3 border-b-2 border-transparent hover:border-purple-500 text-sm font-bold text-slate-400 hover:text-slate-100 transition-all"><i data-lucide="database" class="w-4 h-4 mr-2"></i> Painel Admin</a>
+                {% endif %}
             </div>
         </div>
 
@@ -246,7 +250,9 @@
         <a href="{% url 'banco_guilda' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-emerald-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="landmark" class="w-6 h-6"></i> Banco</a>
         <a href="{% url 'central_cadastros' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-blue-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="settings" class="w-6 h-6"></i> QG</a>
         <a href="{% url 'mudar_senha_interna' %}" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-yellow-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="key-round" class="w-6 h-6"></i> Mudar Senha</a>
+        {% if not is_portable %}
         <a href="/admin/" target="_blank" class="flex items-center gap-3 text-xl font-bold text-slate-300 hover:text-purple-500 transition-colors w-64 p-3 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"><i data-lucide="database" class="w-6 h-6"></i> Painel Admin</a>
+        {% endif %}
     </div>
 
     <script>

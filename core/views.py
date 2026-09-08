@@ -91,8 +91,6 @@ def dashboard(request):
     # LÓGICA DE EXIBIÇÃO NORMAL (GET)
     # ==========================================
     hoje = datetime.now()
-    mes_atual = int(request.GET.get('mes', hoje.month))
-    ano_atual = int(request.GET.get('ano', hoje.year))
     
     categorias = Categoria.objects.all()
     pessoas = Pessoa.objects.all()
@@ -100,24 +98,30 @@ def dashboard(request):
     
     # 1. O Relógio do Sistema: Pega o mês da URL, se não tiver, usa o mês atual
     hoje = datetime.now()
-    mes_atual = int(request.GET.get('mes', hoje.month))
+    mes_req = request.GET.get('mes', str(hoje.month))
     ano_atual = int(request.GET.get('ano', hoje.year))
     
-    # 2. Vai à Tesouraria procurar a Renda ESPECÍFICA deste mês e ano
+    visao_anual = (mes_req == 'todos' or mes_req == '')
+    mes_atual = None if visao_anual else int(mes_req)
+    
+    # 2. Vai à Tesouraria procurar a Renda ESPECÍFICA
     if dono:
-        renda_obj = RendaMensal.objects.filter(pessoa=dono, mes=mes_atual, ano=ano_atual).first()
-        renda = float(renda_obj.valor_liquido) if renda_obj else 0.0
+        if visao_anual:
+            renda_obj = RendaMensal.objects.filter(pessoa=dono, ano=ano_atual)
+            renda = sum(float(r.valor_liquido) for r in renda_obj)
+        else:
+            renda_obj = RendaMensal.objects.filter(pessoa=dono, mes=mes_atual, ano=ano_atual).first()
+            renda = float(renda_obj.valor_liquido) if renda_obj else 0.0
     else:
         renda = 0.0
         
-    # 3. As fatias ideais foram removidas da regra 50/30/20
-    
     # 4. TRUQUE MESTRE: Filtra os gastos apenas da competência selecionada!
     meus_gastos = Transacao.objects.filter(
         Q(responsavel=dono) | Q(responsavel__isnull=True),
-        mes_fatura=mes_atual,
         ano_fatura=ano_atual
     )
+    if not visao_anual:
+        meus_gastos = meus_gastos.filter(mes_fatura=mes_atual)
     
     # 5. Soma o que já foi gasto nas categorias
     gasto_essencial = float(meus_gastos.filter(categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
@@ -127,7 +131,10 @@ def dashboard(request):
     
     # 5.1 Subtrai os Rateios (o que os Aliados pagaram daquelas transações não pesa no seu HP)
     from .models import Rateio
-    rateios_mes = Rateio.objects.filter(transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual)
+    if visao_anual:
+        rateios_mes = Rateio.objects.filter(transacao__ano_fatura=ano_atual)
+    else:
+        rateios_mes = Rateio.objects.filter(transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual)
     
     rateio_ess = float(rateios_mes.filter(transacao__categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
     rateio_emo = float(rateios_mes.filter(transacao__categoria__tipo_regra='ESTILO_VIDA').aggregate(Sum('valor'))['valor__sum'] or 0)
@@ -139,10 +146,11 @@ def dashboard(request):
     gasto_futuro -= rateio_fut
     gasto_indefinido -= rateio_ind
 
-    # 6. As percentagens foram removidas pois dependiam das fatias 50/30/20
-
-    # 7. A lista de Loot também só mostra as coisas daquele mês
-    ultimas_transacoes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual).order_by('-data_compra')[:15]
+    # 7. A lista de Loot também só mostra as coisas daquele mês (ou ano)
+    if visao_anual:
+        ultimas_transacoes = Transacao.objects.filter(ano_fatura=ano_atual).order_by('-data_compra')[:15]
+    else:
+        ultimas_transacoes = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual).order_by('-data_compra')[:15]
 
     # 8. NOVO CÁLCULO: Puxa o tesouro total para o novo Card
     cofres = Cofre.objects.all()
@@ -159,13 +167,15 @@ def dashboard(request):
     for p in pessoas:
         # A party members expenses are the sum of their Rateios, or Transacoes directly assigned to them
         if not p.is_owner:
-            # Puxa o total de rateios no mes para a pessoa
-            rateios_mes = Rateio.objects.filter(pessoa=p, transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
+            # Puxa o total de rateios no mes/ano para a pessoa
+            if visao_anual:
+                rateio_pessoa_mes = Rateio.objects.filter(pessoa=p, transacao__ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
+                transacoes_diretas = Transacao.objects.filter(responsavel=p, ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
+            else:
+                rateio_pessoa_mes = Rateio.objects.filter(pessoa=p, transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
+                transacoes_diretas = Transacao.objects.filter(responsavel=p, mes_fatura=mes_atual, ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
             
-            # Plus any direct transactions (though we are migrating everything to Rateio, just in case)
-            transacoes_diretas = Transacao.objects.filter(responsavel=p, mes_fatura=mes_atual, ano_fatura=ano_atual).aggregate(Sum('valor'))['valor__sum'] or 0
-            
-            total_p = float(rateios_mes) + float(transacoes_diretas)
+            total_p = float(rateio_pessoa_mes) + float(transacoes_diretas)
             
             gastos_party.append({
                 'pessoa': p,
@@ -181,7 +191,10 @@ def dashboard(request):
     # O dono arca com transações sem dono, MAS ele também recebe o desconto dos rateios
     # Então o total de gastos "pessoais" do dono na verdade não muda (a lógica das categorias já lida com isso)
     # Mas precisamos ajustar a soma geral
-    total_sem_dono = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual, responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
+    if visao_anual:
+        total_sem_dono = Transacao.objects.filter(ano_fatura=ano_atual, responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
+    else:
+        total_sem_dono = Transacao.objects.filter(mes_fatura=mes_atual, ano_fatura=ano_atual, responsavel__isnull=True).aggregate(Sum('valor'))['valor__sum'] or 0
 
     # 10b. RANKING: Apenas quem gastou, ordenado do maior para o menor
     ranking_party = sorted([g for g in gastos_party if g['total'] > 0], key=lambda x: x['total'], reverse=True)
@@ -193,7 +206,10 @@ def dashboard(request):
     # 12. VERIFICAÇÃO DE CONTAS FIXAS
     from .models import RegistroRecorrencia, DespesaRecorrente
     tem_recorrentes = DespesaRecorrente.objects.exists()
-    recorrencia_mes_feita = RegistroRecorrencia.objects.filter(mes=mes_atual, ano=ano_atual).exists()
+    if visao_anual:
+        recorrencia_mes_feita = True # Na visão anual ignoramos o alerta do mês
+    else:
+        recorrencia_mes_feita = RegistroRecorrencia.objects.filter(mes=mes_atual, ano=ano_atual).exists()
     tem_recorrentes_pendentes = tem_recorrentes and not recorrencia_mes_feita
 
     # 13. GAMIFICAÇÃO: Atualizar status e carregar dados RPG
@@ -201,9 +217,60 @@ def dashboard(request):
     atualizar_classes_dinamicas(mes_atual, ano_atual)
     dados_hp = get_hp_party(mes_atual, ano_atual)
     
-    # Busca as quests ativas do mês para a tela
+    # Busca as quests ativas do mês (ou do ano inteiro)
     from .models import Quest
-    quests_ativas = Quest.objects.filter(mes_vigencia=mes_atual, ano_vigencia=ano_atual)
+    if visao_anual:
+        quests_ativas = Quest.objects.filter(ano_vigencia=ano_atual)
+    else:
+        quests_ativas = Quest.objects.filter(mes_vigencia=mes_atual, ano_vigencia=ano_atual)
+
+    # 14. DADOS PARA GRÁFICOS BI (Chart.js)
+    import json
+    import calendar
+    gastos_grafico_linha = []
+    labels_linha = []
+    
+    if visao_anual:
+        # Gráfico por meses de 1 a 12
+        for m in range(1, 13):
+            total_m = meus_gastos.filter(mes_fatura=m).aggregate(Sum('valor'))['valor__sum'] or 0
+            rateio_m = rateios_mes.filter(transacao__mes_fatura=m).aggregate(Sum('valor'))['valor__sum'] or 0
+            gastos_grafico_linha.append(max(0, float(total_m) - float(rateio_m)))
+            # Nome dos meses em PT-BR
+            meses_pt = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+            labels_linha.append(meses_pt[m])
+    else:
+        # Gráfico por dias do mês selecionado
+        dias_do_mes = calendar.monthrange(ano_atual, mes_atual)[1]
+        for dia in range(1, dias_do_mes + 1):
+            total_dia = meus_gastos.filter(data_compra__day=dia).aggregate(Sum('valor'))['valor__sum'] or 0
+            rateio_dia = rateios_mes.filter(transacao__data_compra__day=dia).aggregate(Sum('valor'))['valor__sum'] or 0
+            gastos_grafico_linha.append(max(0, float(total_dia) - float(rateio_dia)))
+            labels_linha.append(str(dia))
+
+    grafico_dias = json.dumps({'labels': labels_linha, 'dados': gastos_grafico_linha})
+    grafico_categorias = json.dumps({'labels': ['Essencial', 'Emoção', 'Futuro', 'Indefinido'], 'dados': [max(0, gasto_essencial), max(0, gasto_emocao), max(0, gasto_futuro), max(0, gasto_indefinido)]})
+    grafico_party = json.dumps({'labels': [g['pessoa'].nome for g in gastos_party], 'dados': [float(g['total']) for g in gastos_party]})
+
+    # NOVO: Gráfico detalhado por Categorias reais (ex: Lazer, Saúde, Moradia)
+    categorias_detalhadas_qs = meus_gastos.exclude(categoria__isnull=True).values('categoria__nome').annotate(total=Sum('valor')).order_by('-total')
+    labels_detalhado = []
+    dados_detalhado = []
+    for c in categorias_detalhadas_qs:
+        # Subtrai o rateio dessa categoria específica
+        rat = rateios_mes.filter(transacao__categoria__nome=c['categoria__nome']).aggregate(Sum('valor'))['valor__sum'] or 0
+        
+        valor_real = max(0, float(c['total']) - float(rat))
+        if valor_real > 0:
+            labels_detalhado.append(c['categoria__nome'])
+            dados_detalhado.append(valor_real)
+            
+    # Inclui gastos sem categoria (indefinido) se houver
+    if gasto_indefinido > 0:
+        labels_detalhado.append('Sem Categoria')
+        dados_detalhado.append(gasto_indefinido)
+
+    grafico_categorias_detalhado = json.dumps({'labels': labels_detalhado, 'dados': dados_detalhado})
 
     contexto = {
         'transacoes': ultimas_transacoes,
@@ -212,19 +279,26 @@ def dashboard(request):
         'renda': renda,
         'saldo_restante': saldo_restante,
         'gastos': {'essencial': gasto_essencial, 'emocao': gasto_emocao, 'futuro': gasto_futuro, 'indefinido': gasto_indefinido},
-        'mes_atual': str(mes_atual), # Passado para o HTML saber quem está selecionado
+        'mes_atual': 'todos' if visao_anual else str(mes_atual),
         'ano_atual': str(ano_atual),
         'tesouro_total': float(tesouro_total),
-        'cartoes': cartoes, # <- Adicione isso para o Modal saber quais cartões existem
+        'cartoes': cartoes,
         'gastos_party': gastos_party,
         'total_sem_dono': float(total_sem_dono),
         'ranking_party': ranking_party,
         'mostrar_tutorial': not dono.tutorial_visto if dono else False,
         'tem_recorrentes_pendentes': tem_recorrentes_pendentes,
+        'visao_anual': visao_anual,
         
         # Dados de Gamificação / RPG
         'hp': dados_hp,
         'quests': quests_ativas,
+        
+        # Dados Gráficos (JSON)
+        'grafico_dias': grafico_dias,
+        'grafico_categorias': grafico_categorias,
+        'grafico_categorias_detalhado': grafico_categorias_detalhado,
+        'grafico_party': grafico_party,
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={
@@ -249,12 +323,19 @@ def importar_fatura(request):
         ano_fatura = request.POST.get('ano_fatura')
         
         if arquivo_pdf and cartao_id and mes_fatura and ano_fatura:
-            sucesso, mensagem = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, request.user.id)
+            resultado_oraculo = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, request.user.id)
+            sucesso = resultado_oraculo[0]
             if sucesso:
-                messages.success(request, f"O Oráculo completou a extração! Todos os loots foram armazenados. Detalhes: {mensagem}")
+                mensagem, sugestoes_pendentes = resultado_oraculo[1]
+                messages.success(request, f"O Oráculo completou a extração! Detalhes: {mensagem}")
+                
+                if sugestoes_pendentes:
+                    request.session['sugestoes_oraculo'] = sugestoes_pendentes
+                    
                 # Direciona para a página de Pergaminhos (Extrato) já com os filtros do mês, ano e cartão selecionados!
                 return redirect(f"/extrato/?mes={mes_fatura}&ano={ano_fatura}&cartao_id={cartao_id}")
             else:
+                mensagem = resultado_oraculo[1]
                 messages.error(request, mensagem)
         else:
             messages.warning(request, "Por favor, selecione um cartão e envie um PDF.")
@@ -266,13 +347,121 @@ def importar_fatura(request):
     return redirect('dashboard')
 
 @login_required
-@csrf_exempt
+def aceitar_sugestoes_oraculo(request):
+    import json
+    if request.method == 'POST':
+        try:
+            dados = json.loads(request.body)
+            sugestoes = dados.get('sugestoes', [])
+            
+            for sug in sugestoes:
+                categoria_id = sug.get('categoria_id')
+                categoria = Categoria.objects.get(id=categoria_id) if categoria_id else None
+                
+                if sug.get('tipo') == 'existente':
+                    t = Transacao.objects.get(id=sug['id_transacao'])
+                    t.categoria = categoria
+                    t.save()
+                else:
+                    v = sug.get('valor', 0)
+                    if isinstance(v, (int, float)):
+                        valor_float = float(v)
+                    else:
+                        v_str = str(v).replace('R$', '').replace(' ', '').strip()
+                        if ',' in v_str and '.' in v_str:
+                            if v_str.rfind(',') > v_str.rfind('.'):
+                                v_str = v_str.replace('.', '').replace(',', '.')
+                            else:
+                                v_str = v_str.replace(',', '')
+                        elif ',' in v_str:
+                            if v_str.count(',') > 1:
+                                v_str = v_str.replace(',', '')
+                            else:
+                                v_str = v_str.replace(',', '.')
+                        try:
+                            valor_float = float(v_str)
+                        except ValueError:
+                            valor_float = 0.0
+                    
+                    Transacao.objects.create(
+                        descricao=sug['descricao'],
+                        valor=valor_float,
+                        data_compra=sug['data_compra'],
+                        cartao_id=sug['cartao_id'],
+                        mes_fatura=sug['mes_fatura'],
+                        ano_fatura=sug['ano_fatura'],
+                        categoria=categoria,
+                        status='PENDENTE',
+                        responsavel=None
+                    )
+            
+            # Limpa a sessão
+            if 'sugestoes_oraculo' in request.session:
+                del request.session['sugestoes_oraculo']
+                
+            return JsonResponse({'sucesso': True, 'mensagem': 'Sugestões aceitas com sucesso!'})
+        except Exception as e:
+            return JsonResponse({'sucesso': False, 'erro': str(e)})
+            
+    return JsonResponse({'sucesso': False, 'erro': 'Método inválido'})
+
+@login_required
 def cancelar_oraculo(request):
     if request.method == 'POST':
         from django.core.cache import cache
         cache.set(f'cancelar_oraculo_{request.user.id}', True, timeout=300)
-        return JsonResponse({'status': 'sucesso'})
-    return JsonResponse({'status': 'erro'}, status=400)
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def testar_oraculo(request):
+    """
+    Endpoint para testar a chave API e listar modelos Llama ativos no Groq em tempo real.
+    """
+    from core.services.pdf_service import obter_melhor_modelo_groq
+    import os
+    from google import genai
+
+    ms = getattr(request.user, 'seguranca', None)
+    ai_default = request.GET.get('ai_default') or (ms.ai_default if ms else 'GEMINI')
+    
+    if ai_default == 'GROQ':
+        groq_key = ms.get_groq_key() if ms else None
+        if not groq_key:
+            return JsonResponse({'sucesso': False, 'mensagem': 'Chave API do Groq não configurada no QG.'})
+        try:
+            from groq import Groq
+            cliente = Groq(api_key=groq_key)
+            modelo_detectado = obter_melhor_modelo_groq(cliente, force_refresh=True)
+            
+            models_page = cliente.models.list()
+            model_list = models_page.data if hasattr(models_page, 'data') else []
+            todos_llama = [m.id for m in model_list if hasattr(m, 'id') and 'llama' in m.id.lower()]
+            todos_llama.sort()
+
+            return JsonResponse({
+                'sucesso': True,
+                'provedor': 'Groq (Llama)',
+                'modelo_ativo': modelo_detectado,
+                'modelos_disponiveis': todos_llama,
+                'mensagem': f'Conexão bem sucedida com Groq! Modelo Llama ativo: {modelo_detectado}'
+            })
+        except Exception as e:
+            return JsonResponse({'sucesso': False, 'mensagem': f'Erro ao conectar no Groq: {str(e)}'})
+    else:
+        gemini_key = (ms.get_api_key() if ms and ms.get_api_key() else os.getenv("GEMINI_API_KEY"))
+        if not gemini_key:
+            return JsonResponse({'sucesso': False, 'mensagem': 'Chave API do Gemini não configurada.'})
+        try:
+            cliente = genai.Client(api_key=gemini_key)
+            return JsonResponse({
+                'sucesso': True,
+                'provedor': 'Gemini (Google)',
+                'modelo_ativo': 'gemini-2.5-flash',
+                'mensagem': 'Conexão bem sucedida com o Google Gemini (gemini-2.5-flash)!'
+            })
+        except Exception as e:
+            return JsonResponse({'sucesso': False, 'mensagem': f'Erro ao conectar no Gemini: {str(e)}'})
 
 @login_required
 def central_cadastros(request):
@@ -299,6 +488,7 @@ def central_cadastros(request):
             api_key = request.POST.get('api_key_gemini', '')
             groq_key = request.POST.get('api_key_groq', '')
             ai_default = request.POST.get('ai_default', 'GEMINI')
+            groq_model_override = request.POST.get('groq_model_override', '').strip()
             
             user = request.user
             from .models import MestreSeguranca
@@ -306,6 +496,7 @@ def central_cadastros(request):
             m_seg.set_api_key(api_key)
             m_seg.set_groq_key(groq_key)
             m_seg.ai_default = ai_default
+            m_seg.groq_model_override = groq_model_override
             m_seg.save()
             messages.success(request, "A essência do Oráculo foi renovada com sucesso!")
         elif acao == 'configurar_backup':
@@ -414,6 +605,7 @@ def central_cadastros(request):
     oraculo_key = ms.get_api_key() if ms else None
     groq_key = ms.get_groq_key() if ms else None
     ai_default = ms.ai_default if ms else 'GEMINI'
+    groq_model_override = ms.groq_model_override if ms else ''
     has_env_fallback = bool(not oraculo_key and os.getenv("GEMINI_API_KEY"))
     
     backup_config = {
@@ -444,6 +636,7 @@ def central_cadastros(request):
         'oraculo_key': oraculo_key,
         'groq_key': groq_key,
         'ai_default': ai_default,
+        'groq_model_override': groq_model_override,
         'has_env_fallback': has_env_fallback,
         'backup_config': backup_config,
         'backup_history': backup_history,
@@ -1400,3 +1593,46 @@ def enfrentar_boss_mes(request):
         'categorias': categorias
     })
 
+
+
+@login_required
+def avaliar_todos_oraculo(request):
+    from .services.pdf_service import avaliar_transacoes_em_lote
+    from .models import Transacao, Pessoa
+    from django.db.models import Q
+    from datetime import datetime
+    
+    mes_atual = request.GET.get('mes', str(datetime.now().month))
+    ano_atual = int(request.GET.get('ano', datetime.now().year))
+    visao_anual = (mes_atual == 'todos' or mes_atual == '')
+    
+    dono = Pessoa.objects.filter(is_owner=True).first()
+    
+    # Pega tudo que não tem categoria na competência solicitada
+    transacoes = Transacao.objects.filter(
+        Q(responsavel=dono) | Q(responsavel__isnull=True),
+        ano_fatura=ano_atual,
+        categoria__isnull=True
+    )
+    if not visao_anual:
+        transacoes = transacoes.filter(mes_fatura=int(mes_atual))
+        
+    if not transacoes.exists():
+        messages.info(request, "Nenhuma despesa solta (sem categoria) para enviar ao Oráculo neste período.")
+        return redirect('dashboard')
+        
+    sucesso, resultado = avaliar_transacoes_em_lote(transacoes, request.user.id)
+    if sucesso:
+        if isinstance(resultado, list):
+            if len(resultado) > 0:
+                request.session['sugestoes_oraculo'] = resultado
+                messages.success(request, f"O Oráculo Global concluiu a análise e tem {len(resultado)} sugestões!")
+            else:
+                messages.success(request, "O Oráculo classificou tudo pela Memória Histórica, nenhuma dúvida restou!")
+        elif isinstance(resultado, str):
+            messages.success(request, resultado)
+    else:
+        messages.error(request, f"Erro ao invocar o Oráculo Global: {resultado}")
+        
+    # Redireciona para o dashboard com os mesmos filtros de data
+    return redirect(f"/dashboard/?mes={mes_atual}&ano={ano_atual}")

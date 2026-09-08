@@ -127,6 +127,116 @@
     function initDriver() {
         if (typeof window.driver === 'undefined') return;
         
+        const todosSteps = [
+            { 
+                element: '#tour-vitalidade', 
+                popover: { 
+                    title: '🛡️ Vitalidade', 
+                    description: 'Suas despesas essenciais (50%). Se esta barra subir muito ou ficar vermelha, sua economia está em perigo!',
+                    side: "bottom", align: 'start'
+                } 
+            },
+            { 
+                element: '#tour-stamina', 
+                popover: { 
+                    title: '⚡ Stamina', 
+                    description: 'Gastos com estilo de vida e lazer (30%). Mantenha-os sob controle para acumular ouro e XP.',
+                    side: "bottom", align: 'start'
+                } 
+            },
+            { 
+                element: '#tour-tesouro', 
+                popover: { 
+                    title: '💎 Tesouro da Guilda', 
+                    description: 'Todo o ouro guardado no Banco da Guilda. Quanto maior o saldo, mais poderoso seu reino se torna!',
+                    side: "bottom", align: 'start'
+                } 
+            },
+            { 
+                element: '#tour-boss', 
+                popover: { 
+                    title: '⚔️ Boss do Mês', 
+                    description: 'Enfrente o Lorde das Dívidas no fim do mês. Se sobrar Mana (Renda), você vence e ganha XP massivo!',
+                    side: "left", align: 'start'
+                } 
+            },
+            { 
+                element: '#tour-loot', 
+                popover: { 
+                    title: '📜 Pergaminhos de Loot', 
+                    description: 'Onde cada transação é registrada. Classifique os itens sem categoria para manter o mapa do tesouro limpo.',
+                    side: "top", align: 'center'
+                } 
+            },
+            { 
+                element: '#tour-fab-trigger', 
+                popover: { 
+                    title: '🛡️ Central de Ações', 
+                    description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
+                    side: "left", align: 'center',
+                    offset: 20
+                },
+                onHighlightStarted: (element) => {
+                    const container = document.getElementById('tour-fab');
+                    if (container) container.classList.add('tour-expanding');
+                },
+                onDeselected: (element) => {
+                    const container = document.getElementById('tour-fab');
+                    if (container) container.classList.remove('tour-expanding');
+                }
+            },
+            { 
+                element: '#tour-nav-banco', 
+                popover: { 
+                    title: '🏦 Banco da Guilda', 
+                    description: 'Nesta câmara você gerencia seus cofres, metas de economia e instituições financeiras.',
+                    side: "bottom", align: 'center'
+                } 
+            },
+            { 
+                element: '#tour-nav-qg', 
+                popover: { 
+                    title: '🏰 QG de Operações', 
+                    description: 'O quartel-general onde você cadastra seus Aliados (Pessoas), Armas (Cartões) e Categorias.',
+                    side: "bottom", align: 'center'
+                } 
+            },
+            { 
+                element: '#tour-nav-admin', 
+                popover: { 
+                    title: '🔮 Painel Arcano', 
+                    description: 'Acesso direto ao núcleo do sistema para manutenções avançadas e ajustes finos.',
+                    side: "bottom", align: 'center'
+                } 
+            },
+            { 
+                element: '#tour-nav-key', 
+                popover: { 
+                    title: '🔑 Chave do Cofre', 
+                    description: 'Altere sua senha secreta para garantir que ninguém mais acesse seu tesouro.',
+                    side: "bottom", align: 'center'
+                } 
+            },
+            { 
+                element: '#tour-nav-help', 
+                popover: { 
+                    title: '📖 Grimório de Ajuda', 
+                    description: 'Sempre que tiver dúvidas ou quiser rever este tour, consulte o Grimório Arcano.',
+                    side: "bottom", align: 'center'
+                } 
+            },
+            { 
+                element: '#tour-nav-logout', 
+                popover: { 
+                    title: '🚪 Sair do Castelo', 
+                    description: 'Encerra sua jornada por hoje. Lembre-se: um bom mestre nunca abandona suas contas!',
+                    side: "bottom", align: 'center'
+                } 
+            },
+        ];
+
+        const stepsValidos = todosSteps.filter(s => !s.element || document.querySelector(s.element));
+
         driverObj = window.driver.js.driver({
             showProgress: true,
             animate: true,
@@ -136,8 +246,7 @@
             doneBtnText: 'Concluir!',
             progressText: 'Passo {{current}} de {{total}}',
             onDeselected: (element, step, { config, state }) => {
-                // Se o usuário fechou o tour clicando fora ou no 'X', marcamos como visto
-                if (state.activeStep === 11) { // Último step (12 passos total)
+                if (state.activeStep === stepsValidos.length - 1) {
                    concluirTutorialBD();
                 }
             },
@@ -146,116 +255,9 @@
                 driverObj.destroy();
             },
             onDestroyed: () => {
-                // Sempre tentar marcar como visto ao destruir se não for skip explícito que já marca
                 concluirTutorialBD();
             },
-            steps: [
-                { 
-                    element: '#tour-vitalidade', 
-                    popover: { 
-                        title: '🛡️ Vitalidade', 
-                        description: 'Suas despesas essenciais (50%). Se esta barra subir muito ou ficar vermelha, sua economia está em perigo!',
-                        side: "bottom", align: 'start'
-                    } 
-                },
-                { 
-                    element: '#tour-stamina', 
-                    popover: { 
-                        title: '⚡ Stamina', 
-                        description: 'Gastos com estilo de vida e lazer (30%). Mantenha-os sob controle para acumular ouro e XP.',
-                        side: "bottom", align: 'start'
-                    } 
-                },
-                { 
-                    element: '#tour-tesouro', 
-                    popover: { 
-                        title: '💎 Tesouro da Guilda', 
-                        description: 'Todo o ouro guardado no Banco da Guilda. Quanto maior o saldo, mais poderoso seu reino se torna!',
-                        side: "bottom", align: 'start'
-                    } 
-                },
-                { 
-                    element: '#tour-boss', 
-                    popover: { 
-                        title: '⚔️ Boss do Mês', 
-                        description: 'Enfrente o Lorde das Dívidas no fim do mês. Se sobrar Mana (Renda), você vence e ganha XP massivo!',
-                        side: "left", align: 'start'
-                    } 
-                },
-                { 
-                    element: '#tour-loot', 
-                    popover: { 
-                        title: '📜 Pergaminhos de Loot', 
-                        description: 'Onde cada transação é registrada. Classifique os itens sem categoria para manter o mapa do tesouro limpo.',
-                        side: "top", align: 'center'
-                    } 
-                },
-                { 
-                    element: '#tour-fab-trigger', 
-                    popover: { 
-                        title: '🛡️ Central de Ações', 
-                        description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
-                        side: "left", align: 'center',
-                        offset: 20
-                    },
-                    onHighlightStarted: (element) => {
-                        const container = document.getElementById('tour-fab');
-                        if (container) container.classList.add('tour-expanding');
-                    },
-                    onDeselected: (element) => {
-                        const container = document.getElementById('tour-fab');
-                        if (container) container.classList.remove('tour-expanding');
-                    }
-                },
-                { 
-                    element: '#tour-nav-banco', 
-                    popover: { 
-                        title: '🏦 Banco da Guilda', 
-                        description: 'Nesta câmara você gerencia seus cofres, metas de economia e instituições financeiras.',
-                        side: "bottom", align: 'center'
-                    } 
-                },
-                { 
-                    element: '#tour-nav-qg', 
-                    popover: { 
-                        title: '🏰 QG de Operações', 
-                        description: 'O quartel-general onde você cadastra seus Aliados (Pessoas), Armas (Cartões) e Categorias.',
-                        side: "bottom", align: 'center'
-                    } 
-                },
-                { 
-                    element: '#tour-nav-admin', 
-                    popover: { 
-                        title: '🔮 Painel Arcano', 
-                        description: 'Acesso direto ao núcleo do sistema para manutenções avançadas e ajustes finos.',
-                        side: "bottom", align: 'center'
-                    } 
-                },
-                { 
-                    element: '#tour-nav-key', 
-                    popover: { 
-                        title: '🔑 Chave do Cofre', 
-                        description: 'Altere sua senha secreta para garantir que ninguém mais acesse seu tesouro.',
-                        side: "bottom", align: 'center'
-                    } 
-                },
-                { 
-                    element: '#tour-nav-help', 
-                    popover: { 
-                        title: '📖 Grimório de Ajuda', 
-                        description: 'Sempre que tiver dúvidas ou quiser rever este tour, consulte o Grimório Arcano.',
-                        side: "bottom", align: 'center'
-                    } 
-                },
-                { 
-                    element: '#tour-nav-logout', 
-                    popover: { 
-                        title: '🚪 Sair do Castelo', 
-                        description: 'Encerra sua jornada por hoje. Lembre-se: um bom mestre nunca abandona suas contas!',
-                        side: "bottom", align: 'center'
-                    } 
-                },
-            ]
+            steps: stepsValidos
         });
     }
 

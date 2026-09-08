@@ -45,4 +45,7 @@ python_version/
 portatil/dist/
 portatil/build/
 
-
+database.sqlite3
+backups_seguranca/
+scratch/
+portatil/desktop_debug.log

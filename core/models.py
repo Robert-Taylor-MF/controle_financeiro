@@ -303,6 +303,7 @@ class MestreSeguranca(models.Model):
     # Configurações de IA
     gemini_api_key = models.CharField(max_length=500, blank=True, null=True, help_text="Chave da IA para extrair PDFs")
     groq_api_key = models.CharField(max_length=500, blank=True, null=True, help_text="Chave da IA Groq (Llama)")
+    groq_model_override = models.CharField(max_length=100, blank=True, null=True, help_text="Modelo Groq específico (deixe vazio para auto-detecção)")
     ai_default = models.CharField(max_length=20, default='GEMINI', choices=[('GEMINI', 'Gemini (Google)'), ('GROQ', 'Groq (Llama)')])
     
     def set_api_key(self, raw_key):

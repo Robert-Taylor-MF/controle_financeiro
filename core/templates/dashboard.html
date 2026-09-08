@@ -23,6 +23,22 @@
         <div class="hidden group-hover:flex flex-col gap-4 p-4 max-h-[70vh] overflow-y-auto custom-scrollbar w-[280px]">
             <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right border-b border-slate-800 pb-2 mb-1">Painel de Ações</h3>
             
+            <a href="{% url 'avaliar_todos_oraculo' %}?mes={{ mes_atual }}&ano={{ ano_atual }}" class="block group/oracle">
+                <div class="relative p-3 rounded-xl bg-gradient-to-r from-purple-950/40 via-slate-800 to-purple-950/40 border border-purple-700/50 hover:border-purple-500 transition-all overflow-hidden mb-2">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-pulse"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-purple-900/50 border-2 border-purple-600 flex items-center justify-center shrink-0 group-hover/oracle:scale-110 transition-transform">
+                            <i data-lucide="eye" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-purple-400 font-black uppercase tracking-widest text-xs">Oráculo Global</h4>
+                            <p class="text-slate-300 text-[10px] font-bold leading-tight mt-1">Classificar Pendentes</p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            
             {% if tem_recorrentes_pendentes %}
             <div class="relative p-3 rounded-xl bg-gradient-to-r from-pink-950/40 via-slate-800 to-pink-950/40 border border-pink-700/50 shadow-[0_0_15px_rgba(236,72,153,0.15)] overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-pulse"></div>
@@ -85,70 +101,70 @@
     </div>
 </div>
 
-<header class="mb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-    <div class="flex items-center gap-4 flex-wrap">
-        <h2 class="text-2xl font-bold text-slate-100 hidden sm:block">Visão do Tesouro</h2>
+
+<div class="flex flex-col lg:flex-row gap-6 h-full items-start">
+    
+    <!-- NOVO SIDEBAR DE TEMPO (Inspiração Dashboard Financeiro) -->
+    <div class="w-full lg:w-64 bg-slate-900/80 border border-slate-700 rounded-2xl p-5 shadow-2xl flex flex-col gap-6 shrink-0 lg:sticky lg:top-4 z-10">
         
-        <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-full py-1 px-3 shadow-lg hover:border-purple-500/50 transition-all">
-            <button type="button" onclick="mudarMes(-1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Mês Anterior">
-                <i data-lucide="chevron-left" class="w-5 h-5"></i>
-            </button>
-            
-            <div class="flex flex-col items-center justify-center min-w-[100px]">
-                <h3 class="text-sm font-black text-slate-100 uppercase tracking-widest flex items-center select-none">
-                    {% if mes_atual == '1' %}JAN
-                    {% elif mes_atual == '2' %}FEV
-                    {% elif mes_atual == '3' %}MAR
-                    {% elif mes_atual == '4' %}ABR
-                    {% elif mes_atual == '5' %}MAI
-                    {% elif mes_atual == '6' %}JUN
-                    {% elif mes_atual == '7' %}JUL
-                    {% elif mes_atual == '8' %}AGO
-                    {% elif mes_atual == '9' %}SET
-                    {% elif mes_atual == '10' %}OUT
-                    {% elif mes_atual == '11' %}NOV
-                    {% elif mes_atual == '12' %}DEZ
-                    {% endif %}
-                    <span class="text-purple-500 ml-1 cursor-pointer hover:underline hover:text-purple-300 transition-colors" onclick="mudarAno()" title="Saltar para outro Ano">/ {{ ano_atual }}</span>
-                </h3>
-                
-                <div class="flex items-center gap-1 mt-1">
-                    {% for i in '123456789'|make_list %}{% with mes_loop=forloop.counter|stringformat:"s" %}
-                    <button type="button" onclick="irParaMes('{{ mes_loop }}')" title="Mês {{ mes_loop }}" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == mes_loop %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                    {% endwith %}{% endfor %}
-                    <button type="button" onclick="irParaMes('10')" title="Outubro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '10' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                    <button type="button" onclick="irParaMes('11')" title="Novembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '11' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                    <button type="button" onclick="irParaMes('12')" title="Dezembro" class="w-1.5 h-1.5 rounded-full transition-all {% if mes_atual == '12' %}bg-purple-500 scale-150 shadow-[0_0_8px_rgba(168,85,247,0.8)]{% else %}bg-slate-600 hover:bg-slate-400{% endif %}"></button>
-                </div>
+        <div>
+            <h3 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-3">Ano</h3>
+            <div class="flex flex-col gap-2">
+                <button onclick="mudarAno(2023)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2023' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2023</button>
+                <button onclick="mudarAno(2024)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2024' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2024</button>
+                <button onclick="mudarAno(2025)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2025' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2025</button>
+                <button onclick="mudarAno(2026)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2026' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2026</button>
             </div>
-
-            <button type="button" onclick="mudarMes(1)" class="text-slate-400 hover:text-purple-400 hover:scale-110 transition-all outline-none" title="Próximo Mês">
-                <i data-lucide="chevron-right" class="w-5 h-5"></i>
-            </button>
         </div>
+        
+        <hr class="border-slate-800">
 
+        <div>
+            <h3 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-3 flex items-center justify-between">
+                <span>Período</span>
+                <button onclick="irParaMes('todos')" class="{% if visao_anual %}text-purple-400 underline{% else %}hover:text-purple-400 transition-colors{% endif %}" title="Ver todo o ano">Visão Anual</button>
+            </h3>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="irParaMes('1')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '1' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Jan</button>
+                <button onclick="irParaMes('2')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '2' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Fev</button>
+                <button onclick="irParaMes('3')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '3' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Mar</button>
+                <button onclick="irParaMes('4')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '4' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Abr</button>
+                <button onclick="irParaMes('5')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '5' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Mai</button>
+                <button onclick="irParaMes('6')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '6' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Jun</button>
+                <button onclick="irParaMes('7')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '7' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Jul</button>
+                <button onclick="irParaMes('8')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '8' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Ago</button>
+                <button onclick="irParaMes('9')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '9' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Set</button>
+                <button onclick="irParaMes('10')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '10' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Out</button>
+                <button onclick="irParaMes('11')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '11' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Nov</button>
+                <button onclick="irParaMes('12')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '12' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Dez</button>
+            </div>
+        </div>
+        
         <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
             <input type="hidden" name="mes" id="input-timeline-mes" value="{{ mes_atual }}">
-            <input type="number" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
+            <input type="hidden" name="ano" id="input-timeline-ano" value="{{ ano_atual }}">
         </form>
-    </div>
-    
-    <div class="flex gap-4 text-right shrink-0">
-        <!-- Mana Recebida -->
-        <div class="bg-slate-800 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg border border-slate-700 md:border-none flex flex-col justify-center">
-            <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
-            <p class="text-lg font-bold text-purple-400 whitespace-nowrap leading-none">R$ {{ renda|floatformat:2 }}</p>
+        
+        <!-- Cards de Mana transferidos da Header Antiga -->
+        <div class="mt-auto pt-4 border-t border-slate-800 flex flex-col gap-3">
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col justify-center">
+                <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Mana Total (Líquido)</p>
+                <p class="text-lg font-black text-purple-400 whitespace-nowrap leading-none">R$ {{ renda|floatformat:2 }}</p>
+            </div>
+            
+            <div class="bg-slate-950 p-3 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} flex flex-col justify-center">
+                <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
+                <p class="text-lg font-black whitespace-nowrap leading-none {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
+                    R$ {{ saldo_restante|floatformat:2 }}
+                </p>
+            </div>
         </div>
         
-        <!-- Saldo Restante -->
-        <div class="bg-slate-800 md:bg-transparent px-3 py-1.5 md:p-0 rounded-lg border {% if saldo_restante >= 0 %}border-emerald-900/50{% else %}border-red-900/50{% endif %} md:border-none flex flex-col justify-center">
-            <p class="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Saldo Restante</p>
-            <p class="text-lg font-bold whitespace-nowrap leading-none {% if saldo_restante >= 0 %}text-emerald-400{% else %}text-red-500{% endif %}">
-                R$ {{ saldo_restante|floatformat:2 }}
-            </p>
-        </div>
     </div>
-</header>
+    
+    <!-- DASHBOARD MAIN AREA -->
+    <div class="flex-1 w-full flex flex-col min-w-0">
+
 
 {% if hp.hp_maximo > 0 %}
 <div class="mb-6 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-center gap-4">
@@ -200,12 +216,37 @@
 <!-- CONTAINER DA VISÃO PESSOAL (Conteúdo anterior) -->
 <div id="aba-dashboard-pessoal" class="aba-conteudo-dash block">
 
+    <!-- NOVO GRID DE BI -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Gráfico de Categoria (Radar/Doughnut) -->
+        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 shadow-xl flex flex-col justify-center items-center h-[300px]">
+            <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest text-center w-full"><i data-lucide="pie-chart" class="w-3 h-3 inline"></i> Distribuição de Dano</h3>
+            <div class="w-full h-full relative pb-4">
+                <canvas id="chartCategorias"></canvas>
+            </div>
+        </div>
 
+        <!-- Gráfico de Evolução (Linha) -->
+        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 shadow-xl lg:col-span-2 flex flex-col justify-center items-center h-[300px]">
+            <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest text-left w-full flex items-center gap-2"><i data-lucide="trending-up" class="w-3 h-3"></i> Evolução do Combate</h3>
+            <div class="w-full h-full relative pb-4">
+                <canvas id="chartDias"></canvas>
+            </div>
+        </div>
+    </div>
 
-    <div id="tour-loot" class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl overflow-x-auto">
-        <h3 class="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700 pb-2">Últimos Registros (Loot)</h3>
-        
-        <table id="tabelaLoot" class="w-full text-left border-collapse">
+    <!-- PAINEL RECOLHÍVEL DO LOOT -->
+    <div class="bg-slate-800 rounded-lg border border-slate-700 shadow-xl mb-8">
+        <button type="button" onclick="document.getElementById('containerLoot').classList.toggle('hidden'); this.querySelector('.seta').classList.toggle('rotate-180')" class="w-full flex justify-between items-center p-4 focus:outline-none hover:bg-slate-750 transition-colors rounded-t-lg bg-slate-800/80">
+            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="backpack" class="w-5 h-5 text-amber-500"></i> Histórico de Loot (Extrato)
+            </h3>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 seta transition-transform duration-300"></i>
+        </button>
+        <div id="containerLoot" class="hidden border-t border-slate-700">
+            <div id="tour-loot" class="p-6 overflow-x-auto">
+                
+                <table id="tabelaLoot" class="w-full text-left border-collapse">
             <thead>
                 <tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
                     <th class="py-2 px-4 align-top">
@@ -287,11 +328,23 @@
                 {% endfor %}
             </tbody>
         </table>
+            </div>
+        </div>
     </div>
 </div> <!-- FIM DA ABA PESSOAL -->
 
 <!-- CONTAINER DA VISÃO DA PARTY -->
-<div id="aba-dashboard-party" class="aba-conteudo-dash hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+<div id="aba-dashboard-party" class="aba-conteudo-dash hidden">
+
+    <!-- NOVO GRÁFICO PARTY -->
+    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 shadow-xl mb-8 w-full h-[300px] flex flex-col items-center">
+        <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest text-left w-full"><i data-lucide="bar-chart-3" class="w-3 h-3 inline"></i> Dano por Membro (Guilda)</h3>
+        <div class="w-full h-full relative pb-4">
+            <canvas id="chartParty"></canvas>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     {% for info in gastos_party %}
         <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl relative overflow-hidden group hover:border-slate-500 transition-colors">
             <div class="flex items-center gap-4 relative z-10">
@@ -347,6 +400,7 @@
         </div>
     </div>
     {% endif %}
+    </div>
 </div>
 <!-- FIM DA ABA PARTY -->
 
@@ -1020,6 +1074,115 @@
     });
 </script>
 
+<script>
+    // Inicialização dos Gráficos BI (Chart.js)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cores Gamificadas
+        const corEssencial = 'rgba(59, 130, 246, 0.8)'; // Azul Escudo (Essencial)
+        const corEmocao = 'rgba(239, 68, 68, 0.8)'; // Vermelho Fogo (Emoção)
+        const corFuturo = 'rgba(234, 179, 8, 0.8)'; // Amarelo Ouro (Futuro)
+        const corIndefinido = 'rgba(156, 163, 175, 0.8)'; // Cinza Névoa (Indefinido)
+
+        const rawCat = '{{ grafico_categorias|escapejs }}';
+        if(rawCat && rawCat !== '""') {
+            const dadosCat = JSON.parse(rawCat);
+            const ctxCat = document.getElementById('chartCategorias');
+            if(ctxCat) {
+                new Chart(ctxCat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: dadosCat.labels,
+                        datasets: [{
+                            data: dadosCat.dados,
+                            backgroundColor: [corEssencial, corEmocao, corFuturo, corIndefinido],
+                            borderWidth: 1,
+                            borderColor: '#1e293b' // slate-800
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#cbd5e1', font: {size: 10} } }
+                        }
+                    }
+                });
+            }
+        }
+
+        const rawDias = '{{ grafico_dias|escapejs }}';
+        if(rawDias && rawDias !== '""') {
+            const dadosDias = JSON.parse(rawDias);
+            const ctxDias = document.getElementById('chartDias');
+            if(ctxDias) {
+                new Chart(ctxDias, {
+                    type: 'line',
+                    data: {
+                        labels: dadosDias.labels,
+                        datasets: [{
+                            label: 'Dano Diário (R$)',
+                            data: dadosDias.dados,
+                            borderColor: 'rgba(168, 85, 247, 1)', // purple-500
+                            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8', font:{size:10} } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 10, font:{size:10} } }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        }
+
+        const rawParty = '{{ grafico_party|escapejs }}';
+        if(rawParty && rawParty !== '""') {
+            const dadosParty = JSON.parse(rawParty);
+            const ctxParty = document.getElementById('chartParty');
+            if(ctxParty) {
+                new Chart(ctxParty, {
+                    type: 'bar',
+                    data: {
+                        labels: dadosParty.labels,
+                        datasets: [{
+                            label: 'Dano Total (R$)',
+                            data: dadosParty.dados,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8', font:{size:10} } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8', font:{size:10} } }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        }
+    });
+</script>
+
 {% include 'modal_rateio.html' %}
 
+
+    </div>
+</div>
 {% endblock %}

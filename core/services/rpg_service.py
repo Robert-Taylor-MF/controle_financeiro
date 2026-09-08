@@ -6,7 +6,10 @@ def atualizar_status_quests(mes, ano):
     """
     Verifica o progresso das missões do mês e atualiza o status.
     """
-    quests = Quest.objects.filter(mes_vigencia=mes, ano_vigencia=ano)
+    if mes is None:
+        quests = Quest.objects.filter(ano_vigencia=ano)
+    else:
+        quests = Quest.objects.filter(mes_vigencia=mes, ano_vigencia=ano)
     
     for quest in quests:
         status_obj, created = QuestStatus.objects.get_or_create(quest=quest)
@@ -16,7 +19,11 @@ def atualizar_status_quests(mes, ano):
         # Para simplificar, pegamos o total gasto na categoria (se houver) 
         # ou o total geral (se a quest não tiver categoria)
         
-        q_transacoes = Transacao.objects.filter(mes_fatura=mes, ano_fatura=ano)
+        if mes is None:
+            q_transacoes = Transacao.objects.filter(ano_fatura=ano)
+        else:
+            q_transacoes = Transacao.objects.filter(mes_fatura=mes, ano_fatura=ano)
+            
         if quest.categoria_alvo:
             q_transacoes = q_transacoes.filter(categoria=quest.categoria_alvo)
             
@@ -45,11 +52,16 @@ def get_hp_party(mes, ano):
         
     # Gasto total = (Total das transações do Dono e Sem Dono) - (Total dos Rateios dos Aliados)
     # 1. Soma transações cujo responsável é o Dono ou Ninguém
-    todas_transacoes = Transacao.objects.filter(mes_fatura=mes, ano_fatura=ano)
-    gasto_bruto = todas_transacoes.filter(Q(responsavel=owner) | Q(responsavel__isnull=True)).aggregate(Sum('valor'))['valor__sum'] or Decimal('0.00')
-    
-    # 2. Subtrai os Rateios (o que os Aliados vão pagar dessas transações)
-    total_rateios_aliados = Rateio.objects.filter(transacao__mes_fatura=mes, transacao__ano_fatura=ano).exclude(pessoa=owner).aggregate(Sum('valor'))['valor__sum'] or Decimal('0.00')
+    if mes is None:
+        # HP do ano inteiro
+        orcamento = orcamento * 12
+        todas_transacoes = Transacao.objects.filter(ano_fatura=ano)
+        gasto_bruto = todas_transacoes.filter(Q(responsavel=owner) | Q(responsavel__isnull=True)).aggregate(Sum('valor'))['valor__sum'] or Decimal('0.00')
+        total_rateios_aliados = Rateio.objects.filter(transacao__ano_fatura=ano).exclude(pessoa=owner).aggregate(Sum('valor'))['valor__sum'] or Decimal('0.00')
+    else:
+        todas_transacoes = Transacao.objects.filter(mes_fatura=mes, ano_fatura=ano)
+        gasto_bruto = todas_transacoes.filter(Q(responsavel=owner) | Q(responsavel__isnull=True)).aggregate(Sum('valor'))['valor__sum'] or Decimal('0.00')
+        total_rateios_aliados = Rateio.objects.filter(transacao__mes_fatura=mes, transacao__ano_fatura=ano).exclude(pessoa=owner).aggregate(Sum('valor'))['valor__sum'] or Decimal('0.00')
     
     gasto_total = max(Decimal('0.00'), gasto_bruto - total_rateios_aliados)
     
@@ -83,8 +95,11 @@ def atualizar_classes_dinamicas(mes, ano):
     pessoas = Pessoa.objects.filter(ativo=True)
     
     for pessoa in pessoas:
-        # Acha os rateios da pessoa no mes
-        rateios = Rateio.objects.filter(pessoa=pessoa, transacao__mes_fatura=mes, transacao__ano_fatura=ano)
+        # Acha os rateios da pessoa no mes ou ano
+        if mes is None:
+            rateios = Rateio.objects.filter(pessoa=pessoa, transacao__ano_fatura=ano)
+        else:
+            rateios = Rateio.objects.filter(pessoa=pessoa, transacao__mes_fatura=mes, transacao__ano_fatura=ano)
         
         # Agrupa os gastos da pessoa por tipo de categoria
         gastos = {
