@@ -323,7 +323,13 @@ def importar_fatura(request):
         ano_fatura = request.POST.get('ano_fatura')
         
         if arquivo_pdf and cartao_id and mes_fatura and ano_fatura:
-            resultado_oraculo = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, request.user.id)
+            filename = arquivo_pdf.name.lower()
+            if filename.endswith('.csv'):
+                from .services.csv_service import processar_fatura_csv
+                resultado_oraculo = processar_fatura_csv(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, request.user.id)
+            else:
+                resultado_oraculo = processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, request.user.id)
+                
             sucesso = resultado_oraculo[0]
             if sucesso:
                 mensagem, sugestoes_pendentes = resultado_oraculo[1]
@@ -1635,4 +1641,5 @@ def avaliar_todos_oraculo(request):
         messages.error(request, f"Erro ao invocar o Oráculo Global: {resultado}")
         
     # Redireciona para o dashboard com os mesmos filtros de data
-    return redirect(f"/dashboard/?mes={mes_atual}&ano={ano_atual}")
+    from django.urls import reverse
+    return redirect(f"{reverse('dashboard')}?mes={mes_atual}&ano={ano_atual}")

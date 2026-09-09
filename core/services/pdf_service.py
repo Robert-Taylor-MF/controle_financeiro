@@ -6,6 +6,7 @@ from google import genai
 from dotenv import load_dotenv
 from core.models import Transacao, Pessoa, CartaoCredito, Categoria
 from datetime import datetime, timedelta
+from django.core.cache import cache
 
 # 2. Execute a função para carregar o arquivo .env
 # Usamos `override=True` para garantir que ele Puxe do .env e ignore qualquer variável global do Windows presa na memória
@@ -460,16 +461,15 @@ def avaliar_transacoes_em_lote(transacoes, user_id=None):
     sugestoes_pendentes = []
     transacoes_para_ia = []
     
+    from core.services.memoria_service import classificar_por_memoria
+    user = Pessoa.objects.filter(id=user_id).first() if user_id else None
+
     # 1. Tenta classificar usando a Memória Histórica primeiro
     for t in transacoes:
-        # Busca no histórico a mesma descrição já classificada
-        transacao_historica = Transacao.objects.filter(descricao__iexact=t.descricao, categoria__isnull=False).order_by('-data_compra').first()
-                
-        if transacao_historica:
-            # Temos certeza da categoria
-            t.categoria = transacao_historica.categoria
+        categoria_sugerida = classificar_por_memoria(t.descricao, user=user)
+        if categoria_sugerida:
+            t.categoria = categoria_sugerida
             t.save()
-            # Não entra nas sugestões pendentes porque já foi resolvido 100%
         else:
             transacoes_para_ia.append(t)
             
