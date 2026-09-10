@@ -272,6 +272,9 @@ def dashboard(request):
 
     grafico_categorias_detalhado = json.dumps({'labels': labels_detalhado, 'dados': dados_detalhado})
 
+    # NOVO: TOP 10 Maiores Danos (Compras mais caras)
+    top_10_gastos = meus_gastos.order_by('-valor')[:10]
+
     contexto = {
         'transacoes': ultimas_transacoes,
         'categorias': categorias,
@@ -289,6 +292,7 @@ def dashboard(request):
         'mostrar_tutorial': not dono.tutorial_visto if dono else False,
         'tem_recorrentes_pendentes': tem_recorrentes_pendentes,
         'visao_anual': visao_anual,
+        'top_10_gastos': top_10_gastos,
         
         # Dados de Gamificação / RPG
         'hp': dados_hp,

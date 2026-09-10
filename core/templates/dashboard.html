@@ -109,11 +109,16 @@
         
         <div>
             <h3 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-3">Ano</h3>
-            <div class="flex flex-col gap-2">
-                <button onclick="mudarAno(2023)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2023' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2023</button>
-                <button onclick="mudarAno(2024)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2024' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2024</button>
-                <button onclick="mudarAno(2025)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2025' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2025</button>
-                <button onclick="mudarAno(2026)" class="text-left px-4 py-2 rounded-lg font-bold text-sm transition-all {% if ano_atual == '2026' %}bg-purple-600/20 text-purple-400 border border-purple-500/50{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">2026</button>
+            <div class="relative w-full pt-2 pb-2">
+                <div class="text-center mb-4">
+                    <span id="anoLabel" class="bg-indigo-600 text-white px-4 py-1.5 rounded-full font-black text-sm shadow-[0_0_15px_rgba(79,70,229,0.5)]">
+                        {{ ano_atual }}
+                    </span>
+                </div>
+                <input type="range" min="2023" max="2028" value="{{ ano_atual }}" class="timeline-slider" id="yearSlider" oninput="document.getElementById('anoLabel').innerText = this.value" onchange="mudarAno(this.value)">
+                <div class="flex justify-between text-[10px] font-bold text-slate-500 mt-3 px-1.5 pointer-events-none">
+                    <span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span>
+                </div>
             </div>
         </div>
         
@@ -124,20 +129,75 @@
                 <span>Período</span>
                 <button onclick="irParaMes('todos')" class="{% if visao_anual %}text-purple-400 underline{% else %}hover:text-purple-400 transition-colors{% endif %}" title="Ver todo o ano">Visão Anual</button>
             </h3>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="irParaMes('1')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '1' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Jan</button>
-                <button onclick="irParaMes('2')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '2' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Fev</button>
-                <button onclick="irParaMes('3')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '3' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Mar</button>
-                <button onclick="irParaMes('4')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '4' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Abr</button>
-                <button onclick="irParaMes('5')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '5' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Mai</button>
-                <button onclick="irParaMes('6')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '6' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Jun</button>
-                <button onclick="irParaMes('7')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '7' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Jul</button>
-                <button onclick="irParaMes('8')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '8' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Ago</button>
-                <button onclick="irParaMes('9')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '9' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Set</button>
-                <button onclick="irParaMes('10')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '10' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Out</button>
-                <button onclick="irParaMes('11')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '11' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Nov</button>
-                <button onclick="irParaMes('12')" class="text-left px-3 py-1.5 rounded-lg font-bold text-xs transition-all {% if mes_atual == '12' %}bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-200{% endif %}">Dez</button>
+            <style>
+                input[type=range].timeline-slider {
+                    -webkit-appearance: none;
+                    width: 100%;
+                    background: transparent;
+                }
+                input[type=range].timeline-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    height: 24px;
+                    width: 24px;
+                    border-radius: 50%;
+                    background: #a855f7;
+                    cursor: pointer;
+                    margin-top: -8px;
+                    box-shadow: 0 0 15px rgba(168,85,247,0.8);
+                    border: 2px solid #fff;
+                }
+                input[type=range].timeline-slider::-webkit-slider-runnable-track {
+                    width: 100%;
+                    height: 8px;
+                    cursor: pointer;
+                    background: #334155;
+                    border-radius: 4px;
+                    border: 1px solid #1e293b;
+                }
+                input[type=range].timeline-slider:focus {
+                    outline: none;
+                }
+            </style>
+            <div class="relative w-full pt-4 pb-2">
+                <div class="text-center mb-4">
+                    {% if visao_anual %}
+                    <span id="mesLabel" class="bg-slate-700 text-slate-300 px-4 py-1.5 rounded-full font-black text-sm">
+                        Modo Anual
+                    </span>
+                    {% else %}
+                    <span id="mesLabel" class="bg-purple-600 text-white px-4 py-1.5 rounded-full font-black text-sm shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                        {% if mes_atual == '1' %}Janeiro
+                        {% elif mes_atual == '2' %}Fevereiro
+                        {% elif mes_atual == '3' %}Março
+                        {% elif mes_atual == '4' %}Abril
+                        {% elif mes_atual == '5' %}Maio
+                        {% elif mes_atual == '6' %}Junho
+                        {% elif mes_atual == '7' %}Julho
+                        {% elif mes_atual == '8' %}Agosto
+                        {% elif mes_atual == '9' %}Setembro
+                        {% elif mes_atual == '10' %}Outubro
+                        {% elif mes_atual == '11' %}Novembro
+                        {% elif mes_atual == '12' %}Dezembro
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                <input type="range" min="1" max="12" value="{{ mes_atual|default:1 }}" class="timeline-slider {% if visao_anual %}opacity-50{% endif %}" id="monthSlider" oninput="atualizarLabelMes(this.value)" onchange="irParaMes(this.value)">
+                
+                <div class="flex justify-between text-[10px] font-bold text-slate-500 mt-3 px-1.5 pointer-events-none">
+                    <span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span>
+                </div>
             </div>
+
+            <script>
+                function atualizarLabelMes(valor) {
+                    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+                    const label = document.getElementById('mesLabel');
+                    label.innerText = meses[valor - 1];
+                    label.className = "bg-purple-600 text-white px-4 py-1.5 rounded-full font-black text-sm shadow-[0_0_15px_rgba(168,85,247,0.5)]";
+                    document.getElementById('monthSlider').classList.remove('opacity-50');
+                }
+            </script>
         </div>
         
         <form id="form-timeline" method="GET" action="{% url 'dashboard' %}" class="hidden">
@@ -190,6 +250,26 @@
 
 
 
+<!-- AÇÕES RÁPIDAS (Substituindo o FAB) -->
+<div id="tour-acoes-rapidas" class="flex flex-wrap items-center gap-4 mb-6 bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 shadow-sm">
+    <span class="text-sm font-bold text-slate-400 uppercase tracking-widest mr-2"><i data-lucide="zap" class="w-4 h-4 inline-block -mt-1 text-yellow-500"></i> Ações:</span>
+    
+    <button onclick="abrirModalDespesa()" class="relative group flex items-center justify-center bg-slate-800 hover:bg-red-900/40 border border-slate-600 hover:border-red-500 w-11 h-11 rounded-lg transition-all shadow-sm hover:shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+        <i data-lucide="swords" class="w-5 h-5 text-red-500"></i>
+        <span class="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 whitespace-nowrap pointer-events-none z-50 shadow-lg">Registrar Dano</span>
+    </button>
+
+    <button onclick="abrirModalFatura()" class="relative group flex items-center justify-center bg-slate-800 hover:bg-green-900/40 border border-slate-600 hover:border-green-500 w-11 h-11 rounded-lg transition-all shadow-sm hover:shadow-[0_0_15px_rgba(21,128,61,0.3)]">
+        <i data-lucide="file-text" class="w-5 h-5 text-green-500"></i>
+        <span class="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 whitespace-nowrap pointer-events-none z-50 shadow-lg">Emitir Fatura</span>
+    </button>
+
+    <button onclick="abrirModalOraculo()" class="relative group flex items-center justify-center bg-slate-800 hover:bg-purple-900/40 border border-slate-600 hover:border-purple-500 w-11 h-11 rounded-lg transition-all shadow-sm hover:shadow-[0_0_15px_rgba(147,51,234,0.3)]">
+        <i data-lucide="eye" class="w-5 h-5 text-purple-400"></i>
+        <span class="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 whitespace-nowrap pointer-events-none z-50 shadow-lg">Importar Fatura</span>
+    </button>
+</div>
+
 <!-- TABS DE NAVEGAÇÃO DO DASHBOARD -->
 <div class="border-b border-slate-700 mb-6 flex gap-4 overflow-x-auto">
     <button onclick="mudarAbaDashboard('pessoal')" id="btn-dashboard-pessoal" class="aba-btn-dash px-4 py-2 text-slate-100 font-bold border-b-2 border-slate-300 transition-colors whitespace-nowrap flex items-center gap-2">
@@ -222,6 +302,34 @@
             <div class="w-full h-full relative pb-4">
                 <canvas id="chartDias"></canvas>
             </div>
+        </div>
+    </div>
+
+    <!-- TOP 10 MAIORES DANOS -->
+    <div class="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-xl mb-8">
+        <h3 class="text-lg font-black text-slate-100 mb-6 flex items-center gap-2"><i data-lucide="trophy" class="w-5 h-5 text-yellow-500"></i> Top 10 Maiores Danos (Compras mais caras)</h3>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {% for t in top_10_gastos %}
+            <div class="bg-slate-900 border border-slate-700 p-4 rounded-lg flex items-center justify-between group hover:border-red-500/50 transition-colors">
+                <div class="flex items-center gap-4 overflow-hidden">
+                    <div class="bg-slate-800 w-10 h-10 rounded flex items-center justify-center font-black text-slate-500 text-sm shrink-0 group-hover:text-red-400 transition-colors">
+                        #{{ forloop.counter }}
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="font-bold text-slate-200 truncate">{{ t.descricao }}</p>
+                        <p class="text-xs text-slate-500 truncate mt-0.5">{{ t.data_compra|date:"d/m/Y" }} &bull; {% if t.categoria %}{{ t.categoria.nome }}{% else %}Sem Categoria{% endif %}</p>
+                    </div>
+                </div>
+                <div class="text-right shrink-0 ml-4">
+                    <p class="font-black text-red-400">R$ {{ t.valor|floatformat:2 }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-1 lg:col-span-2 text-center py-8 text-slate-500 italic">
+                Nenhum gasto registrado neste período.
+            </div>
+            {% endfor %}
         </div>
     </div>
 
@@ -683,55 +791,23 @@
         document.getElementById('form-timeline').submit();
     }
 
-    function mudarAno() {
-        let anoAtual = document.getElementById('input-timeline-ano').value;
-        let novoAno = prompt("Mestre Temporal, para qual Ano deseja viajar?", anoAtual);
-        if (novoAno && !isNaN(novoAno) && novoAno.length === 4) {
+    function mudarAno(novoAno) {
+        if (!novoAno) {
+            let anoAtual = document.getElementById('input-timeline-ano').value;
+            novoAno = prompt("Mestre Temporal, para qual Ano deseja viajar?", anoAtual);
+        }
+        if (novoAno && !isNaN(novoAno) && novoAno.toString().length === 4) {
             document.getElementById('input-timeline-ano').value = novoAno;
             document.getElementById('form-timeline').submit();
         }
     }
 </script>
 
-<!-- FAB MENU CENTRAL -->
-<div id="tour-fab" class="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3 group">
-    
-    <!-- Sub-buttons -->
-    <div id="tour-fab-menu" class="flex flex-col items-end gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto mb-2">
-        
-        <button onclick="abrirModalFatura()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
-            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Emitir Fatura</span>
-            <div class="bg-green-700 text-green-100 p-3 rounded-full shadow-[0_0_15px_rgba(21,128,61,0.5)] border border-green-500">
-                <i data-lucide="file-text" class="w-5 h-5"></i>
-            </div>
-        </button>
-
-        <button onclick="abrirModalOraculo()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
-            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Invocar Oráculo</span>
-            <div class="bg-purple-700 text-purple-100 p-3 rounded-full shadow-[0_0_15px_rgba(147,51,234,0.5)] border border-purple-500">
-                <i data-lucide="eye" class="w-5 h-5"></i>
-            </div>
-        </button>
-
-        <button onclick="abrirModalDespesa()" class="flex items-center gap-3 w-auto hover:scale-105 transition-transform">
-            <span class="bg-slate-900 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg">Registrar Dano</span>
-            <div class="bg-red-700 text-red-100 p-3 rounded-full shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500">
-                <i data-lucide="swords" class="w-5 h-5"></i>
-            </div>
-        </button>
-        
-    </div>
-
-    <!-- Main Trigger Button -->
-    <button id="tour-fab-trigger" class="bg-slate-950 hover:bg-slate-900 border border-red-900/50 hover:border-red-500 text-red-500 p-4 md:p-5 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all focus:outline-none hover:scale-105">
-        <i data-lucide="circle-dollar-sign" class="w-7 h-7 md:w-8 md:h-8 group-hover:rotate-12 transition-transform duration-300"></i>
-    </button>
-</div>
 
 <div id="modal-oraculo" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
     <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(147,51,234,0.3)] w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-            <h3 class="text-2xl font-black text-purple-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="eye" class="w-6 h-6"></i> Baú de Dados</h3>
+            <h3 class="text-2xl font-black text-purple-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="eye" class="w-6 h-6"></i> Importar Fatura (CSV ou PDF)</h3>
             <button onclick="fecharModalOraculo()" class="text-slate-500 hover:text-red-500"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
         </div>
         
@@ -751,7 +827,7 @@
             </div>
             <input type="file" name="fatura_pdf" accept=".pdf,.csv" required class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-md p-2">
             <p class="text-slate-400 text-xs mt-1">Formatos aceitos: PDF ou CSV (Data, Descrição, Valor)</p>
-            <button type="submit" class="w-full mt-2 px-6 py-4 bg-purple-700 hover:bg-purple-600 text-white font-black uppercase rounded shadow-[0_0_15px_rgba(147,51,234,0.4)]">Extrair Transações</button>
+            <button type="submit" class="w-full mt-2 px-6 py-4 bg-purple-700 hover:bg-purple-600 text-white font-black uppercase rounded shadow-[0_0_15px_rgba(147,51,234,0.4)]">Importar Transações</button>
         </form>
     </div>
 </div>

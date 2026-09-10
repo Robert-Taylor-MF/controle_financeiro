@@ -169,20 +169,12 @@
                 } 
             },
             { 
-                element: '#tour-fab-trigger', 
+                element: '#tour-acoes-rapidas', 
                 popover: { 
-                    title: '🛡️ Central de Ações', 
-                    description: 'Invoque o Oráculo para importar faturas PDF ou registre novos itens de loot manualmente por aqui.',
-                    side: "left", align: 'center',
+                    title: '🛡️ Ações Rápidas', 
+                    description: 'Importe faturas PDF/CSV no Oráculo ou registre novos itens manualmente por aqui.',
+                    side: "bottom", align: 'center',
                     offset: 20
-                },
-                onHighlightStarted: (element) => {
-                    const container = document.getElementById('tour-fab');
-                    if (container) container.classList.add('tour-expanding');
-                },
-                onDeselected: (element) => {
-                    const container = document.getElementById('tour-fab');
-                    if (container) container.classList.remove('tour-expanding');
                 }
             },
             { 
