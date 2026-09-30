@@ -53,31 +53,30 @@ def sync_pluggy_transactions():
 
     for cartao in cartoes_pluggy:
         # Busca transações dos últimos 30 dias na API
-        url = f"{PLUGGY_BASE_URL}/transactions?accountId={cartao.pluggy_account_id}"
+        url = f"{PLUGGY_BASE_URL}/v2/transactions?accountId={cartao.pluggy_account_id}"
         
         try:
-            resp = requests.get(url, headers=headers)
-            if resp.status_code != 200:
-                return False, f"Erro na API Pluggy ({resp.status_code}) para o cartão {cartao.nome}: {resp.text}"
+            while url:
+                resp = requests.get(url, headers=headers)
+                if resp.status_code != 200:
+                    return False, f"Erro na API Pluggy ({resp.status_code}) para o cartão {cartao.nome}: {resp.text}"
+                    
+                dados = resp.json()
+                results = dados.get("results", [])
                 
-            dados = resp.json()
-            results = dados.get("results", [])
-            
-            for item in results:
-                # O Pluggy usa IDs unicos pra cada transação
-                pluggy_id = item.get("id")
-                descricao = item.get("description", "Compra Pluggy")
-                amount = item.get("amount", 0)
-                
-                # Vamos considerar apenas despesas (geralmente negative amount para cartão, ou positive pra debitos, 
-                # Pluggy: CREDIT expenses are positive, DEBIT expenses are negative.
-                # Aqui simplificamos: pegamos o valor absoluto pra despesa. Se for income, ignoramos.
-                # O type no Pluggy: CREDIT (pra compras) / DEBIT (pra debito) etc
-                # Vamos tratar tudo como despesa (valor absoluto) para cartões de crédito.
-                valor_absoluto = abs(amount)
-                
-                if valor_absoluto == 0:
-                    continue
+                for item in results:
+                    # O Pluggy usa IDs unicos pra cada transação
+                    pluggy_id = item.get("id")
+                    descricao = item.get("description", "Compra Pluggy")
+                    amount = item.get("amount", 0)
+                    
+                    # No v2: CREDIT expenses are positive, DEBIT expenses are positive. 
+                    # Credit payments and deposits are negative.
+                    # Se for menor ou igual a 0, ignoramos porque é devolução ou pagamento
+                    if amount <= 0:
+                        continue
+                        
+                    valor_absoluto = abs(amount)
 
                 # Evitar duplicadas
                 if Transacao.objects.filter(pluggy_id=pluggy_id).exists():
@@ -128,6 +127,13 @@ def sync_pluggy_transactions():
                             )
 
                 novas_transacoes += 1
+
+                # Paginação
+                next_cursor = dados.get("next")
+                if next_cursor:
+                    url = f"{PLUGGY_BASE_URL}/v2/transactions?accountId={cartao.pluggy_account_id}&cursor={next_cursor}"
+                else:
+                    url = None
 
         except Exception as e:
             msg_erro = f"Erro no cartão {cartao.nome}: {str(e)}"
