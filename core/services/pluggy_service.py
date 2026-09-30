@@ -58,7 +58,7 @@ def sync_pluggy_transactions():
         try:
             resp = requests.get(url, headers=headers)
             if resp.status_code != 200:
-                continue
+                return False, f"Erro na API Pluggy ({resp.status_code}) para o cartão {cartao.nome}: {resp.text}"
                 
             dados = resp.json()
             results = dados.get("results", [])
@@ -109,7 +109,7 @@ def sync_pluggy_transactions():
                     data_compra=data_compra,
                     mes_fatura=hoje.month, # Simplificação, ideal seria usar dia de fechamento
                     ano_fatura=hoje.year,
-                    cartao_credito=cartao,
+                    cartao=cartao,
                     pluggy_id=pluggy_id,
                     responsavel=responsavel_sugerido,
                     categoria=categoria_sugerida
@@ -130,7 +130,11 @@ def sync_pluggy_transactions():
                 novas_transacoes += 1
 
         except Exception as e:
-            print(f"Erro ao sincronizar Pluggy para cartao {cartao.nome}: {e}")
-            continue
+            msg_erro = f"Erro no cartão {cartao.nome}: {str(e)}"
+            print(msg_erro)
+            return False, msg_erro
 
-    return True, f"Sincronização concluída! {novas_transacoes} novas transações importadas com sucesso e memorizadas."
+    if novas_transacoes > 0:
+        return True, f"Sincronização concluída! {novas_transacoes} novas transações importadas com sucesso."
+    else:
+        return True, "Sincronização concluída! Nenhuma nova transação encontrada na API do Pluggy para seus cartões."
