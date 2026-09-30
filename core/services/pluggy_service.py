@@ -52,8 +52,9 @@ def sync_pluggy_transactions():
     novas_transacoes = 0
 
     for cartao in cartoes_pluggy:
-        # Busca transações dos últimos 30 dias na API
-        url = f"{PLUGGY_BASE_URL}/v2/transactions?accountId={cartao.pluggy_account_id}"
+        # Busca transações apenas a partir do dia 1 do mês atual para não duplicar passado
+        data_inicio = datetime(hoje.year, hoje.month, 1).strftime("%Y-%m-%d")
+        url = f"{PLUGGY_BASE_URL}/v2/transactions?accountId={cartao.pluggy_account_id}&from={data_inicio}"
         
         try:
             while url:
@@ -78,55 +79,55 @@ def sync_pluggy_transactions():
                         
                     valor_absoluto = abs(amount)
 
-                # Evitar duplicadas
-                if Transacao.objects.filter(pluggy_id=pluggy_id).exists():
-                    continue
-                
-                data_iso = item.get("date") # "YYYY-MM-DD..."
-                if data_iso:
-                    data_compra = datetime.fromisoformat(data_iso.replace("Z", "+00:00")).date()
-                else:
-                    data_compra = hoje.date()
+                    # Evitar duplicadas
+                    if Transacao.objects.filter(pluggy_id=pluggy_id).exists():
+                        continue
+                    
+                    data_iso = item.get("date") # "YYYY-MM-DD..."
+                    if data_iso:
+                        data_compra = datetime.fromisoformat(data_iso.replace("Z", "+00:00")).date()
+                    else:
+                        data_compra = hoje.date()
 
-                # Tentar classificar por memória (IA do banco)
-                categoria_sugerida = classificar_por_memoria(descricao, user=owner)
-                
-                # Tentar achar se essa compra já foi de alguém específico no passado
-                responsavel_sugerido = owner
-                transacao_anterior = Transacao.objects.filter(descricao__iexact=descricao).order_by('-data_compra').first()
-                rateios_anteriores = []
-                
-                if transacao_anterior:
-                    responsavel_sugerido = transacao_anterior.responsavel
-                    # Se tinha rateio, vamos clonar a estrutura de rateio!
-                    rateios_anteriores = transacao_anterior.rateios.all()
+                    # Tentar classificar por memória (IA do banco)
+                    categoria_sugerida = classificar_por_memoria(descricao, user=owner)
+                    
+                    # Tentar achar se essa compra já foi de alguém específico no passado
+                    responsavel_sugerido = owner
+                    transacao_anterior = Transacao.objects.filter(descricao__iexact=descricao).order_by('-data_compra').first()
+                    rateios_anteriores = []
+                    
+                    if transacao_anterior:
+                        responsavel_sugerido = transacao_anterior.responsavel
+                        # Se tinha rateio, vamos clonar a estrutura de rateio!
+                        rateios_anteriores = transacao_anterior.rateios.all()
 
-                # Salvar a transação nova
-                t_nova = Transacao.objects.create(
-                    descricao=descricao,
-                    valor=Decimal(str(valor_absoluto)),
-                    data_compra=data_compra,
-                    mes_fatura=hoje.month, # Simplificação, ideal seria usar dia de fechamento
-                    ano_fatura=hoje.year,
-                    cartao=cartao,
-                    pluggy_id=pluggy_id,
-                    responsavel=responsavel_sugerido,
-                    categoria=categoria_sugerida
-                )
+                    # Salvar a transação nova
+                    t_nova = Transacao.objects.create(
+                        descricao=descricao,
+                        valor=Decimal(str(valor_absoluto)),
+                        data_compra=data_compra,
+                        mes_fatura=data_compra.month, # Usa o mês real da compra
+                        ano_fatura=data_compra.year,
+                        cartao=cartao,
+                        pluggy_id=pluggy_id,
+                        responsavel=responsavel_sugerido,
+                        categoria=categoria_sugerida
+                    )
 
-                # Se havia rateio na transação histórica idêntica, a gente clona os rateios proporcionalmente
-                if rateios_anteriores:
-                    valor_original = transacao_anterior.valor
-                    if valor_original > 0:
-                        for r_old in rateios_anteriores:
-                            proporcao = r_old.valor / valor_original
-                            Rateio.objects.create(
-                                transacao=t_nova,
-                                pessoa=r_old.pessoa,
-                                valor=Decimal(str(valor_absoluto)) * proporcao
-                            )
+                    # Se havia rateio na transação histórica idêntica, a gente clona os rateios proporcionalmente
+                    if rateios_anteriores:
+                        valor_original = transacao_anterior.valor
+                        if valor_original > 0:
+                            for r_old in rateios_anteriores:
+                                proporcao = r_old.valor / valor_original
+                                Rateio.objects.create(
+                                    transacao=t_nova,
+                                    pessoa=r_old.pessoa,
+                                    valor=Decimal(str(valor_absoluto)) * proporcao
+                                )
 
-                novas_transacoes += 1
+                    novas_transacoes += 1
 
                 # Paginação
                 next_cursor = dados.get("next")
