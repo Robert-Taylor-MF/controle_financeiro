@@ -122,14 +122,6 @@ def dashboard(request):
     )
     if not visao_anual:
         meus_gastos = meus_gastos.filter(mes_fatura=mes_atual)
-        
-    # FILTRO RÁPIDO POR CARTÃO (BI)
-    cartao_req = request.GET.get('cartao', '')
-    if cartao_req:
-        if cartao_req == 'DINHEIRO':
-            meus_gastos = meus_gastos.filter(cartao__isnull=True)
-        else:
-            meus_gastos = meus_gastos.filter(cartao_id=cartao_req)
     
     # 5. Soma o que já foi gasto nas categorias
     gasto_essencial = float(meus_gastos.filter(categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
@@ -143,12 +135,6 @@ def dashboard(request):
         rateios_mes = Rateio.objects.filter(transacao__ano_fatura=ano_atual)
     else:
         rateios_mes = Rateio.objects.filter(transacao__mes_fatura=mes_atual, transacao__ano_fatura=ano_atual)
-        
-    if cartao_req:
-        if cartao_req == 'DINHEIRO':
-            rateios_mes = rateios_mes.filter(transacao__cartao__isnull=True)
-        else:
-            rateios_mes = rateios_mes.filter(transacao__cartao_id=cartao_req)
     
     rateio_ess = float(rateios_mes.filter(transacao__categoria__tipo_regra='ESSENCIAL').aggregate(Sum('valor'))['valor__sum'] or 0)
     rateio_emo = float(rateios_mes.filter(transacao__categoria__tipo_regra='ESTILO_VIDA').aggregate(Sum('valor'))['valor__sum'] or 0)
@@ -195,6 +181,12 @@ def dashboard(request):
                 'pessoa': p,
                 'total': float(total_p)
             })
+
+            # Atualiza XP da Party baseado nos gastos HISTÓRICOS (acumulado de todos os meses)
+            total_historico_rateios = Rateio.objects.filter(pessoa=p).aggregate(Sum('valor'))['valor__sum'] or 0
+            total_historico_direto = Transacao.objects.filter(responsavel=p).aggregate(Sum('valor'))['valor__sum'] or 0
+            
+            p.atualizar_xp_por_gasto(float(total_historico_rateios) + float(total_historico_direto))
 
     # O dono arca com transações sem dono, MAS ele também recebe o desconto dos rateios
     # Então o total de gastos "pessoais" do dono na verdade não muda (a lógica das categorias já lida com isso)
@@ -281,48 +273,7 @@ def dashboard(request):
     grafico_categorias_detalhado = json.dumps({'labels': labels_detalhado, 'dados': dados_detalhado})
 
     # NOVO: TOP 10 Maiores Danos (Compras mais caras)
-    from django.db.models import F
-    from django.db.models.functions import Coalesce
-    from decimal import Decimal
-    
-    top_10_gastos = meus_gastos.annotate(
-        rateio_soma=Coalesce(Sum('rateios__valor'), Decimal('0.00'))
-    ).annotate(
-        valor_real=F('valor') - F('rateio_soma')
-    ).filter(valor_real__gt=0).order_by('-valor_real')[:10]
-
-    # 15. BI ENHANCEMENTS: MoM (Month over Month) e Burn Rate
-    burn_rate = 0
-    mom_percent = 0
-    mom_aumento = False
-    
-    if not visao_anual:
-        dias_no_mes = calendar.monthrange(ano_atual, mes_atual)[1]
-        dia_referencia = hoje.day if (mes_atual == hoje.month and ano_atual == hoje.year) else dias_no_mes
-        if dia_referencia > 0:
-            burn_rate = (total_gasto_pessoal / dia_referencia) * dias_no_mes
-
-        mes_passado = mes_atual - 1 if mes_atual > 1 else 12
-        ano_passado = ano_atual if mes_atual > 1 else ano_atual - 1
-        
-        gastos_mp = Transacao.objects.filter(Q(responsavel=dono) | Q(responsavel__isnull=True), mes_fatura=mes_passado, ano_fatura=ano_passado)
-        rateios_mp = Rateio.objects.filter(transacao__mes_fatura=mes_passado, transacao__ano_fatura=ano_passado)
-        
-        if cartao_req:
-            if cartao_req == 'DINHEIRO':
-                gastos_mp = gastos_mp.filter(cartao__isnull=True)
-                rateios_mp = rateios_mp.filter(transacao__cartao__isnull=True)
-            else:
-                gastos_mp = gastos_mp.filter(cartao_id=cartao_req)
-                rateios_mp = rateios_mp.filter(transacao__cartao_id=cartao_req)
-                
-        total_p = float(gastos_mp.aggregate(Sum('valor'))['valor__sum'] or 0)
-        total_r = float(rateios_mp.aggregate(Sum('valor'))['valor__sum'] or 0)
-        total_passado_real = total_p - total_r
-        
-        if total_passado_real > 0:
-            mom_percent = ((total_gasto_pessoal - total_passado_real) / total_passado_real) * 100
-            mom_aumento = mom_percent > 0
+    top_10_gastos = meus_gastos.order_by('-valor')[:10]
 
     contexto = {
         'transacoes': ultimas_transacoes,
@@ -352,12 +303,6 @@ def dashboard(request):
         'grafico_categorias': grafico_categorias,
         'grafico_categorias_detalhado': grafico_categorias_detalhado,
         'grafico_party': grafico_party,
-        
-        # BI Enhancements
-        'burn_rate': burn_rate,
-        'mom_percent': mom_percent,
-        'mom_aumento': mom_aumento,
-        'cartao_selecionado': cartao_req,
         
         # Injetamos o formulário já com a competência atual da tela pré-preenchida!
         'form_despesa': DespesaAvulsaForm(initial={

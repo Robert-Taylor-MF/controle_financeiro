@@ -170,3 +170,6 @@ MEDIA_ROOT = DADOS_DIR / 'media'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+# Exigir login a cada nova sessão (fecha ao fechar o app/navegador)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
