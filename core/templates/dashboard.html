@@ -252,6 +252,11 @@
             <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 whitespace-nowrap pointer-events-none z-50 shadow-lg">Emitir Fatura</span>
         </button>
 
+        <a href="{% url 'sincronizar_pluggy' %}" class="relative group flex items-center justify-center bg-slate-800 hover:bg-cyan-900/40 border border-slate-600 hover:border-cyan-500 w-10 h-10 rounded-lg transition-all shadow-sm hover:shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+            <i data-lucide="link" class="w-4 h-4 text-cyan-500"></i>
+            <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 whitespace-nowrap pointer-events-none z-50 shadow-lg">Sincronizar Pluggy</span>
+        </a>
+
         <button onclick="abrirModalOraculo()" class="relative group flex items-center justify-center bg-slate-800 hover:bg-purple-900/40 border border-slate-600 hover:border-purple-500 w-10 h-10 rounded-lg transition-all shadow-sm hover:shadow-[0_0_15px_rgba(147,51,234,0.3)]">
             <i data-lucide="eye" class="w-4 h-4 text-purple-400"></i>
             <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded border border-slate-700 whitespace-nowrap pointer-events-none z-50 shadow-lg">O Oráculo</span>
@@ -540,7 +545,7 @@
 
             <!-- Botão Fatura -->
             {% if not info.pessoa.is_owner %}
-            <a href="{% url 'fatura_pdf' %}?pessoa_id={{ info.pessoa.id }}&mes={{ mes_atual }}&ano={{ ano_atual }}" target="_blank" class="shrink-0 bg-green-900/30 hover:bg-green-700 text-green-400 hover:text-white py-2 px-3 rounded-lg transition-all text-xs font-bold border border-green-900/50 hover:border-green-500 flex items-center gap-1.5 shadow-lg opacity-70 group-hover:opacity-100" title="Gerar Fatura de {{ info.pessoa.nome }}">
+            <a href="{% url 'fatura_pdf' %}?pessoa_id={{ info.pessoa.id }}&mes={{ mes_atual }}&ano={{ ano_atual }}" class="shrink-0 bg-green-900/30 hover:bg-green-700 text-green-400 hover:text-white py-2 px-3 rounded-lg transition-all text-xs font-bold border border-green-900/50 hover:border-green-500 flex items-center gap-1.5 shadow-lg opacity-70 group-hover:opacity-100" title="Gerar Fatura de {{ info.pessoa.nome }}">
                 <i data-lucide="file-text" class="w-4 h-4"></i>
                 <span class="hidden md:inline">Fatura</span>
             </a>
@@ -681,8 +686,8 @@
                         <h3 class="text-xl font-black text-slate-100 mb-2 uppercase tracking-tight">Mais um Loot?</h3>
                         <p class="text-sm text-slate-400 mb-6">Despesa adicionada com sucesso! Você deseja registrar mais alguma agora?</p>
                         <div class="flex gap-3 justify-center">
-                            <button onclick="document.getElementById('modal-ask-another').remove(); const url = new URL(window.location); url.searchParams.delete('ask_add_another'); window.history.replaceState({}, '', url);" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex-1">Não</button>
-                            <button onclick="document.getElementById('modal-ask-another').remove(); const url = new URL(window.location); url.searchParams.delete('ask_add_another'); window.history.replaceState({}, '', url); abrirModalDespesa();" class="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-lg shadow-red-900/50 transition-all flex-1">Sim, Lançar</button>
+                            <button onclick="fecharAskAnother()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex-1">Não</button>
+                            <button onclick="fecharAskAnotherEabrirModal()" class="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-lg shadow-red-900/50 transition-all flex-1">Sim, Lançar</button>
                         </div>
                     </div>
                 </div>
@@ -693,6 +698,21 @@
                 }
             }
         });
+
+        function fecharAskAnother() {
+            const modal = document.getElementById('modal-ask-another');
+            if(modal) modal.remove();
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('ask_add_another');
+                window.history.replaceState({}, '', url);
+            } catch(e) {}
+        }
+
+        function fecharAskAnotherEabrirModal() {
+            fecharAskAnother();
+            abrirModalDespesa();
+        }
     </script>
 
 <script>

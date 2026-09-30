@@ -38,4 +38,5 @@ urlpatterns = [
 
     path('api/check-update/', views.api_check_update, name='api_check_update'),
     path('api/trigger-update/', views.api_trigger_update, name='api_trigger_update'),
+    path('sincronizar-pluggy/', views.sincronizar_pluggy, name='sincronizar_pluggy'),
 ]

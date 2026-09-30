@@ -22,6 +22,9 @@
         <button onclick="mudarAba('oraculo')" id="btn-oraculo" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-blue-500 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="sparkles" class="w-4 h-4"></i> Oráculo (IA)
         </button>
+        <button onclick="mudarAba('pluggy')" id="btn-pluggy" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-cyan-500 transition-colors whitespace-nowrap flex items-center gap-2">
+            <i data-lucide="link" class="w-4 h-4"></i> Guilda dos Bancos (Pluggy)
+        </button>
         <button onclick="mudarAba('backup')" id="btn-backup" class="aba-btn px-4 py-2 text-slate-400 font-bold border-b-2 border-transparent hover:text-emerald-500 transition-colors whitespace-nowrap flex items-center gap-2">
             <i data-lucide="archive-restore" class="w-4 h-4"></i> Guardião do Tempo (Backup)
         </button>
@@ -257,6 +260,47 @@
                 <button type="submit" class="w-full py-3 mt-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
                     <i data-lucide="sparkles" class="w-5 h-5"></i> Renovar Energia do Oráculo
                 </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ABA PLUGGY -->
+    <div id="aba-pluggy" class="aba-conteudo hidden relative">
+        <div class="flex flex-col gap-4 mb-6">
+            <h3 class="text-xl font-bold text-slate-200">Guilda dos Bancos (Pluggy)</h3>
+            <p class="text-sm text-slate-400">Integração Open Finance via Pluggy. Conecte seus bancos automaticamente!</p>
+        </div>
+        
+        <div class="bg-slate-900 border border-cyan-900/50 p-6 md:p-8 rounded-xl shadow-[0_0_50px_rgba(6,182,212,0.15)] w-full max-w-xl">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="pluggy">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pluggy Client ID</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="key" class="text-cyan-500 w-4 h-4"></i>
+                            </div>
+                            <input type="password" name="pluggy_client_id" value="{{ pluggy_client_id|default_if_none:'' }}" placeholder="ID do Cliente..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pluggy Client Secret</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="key" class="text-cyan-500 w-4 h-4"></i>
+                            </div>
+                            <input type="password" name="pluggy_client_secret" value="{{ pluggy_client_secret|default_if_none:'' }}" placeholder="Chave Secreta..." class="w-full bg-slate-950 border border-slate-700 rounded py-3 pl-10 pr-3 text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full py-2.5 bg-cyan-900 hover:bg-cyan-800 border border-cyan-700 text-cyan-200 font-bold rounded text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all mt-4">
+                        <i data-lucide="save" class="w-4 h-4"></i> Forjar Conexão Open Finance
+                    </button>
+                </div>
             </form>
         </div>
     </div>

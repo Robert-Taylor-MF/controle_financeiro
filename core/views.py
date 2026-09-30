@@ -412,6 +412,16 @@ def importar_fatura(request):
     return redirect('dashboard')
 
 @login_required
+def sincronizar_pluggy(request):
+    from .services.pluggy_service import sync_pluggy_transactions
+    sucesso, mensagem = sync_pluggy_transactions()
+    if sucesso:
+        messages.success(request, mensagem)
+    else:
+        messages.warning(request, mensagem)
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
+@login_required
 def aceitar_sugestoes_oraculo(request):
     import json
     if request.method == 'POST':
@@ -564,6 +574,17 @@ def central_cadastros(request):
             m_seg.groq_model_override = groq_model_override
             m_seg.save()
             messages.success(request, "A essência do Oráculo foi renovada com sucesso!")
+        elif acao == 'pluggy':
+            client_id = request.POST.get('pluggy_client_id', '')
+            client_secret = request.POST.get('pluggy_client_secret', '')
+            
+            user = request.user
+            from .models import MestreSeguranca
+            m_seg, created = MestreSeguranca.objects.get_or_create(user=user, defaults={'pergunta_secreta': '-', 'resposta_secreta': '-'})
+            m_seg.set_pluggy_client_id(client_id)
+            m_seg.set_pluggy_client_secret(client_secret)
+            m_seg.save()
+            messages.success(request, "A conexão com a guilda dos bancos (Pluggy) foi forjada com sucesso!")
         elif acao == 'configurar_backup':
             frequencia = request.POST.get('frequencia', 'MANUAL')
             horario = request.POST.get('horario')
@@ -671,6 +692,10 @@ def central_cadastros(request):
     groq_key = ms.get_groq_key() if ms else None
     ai_default = ms.ai_default if ms else 'GEMINI'
     groq_model_override = ms.groq_model_override if ms else ''
+    
+    pluggy_client_id = ms.get_pluggy_client_id() if ms else None
+    pluggy_client_secret = ms.get_pluggy_client_secret() if ms else None
+    
     has_env_fallback = bool(not oraculo_key and os.getenv("GEMINI_API_KEY"))
     
     backup_config = {
@@ -702,6 +727,8 @@ def central_cadastros(request):
         'groq_key': groq_key,
         'ai_default': ai_default,
         'groq_model_override': groq_model_override,
+        'pluggy_client_id': pluggy_client_id,
+        'pluggy_client_secret': pluggy_client_secret,
         'has_env_fallback': has_env_fallback,
         'backup_config': backup_config,
         'backup_history': backup_history,
@@ -937,9 +964,42 @@ def fatura_pdf(request):
     aliado = Pessoa.objects.get(id=pessoa_id)
     dono = Pessoa.objects.filter(is_owner=True).first()
 
-    # Busca as dívidas específicas da pessoa neste mês e soma tudo
-    transacoes = Transacao.objects.filter(responsavel=aliado, mes_fatura=mes, ano_fatura=ano).order_by('data_compra')
-    total = transacoes.aggregate(Sum('valor'))['valor__sum'] or 0
+    # Busca as dívidas específicas da pessoa (transações diretas sem rateio)
+    transacoes_diretas = Transacao.objects.filter(
+        responsavel=aliado, 
+        mes_fatura=mes, 
+        ano_fatura=ano, 
+        rateios__isnull=True
+    ).order_by('data_compra')
+    
+    # Busca os rateios (onde a pessoa participou de uma divisão)
+    from .models import Rateio
+    rateios = Rateio.objects.filter(
+        pessoa=aliado, 
+        transacao__mes_fatura=mes, 
+        transacao__ano_fatura=ano
+    ).select_related('transacao').order_by('transacao__data_compra')
+
+    transacoes = []
+    total = 0
+
+    for t in transacoes_diretas:
+        transacoes.append(t)
+        total += t.valor
+
+    class RateioItem:
+        def __init__(self, r):
+            self.data_compra = r.transacao.data_compra
+            self.descricao = f"{r.transacao.descricao} (Rateio)"
+            self.categoria = r.transacao.categoria
+            self.valor = r.valor
+
+    for r in rateios:
+        transacoes.append(RateioItem(r))
+        total += r.valor
+
+    # Ordena a lista combinada pela data de compra
+    transacoes.sort(key=lambda x: x.data_compra)
 
     # Cria a mensagem inteligente para o WhatsApp
     texto_zap = f"Fala {aliado.nome}! Aqui é o {dono.nome if dono else 'Titular'}. O fechamento da nossa party referente a {mes:02d}/{ano} deu R$ {float(total):.2f}. Segue a fatura! ⚔️"

@@ -127,6 +127,8 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, user_id
         try:
             from groq import Groq
             cliente = Groq(api_key=chave_api)
+        except ImportError:
+            return False, "O pacote 'groq' não está instalado. Por favor, execute: pip install groq"
         except Exception as e:
             return False, f"Falha ao evocar o Oráculo Groq: {str(e)}"
     else:
@@ -247,19 +249,20 @@ def processar_fatura_pdf(arquivo_pdf, cartao_id, mes_fatura, ano_fatura, user_id
                     break # Sucesso neste chunk
                 except Exception as e:
                     erro_str = str(e)
-                    if "503" in erro_str or "unavailable" in erro_str.lower() or "high demand" in erro_str.lower() or "429" in erro_str or "rate limit" in erro_str.lower():
-                        tentativa += 1
-                        print(f"[DEBUG Oráculo] Oráculo sobrecarregado. Aguardando 5s... (Tentativa {tentativa})")
-                        cancelado = False
-                        for _ in range(5):
-                            if user_id and cache.get(f'cancelar_oraculo_{user_id}'):
-                                cancelado = True
-                                break
-                            time.sleep(1)
-                        if cancelado:
-                            return False, "Operação cancelada pelo usuário."
-                    else:
+                    # Não tenta de novo se for erro de autenticação ou chave inválida
+                    if "api key" in erro_str.lower() or "authentication" in erro_str.lower() or "unauthorized" in erro_str.lower():
                         raise e
+                        
+                    tentativa += 1
+                    print(f"[DEBUG Oráculo] Erro na IA ({erro_str}). Aguardando 5s para tentar novamente... (Tentativa {tentativa})")
+                    cancelado = False
+                    for _ in range(5):
+                        if user_id and cache.get(f'cancelar_oraculo_{user_id}'):
+                            cancelado = True
+                            break
+                        time.sleep(1)
+                    if cancelado:
+                        return False, "Operação cancelada pelo usuário."
                         
             texto_ia = resposta_texto.strip()
             
@@ -514,15 +517,23 @@ def avaliar_transacoes_em_lote(transacoes, user_id=None):
             chave_api = ms.get_groq_key() if ms else None
             if not chave_api:
                 return False, "Oráculo Groq não configurado."
-            from groq import Groq
-            cliente = Groq(api_key=chave_api)
+            try:
+                from groq import Groq
+                cliente = Groq(api_key=chave_api)
+            except ImportError:
+                return False, "O pacote 'groq' não está instalado. Por favor, execute: pip install groq"
+            except Exception as e:
+                return False, f"Falha ao evocar o Oráculo Groq: {str(e)}"
         else:
             from google import genai
             import os
             chave_api = (ms.get_api_key() if ms and ms.get_api_key() else os.getenv("GEMINI_API_KEY"))
             if not chave_api:
                 return False, "Oráculo Gemini não configurado."
-            cliente = genai.Client(api_key=chave_api)
+            try:
+                cliente = genai.Client(api_key=chave_api)
+            except Exception as e:
+                return False, f"Falha ao evocar o Oráculo Gemini: {str(e)}"
             
         import time
         import json
@@ -593,18 +604,20 @@ def avaliar_transacoes_em_lote(transacoes, user_id=None):
                     break
                 except Exception as e:
                     erro_str = str(e)
-                    if "503" in erro_str or "unavailable" in erro_str.lower() or "high demand" in erro_str.lower() or "429" in erro_str or "rate limit" in erro_str.lower():
-                        tentativa += 1
-                        cancelado = False
-                        for _ in range(5):
-                            if user_id and cache.get(f'cancelar_oraculo_{user_id}'):
-                                cancelado = True
-                                break
-                            time.sleep(1)
-                        if cancelado:
-                            return False, "Operação cancelada."
-                    else:
+                    # Não tenta de novo se for erro de autenticação ou chave inválida
+                    if "api key" in erro_str.lower() or "authentication" in erro_str.lower() or "unauthorized" in erro_str.lower():
                         raise e
+                        
+                    tentativa += 1
+                    print(f"[DEBUG Lote] Erro na IA ({erro_str}). Aguardando 5s para tentar novamente... (Tentativa {tentativa})")
+                    cancelado = False
+                    for _ in range(5):
+                        if user_id and cache.get(f'cancelar_oraculo_{user_id}'):
+                            cancelado = True
+                            break
+                        time.sleep(1)
+                    if cancelado:
+                        return False, "Operação cancelada."
                         
             texto_ia = resposta_texto.strip()
             

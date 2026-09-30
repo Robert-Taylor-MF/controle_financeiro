@@ -122,6 +122,7 @@ class CartaoCredito(models.Model):
     limite_total = models.DecimalField(max_digits=10, decimal_places=2)
     dia_fechamento = models.IntegerField(help_text="Dia em que a fatura vira")
     dia_vencimento = models.IntegerField(help_text="Dia de pagar o boleto")
+    pluggy_account_id = models.CharField(max_length=150, blank=True, null=True, help_text="ID da Conta no Pluggy")
     
     def __str__(self):
         return self.nome
@@ -187,6 +188,8 @@ class Transacao(models.Model):
     mes_fatura = models.IntegerField(help_text="Mês de competência da fatura", default=1)
     ano_fatura = models.IntegerField(help_text="Ano de competência da fatura", default=2026)
     
+    pluggy_id = models.CharField(max_length=150, blank=True, null=True, unique=True, help_text="ID da transação no Pluggy")
+
     # Relacionamentos (Foreign Keys)
     responsavel = models.ForeignKey(
         Pessoa, on_delete=models.PROTECT, related_name='transacoes', null=True, blank=True
@@ -306,6 +309,9 @@ class MestreSeguranca(models.Model):
     groq_model_override = models.CharField(max_length=100, blank=True, null=True, help_text="Modelo Groq específico (deixe vazio para auto-detecção)")
     ai_default = models.CharField(max_length=20, default='GEMINI', choices=[('GEMINI', 'Gemini (Google)'), ('GROQ', 'Groq (Llama)')])
     
+    pluggy_client_id = models.CharField(max_length=500, blank=True, null=True)
+    pluggy_client_secret = models.CharField(max_length=500, blank=True, null=True)
+    
     def set_api_key(self, raw_key):
         if raw_key: self.gemini_api_key = get_fernet().encrypt(raw_key.encode('utf-8')).decode('utf-8')
         else: self.gemini_api_key = None
@@ -324,6 +330,26 @@ class MestreSeguranca(models.Model):
         if self.groq_api_key:
             try: return get_fernet().decrypt(self.groq_api_key.encode('utf-8')).decode('utf-8')
             except: return self.groq_api_key
+        return None
+
+    def set_pluggy_client_id(self, raw_id):
+        if raw_id: self.pluggy_client_id = get_fernet().encrypt(raw_id.encode('utf-8')).decode('utf-8')
+        else: self.pluggy_client_id = None
+
+    def get_pluggy_client_id(self):
+        if self.pluggy_client_id:
+            try: return get_fernet().decrypt(self.pluggy_client_id.encode('utf-8')).decode('utf-8')
+            except: return self.pluggy_client_id
+        return None
+
+    def set_pluggy_client_secret(self, raw_secret):
+        if raw_secret: self.pluggy_client_secret = get_fernet().encrypt(raw_secret.encode('utf-8')).decode('utf-8')
+        else: self.pluggy_client_secret = None
+
+    def get_pluggy_client_secret(self):
+        if self.pluggy_client_secret:
+            try: return get_fernet().decrypt(self.pluggy_client_secret.encode('utf-8')).decode('utf-8')
+            except: return self.pluggy_client_secret
         return None
 
     def set_resposta(self, resp):

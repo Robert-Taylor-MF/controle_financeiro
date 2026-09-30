@@ -4,12 +4,13 @@ from .models import CartaoCredito, Pessoa, Categoria, RendaMensal, Transacao, In
 class CartaoCreditoForm(forms.ModelForm):
     class Meta:
         model = CartaoCredito
-        fields = ['nome', 'limite_total', 'dia_fechamento', 'dia_vencimento']
+        fields = ['nome', 'limite_total', 'dia_fechamento', 'dia_vencimento', 'pluggy_account_id']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'limite_total': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'dia_fechamento': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
             'dia_vencimento': forms.NumberInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200'}),
+            'pluggy_account_id': forms.TextInput(attrs={'class': 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200', 'placeholder': 'Opcional (Deixe em branco se não usar Pluggy)'}),
         }
 
 class PessoaForm(forms.ModelForm):

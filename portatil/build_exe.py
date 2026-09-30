@@ -94,6 +94,18 @@ def build():
             shutil.copy2(src_db, os.path.join(dst_dados, 'db.sqlite3'))
             shutil.copy2(src_db, os.path.join(DIST_DIR, 'MoneyQuest', 'db.sqlite3'))
             print("[OK] Banco de dados sincronizado na pasta do executável.")
+            
+        # Copia a pasta media
+        src_media = os.path.join(BASE_DIR, 'dados', 'media')
+        if not os.path.exists(src_media):
+            src_media = os.path.join(BASE_DIR, 'media')
+            
+        if os.path.exists(src_media):
+            dst_media = os.path.join(DIST_DIR, 'MoneyQuest', 'media')
+            if os.path.exists(dst_media):
+                shutil.rmtree(dst_media)
+            shutil.copytree(src_media, dst_media)
+            print("[OK] Pasta media sincronizada na pasta do executável.")
 
         print()
         print("==========================================================")
